@@ -12,19 +12,22 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
-  path_provider: ^2.1.1
-  flutter_markdown: ^0.6.14
-  flutter_animate: ^4.3.0
-  animated_text_kit: ^4.2.2
-  fl_chart: ^0.63.0
-  flutter_glow: ^0.3.2
-  rive: ^0.11.0
-  shared_preferences: ^2.2.2
-  uuid: ^3.0.7
-  newton_particles: ^0.2.2
-  lottie: ^2.6.0
+  hive: 2.2.3
+  hive_flutter: 1.1.0
+  path_provider: 2.1.1
+  flutter_markdown: 0.7.7+1
+  flutter_animate: 4.3.0
+  animated_text_kit: 4.2.2
+  fl_chart: 1.0.0
+  flutter_glow: 0.3.2
+  rive: 0.13.20
+  shared_preferences: 2.2.2
+  uuid: 4.5.1
+  newton_particles: 0.2.2
+  lottie: 3.3.1
+  flame: 1.29.0
+  flame_forge2d: 0.18.3+1    # 2D物理（撞飞修士用）
+  flame_audio: 2.11.6
 
 dev_dependencies:
   flutter_test:

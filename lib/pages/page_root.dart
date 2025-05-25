@@ -59,7 +59,13 @@ class _XiudiRootState extends State<XiudiRoot> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          _pages[_currentIndex],
+          // ✅ 包一层 padding，避免内容被底部菜单遮挡
+          Padding(
+            padding: const EdgeInsets.only(bottom: 80),
+            child: _pages[_currentIndex],
+          ),
+
+          // ✅ 底部浮动菜单
           Positioned(
             bottom: 0,
             left: 0,
