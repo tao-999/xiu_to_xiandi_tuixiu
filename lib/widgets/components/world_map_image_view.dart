@@ -21,20 +21,31 @@ class _WorldMapImageViewState extends State<WorldMapImageView> {
   late final FreeMapGame _game;
 
   @override
-  void initState() {
-    super.initState();
-    _game = FreeMapGame(safePadding: widget.safePadding);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final screenSize = MediaQuery.of(context).size;
+    _game = FreeMapGame(
+      safePadding: widget.safePadding,
+      logicalScreenSize: screenSize,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return GameWidget(game: _game);
+    return SizedBox.expand(
+      child: GameWidget(game: _game),
+    );
   }
 }
 
 class FreeMapGame extends FlameGame with TapCallbacks {
   final EdgeInsets safePadding;
-  FreeMapGame({required this.safePadding});
+  final Size logicalScreenSize;
+
+  FreeMapGame({
+    required this.safePadding,
+    required this.logicalScreenSize,
+  });
 
   final double mapWidth = 3000;
   final double mapHeight = 3000;
@@ -57,17 +68,15 @@ class FreeMapGame extends FlameGame with TapCallbacks {
 
   @override
   Future<void> onLoad() async {
-    final screenSize = ui.window.physicalSize / ui.window.devicePixelRatio;
     rows = (mapHeight / tileSize).floor();
     cols = (mapWidth / tileSize).floor();
 
     world = World();
     add(world);
 
-    // 背景底色
     world.add(RectangleComponent(
       size: Vector2(mapWidth, mapHeight),
-      paint: Paint()..color = const Color(0xFF444444),
+      paint: Paint()..color = const Color(0xFFD2B48C),
     ));
 
     final random = Random();
@@ -99,17 +108,17 @@ class FreeMapGame extends FlameGame with TapCallbacks {
       ..position = Vector2(mapWidth / 2, mapHeight / 2);
     world.add(player);
 
-    cameraComponent = CameraComponent.withFixedResolution(
-      world: world,
-      width: screenSize.width,
-      height: screenSize.height,
-    )
+    cameraComponent = CameraComponent(world: world)
       ..viewfinder.anchor = Anchor.center
       ..follow(player)
       ..setBounds(
         Rectangle.fromLTWH(0, 0, mapWidth, mapHeight),
         considerViewport: true,
       );
+
+    // ✅ 这回不搞花活，zoom=1，原比例不动地图
+    cameraComponent.viewfinder.zoom = 1.0;
+
     add(cameraComponent);
 
     pathFinder = PathFinder(grid: grid, tileSize: tileSize);
@@ -160,7 +169,7 @@ class FreeMapGame extends FlameGame with TapCallbacks {
       ));
       world.add(TextComponent(
         text: emoji,
-        position: Vector2(i * spacing, mapHeight),
+        position: Vector2(i * spacing, mapHeight - spacing),
         anchor: Anchor.center,
         priority: 1000,
       ));
@@ -175,7 +184,7 @@ class FreeMapGame extends FlameGame with TapCallbacks {
       ));
       world.add(TextComponent(
         text: emoji,
-        position: Vector2(mapWidth, j * spacing),
+        position: Vector2(mapWidth - spacing, j * spacing),
         anchor: Anchor.center,
         priority: 1000,
       ));

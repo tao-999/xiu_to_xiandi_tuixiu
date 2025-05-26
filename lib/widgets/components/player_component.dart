@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class PlayerComponent extends PositionComponent {
   Vector2? target;            // 当前移动目标点
   final double speed = 200.0; // px / 秒，自由调节
-  final Paint _paint = Paint()..color = Colors.orange;
+  final Paint _paint = Paint()..color = Colors.black;
 
   PlayerComponent() {
     size = Vector2.all(50);   // 一格大小

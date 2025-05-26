@@ -17,11 +17,12 @@ class _YouliPageState extends State<YouliPage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFECECEC),
-      body: Builder( // 👈 这里包一层 Builder 才能拿 context
+      body: Builder(
         builder: (context) {
           final safePadding = MediaQuery.of(context).padding;
-          return WorldMapImageView(safePadding: safePadding);
+          return SizedBox.expand(
+            child: WorldMapImageView(safePadding: safePadding),
+          );
         },
       ),
     );

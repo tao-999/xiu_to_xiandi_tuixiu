@@ -26,8 +26,9 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
   late AnimationController _floatController;
   late Animation<Offset> _floatOffset;
 
+  LottieComposition? _composition;
   late Timer _timer;
-  Duration _elapsed = Duration.zero;
+  final ValueNotifier<Duration> _elapsedNotifier = ValueNotifier(Duration.zero);
 
   @override
   void initState() {
@@ -46,14 +47,20 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
       curve: Curves.easeInOut,
     ));
 
-    // 初始计算
-    _elapsed = DateTime.now().difference(widget.createdAt);
+    // 预加载 Lottie 动画
+    _loadComposition();
 
-    // 每秒刷新修炼时间（60倍速计算）
+    // 初始化时间
+    _elapsedNotifier.value = DateTime.now().difference(widget.createdAt);
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() {
-        _elapsed = DateTime.now().difference(widget.createdAt);
-      });
+      _elapsedNotifier.value = DateTime.now().difference(widget.createdAt);
+    });
+  }
+
+  Future<void> _loadComposition() async {
+    final comp = await AssetLottie('assets/animations/spirit_smoke.json').load();
+    setState(() {
+      _composition = comp;
     });
   }
 
@@ -61,6 +68,7 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
   void dispose() {
     _floatController.dispose();
     _timer.cancel();
+    _elapsedNotifier.dispose();
     super.dispose();
   }
 
@@ -70,14 +78,15 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
       alignment: Alignment.center,
       children: [
         // 灵气特效（左右对称）
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildAura(context, false),
-            const SizedBox(width: 10),
-            _buildAura(context, true),
-          ],
-        ),
+        if (_composition != null)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildAura(mirror: false),
+              const SizedBox(width: 10),
+              _buildAura(mirror: true),
+            ],
+          ),
 
         // 修士人物 + 状态
         !widget.ready
@@ -99,9 +108,15 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
                 ),
               ),
             ),
-            Text(
-              _formatDuration(_elapsed),
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            const SizedBox(height: 8),
+            ValueListenableBuilder<Duration>(
+              valueListenable: _elapsedNotifier,
+              builder: (context, duration, _) {
+                return Text(
+                  _formatDuration(duration),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                );
+              },
             ),
           ],
         ),
@@ -109,11 +124,9 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
     );
   }
 
-  Widget _buildAura(BuildContext context, bool mirror) {
+  Widget _buildAura({required bool mirror}) {
     final transform = Matrix4.identity();
-    if (mirror) {
-      transform.scale(-1.0, 1.0);
-    }
+    if (mirror) transform.scale(-1.0, 1.0);
 
     return SizedBox(
       width: 50,
@@ -128,8 +141,8 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
               Colors.white.withOpacity(0.9),
               BlendMode.srcIn,
             ),
-            child: Lottie.asset(
-              'assets/animations/spirit_smoke.json',
+            child: Lottie(
+              composition: _composition!,
               repeat: true,
               fit: BoxFit.contain,
             ),
