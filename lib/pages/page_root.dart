@@ -116,7 +116,6 @@ class _XiudiRootState extends State<XiudiRoot> {
       context: context,
       builder: (ctx) => MapSwitchDialog(
         currentStage: currentStage,
-        cultivationExp: player.cultivation, // 👈 只传修为
         onSelected: (stage) async {
           setState(() => currentStage = stage);
           game.switchMap(stage);

@@ -1,25 +1,46 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart'; // ✅ 使用用户已有类
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 
-class MapSwitchDialog extends StatelessWidget {
+class MapSwitchDialog extends StatefulWidget {
   final int currentStage;
-  final double cultivationExp;
   final void Function(int stage) onSelected;
 
   const MapSwitchDialog({
     super.key,
     required this.currentStage,
-    required this.cultivationExp,
     required this.onSelected,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final level = calculateCultivationLevel(cultivationExp);
-    final realmIndex = realms.indexOf(level.realm);
-    final maxStage = (realmIndex + 1).clamp(1, 9);
+  State<MapSwitchDialog> createState() => _MapSwitchDialogState();
+}
 
+class _MapSwitchDialogState extends State<MapSwitchDialog> {
+  int maxStage = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMaxStage();
+  }
+
+  Future<void> _loadMaxStage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final exp = prefs.getDouble('cultivation_exp') ?? 0.0;
+
+    final level = calculateCultivationLevel(exp);
+    final realmIndex = realms.indexOf(level.realm);
+    final unlockedStage = (realmIndex + 1).clamp(1, 9);
+
+    setState(() {
+      maxStage = unlockedStage;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
       title: const Text("选择挂机地图"),
@@ -30,7 +51,7 @@ class MapSwitchDialog extends StatelessWidget {
           itemCount: 9,
           itemBuilder: (context, index) {
             final stage = index + 1;
-            final isSelected = stage == currentStage;
+            final isSelected = stage == widget.currentStage;
             final isDisabled = stage > maxStage;
             final name = ['一','二','三','四','五','六','七','八','九'][index];
             final efficiency = pow(2, stage - 1).toInt();
@@ -60,7 +81,7 @@ class MapSwitchDialog extends StatelessWidget {
                   ? null
                   : () {
                 Navigator.of(context).pop();
-                onSelected(stage);
+                widget.onSelected(stage);
               },
             );
           },
