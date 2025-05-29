@@ -5,46 +5,25 @@ import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 
 class CultivationTracker {
-  static const String _expKey = 'cultivation_exp';
   static const String _loginTimeKey = 'lastOnlineTimestamp';
   static const double _qiPerSecond = 1.0;
 
-  static double _baseExp = 0.0;
-  static int _loginTimestamp = 0;
   static Timer? _tickTimer;
 
-  static Future<void> init() async {
+  /// 初始化时补算登录期间修为（只修改 player.cultivation）
+  static Future<void> initWithPlayer(Character player) async {
     final prefs = await SharedPreferences.getInstance();
-    _baseExp = prefs.getDouble(_expKey) ?? 0.0;
-    _loginTimestamp = prefs.getInt(_loginTimeKey) ?? DateTime.now().millisecondsSinceEpoch;
+    final lastLogin = prefs.getInt(_loginTimeKey) ?? DateTime.now().millisecondsSinceEpoch;
 
-    _loginTimestamp = DateTime.now().millisecondsSinceEpoch;
-    await prefs.setInt(_loginTimeKey, _loginTimestamp);
-  }
-
-  static double get currentExp {
     final now = DateTime.now().millisecondsSinceEpoch;
-    final seconds = ((now - _loginTimestamp) / 1000).floor();
-    return _baseExp + seconds * _qiPerSecond;
-  }
+    final seconds = ((now - lastLogin) / 1000).floor();
 
-  static Future<void> saveCurrentExp() async {
-    final prefs = await SharedPreferences.getInstance();
-    final nowExp = currentExp;
-    _baseExp = nowExp;
-    _loginTimestamp = DateTime.now().millisecondsSinceEpoch;
+    final added = seconds * _qiPerSecond * player.cultivationEfficiency;
+    final maxExp = getMaxExpByAptitude(player.totalElement);
+    player.cultivation = (player.cultivation + added).clamp(0, maxExp);
 
-    await prefs.setDouble(_expKey, _baseExp);
-    await prefs.setInt(_loginTimeKey, _loginTimestamp);
-  }
-
-  static Future<void> savePlayerCultivation(double cultivation) async {
-    _baseExp = cultivation;
-    _loginTimestamp = DateTime.now().millisecondsSinceEpoch;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble(_expKey, _baseExp);
-    await prefs.setInt(_loginTimeKey, _loginTimestamp);
+    await prefs.setInt(_loginTimeKey, now);
+    await _updateCultivationOnly(player.cultivation);
   }
 
   static void startTickWithPlayer(
@@ -54,32 +33,25 @@ class CultivationTracker {
     _tickTimer?.cancel();
 
     final startTime = DateTime.now().millisecondsSinceEpoch;
-    final startExp = _baseExp;
-
+    final startExp = player.cultivation;
     int lastTotalLayer = calculateCultivationLevel(player.cultivation).totalLayer;
 
     _tickTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       final now = DateTime.now().millisecondsSinceEpoch;
       final seconds = ((now - startTime) / 1000).floor();
+      final gain = seconds * _qiPerSecond * player.cultivationEfficiency;
+      final newExp = (startExp + gain);
 
-      final double efficiency = player.cultivationEfficiency;
-      final generatedExp = startExp + seconds * _qiPerSecond * efficiency;
-      print("generatedExp🤣====$efficiency");
       final maxExp = getMaxExpByAptitude(player.totalElement);
-
-      if (generatedExp <= maxExp) {
-        player.cultivation = generatedExp;
-        _baseExp = generatedExp;
-      } else {
-        player.cultivation = maxExp;
-        _baseExp = maxExp;
-      }
+      player.cultivation = newExp.clamp(0, maxExp);
 
       final newTotalLayer = calculateCultivationLevel(player.cultivation).totalLayer;
       if (newTotalLayer > lastTotalLayer) {
         player.applyBreakthroughBonus();
         lastTotalLayer = newTotalLayer;
       }
+
+      await _updateCultivationOnly(player.cultivation);
 
       onUpdate?.call();
     });
@@ -109,7 +81,6 @@ class CultivationTracker {
       print('【溢出被禁止】无法增加修为');
     } else {
       player.cultivation += addedExp;
-
       if (player.cultivation > maxExp) {
         player.cultivation = maxExp;
       }
@@ -122,10 +93,17 @@ class CultivationTracker {
       }
     }
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('playerData', jsonEncode(player.toJson()));
-    await savePlayerCultivation(player.cultivation);
-
+    await _updateCultivationOnly(player.cultivation);
     startTickWithPlayer(player, onUpdate: onUpdate);
+  }
+
+  /// ✅ 通用封装：只保存修为字段，不动其他字段
+  static Future<void> _updateCultivationOnly(double cultivation) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('playerData') ?? '{}';
+    final playerJson = jsonDecode(raw);
+
+    playerJson['cultivation'] = cultivation;
+    await prefs.setString('playerData', jsonEncode(playerJson));
   }
 }

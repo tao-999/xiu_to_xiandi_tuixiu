@@ -67,7 +67,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
       evilAura: 0.0,
       weakAura: 0.0,
       corrosionAura: 0.0,
-      cultivationEfficiency:1.0,
+      cultivationEfficiency: 1.0,
       elements: {
         'gold': gold,
         'wood': wood,
@@ -79,7 +79,8 @@ class _CreateRolePageState extends State<CreateRolePage> {
     );
 
     await prefs.setString('playerData', jsonEncode(character.toJson()));
-    await CultivationTracker.init();
+
+    // ✅ 不再调用 CultivationTracker.init()
   }
 
   void _updateValue(String element, int value) {

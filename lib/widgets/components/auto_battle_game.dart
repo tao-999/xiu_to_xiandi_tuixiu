@@ -63,21 +63,33 @@ class AutoBattleGame extends FlameGame {
     bg?.removeFromParent();
     mask?.removeFromParent();
 
+    String bgPath;
+    if (stage <= 3) {
+      bgPath = 'assets/images/hell_stage_1_to_3.jpg';
+    } else if (stage <= 6) {
+      bgPath = 'assets/images/hell_stage_4_to_6_compressed.jpg';
+    } else {
+      bgPath = 'assets/images/hell_stage_7_to_9_compressed.jpg';
+    }
+
     bg = SpriteComponent()
-      ..sprite = await Sprite.load('hell_background_compressed.jpg')
+      ..sprite = await Sprite.load(bgPath.replaceFirst('assets/images/', ''))
       ..size = size
       ..position = Vector2.zero()
       ..anchor = Anchor.topLeft
       ..priority = -1;
+
     add(bg!);
 
+    // 蒙版可选
     mask = RectangleComponent(
       size: size,
       position: Vector2.zero(),
-      paint: Paint()..color = const Color(0xFFDFCCAA).withOpacity(0.5),
+      paint: Paint()..color = const Color(0xFFDFCCAA).withOpacity(0.3),
     )
       ..anchor = Anchor.topLeft
       ..priority = 0;
+
     add(mask!);
   }
 

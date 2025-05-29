@@ -44,8 +44,7 @@ class _CharacterPageState extends State<CharacterPage> {
 
   @override
   void dispose() {
-    CultivationTracker.saveCurrentExp();
-    super.dispose();
+    super.dispose(); // ✅ 不再保存expKey
   }
 
   @override
@@ -150,28 +149,31 @@ class _CharacterPageState extends State<CharacterPage> {
                     minimumSize: const Size(40, 32),
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
-                  onPressed: () async {
-                    for (final key in player.elements.keys) {
-                      player.elements[key] = (player.elements[key] ?? 0) + 2;
-                    }
+                    onPressed: () async {
+                      for (final key in player.elements.keys) {
+                        player.elements[key] = (player.elements[key] ?? 0) + 2;
+                      }
 
-                    await CultivationTracker.savePlayerCultivation(player.cultivation);
+                      // ✅ 只更新 elements 字段，防止误覆盖 cultivation 或其他字段
+                      final prefs = await SharedPreferences.getInstance();
+                      final raw = prefs.getString('playerData') ?? '{}';
+                      final json = jsonDecode(raw);
+                      json['elements'] = player.elements;
 
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('playerData', jsonEncode(player.toJson()));
+                      await prefs.setString('playerData', jsonEncode(json));
 
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("✨ 资质提升成功！"),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("✨ 资质提升成功！"),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
 
-                    if (mounted) setState(() {});
-                  },
-                  child: const Text("升资质", style: TextStyle(fontSize: 12)),
+                      if (mounted) setState(() {});
+                    },
+                    child: const Text("升资质", style: TextStyle(fontSize: 12)),
                 ),
               ],
             ),

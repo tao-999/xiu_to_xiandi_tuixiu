@@ -25,14 +25,13 @@ class XiudiRoot extends StatefulWidget {
 }
 
 class _XiudiRootState extends State<XiudiRoot> {
+  Character? player;
   String gender = 'male';
   int currentStage = 1;
-  late AutoBattleGame game;
-  late Character player;
+  AutoBattleGame? game;
 
   final List<String> _labels = ['角色', '游历', '宗门', '招募'];
-
-  List<String> _iconPaths = [
+  final List<String> _iconPaths = [
     'assets/images/icon_dazuo_male.png',
     'assets/images/icon_youli.png',
     'assets/images/icon_zongmen.png',
@@ -42,13 +41,8 @@ class _XiudiRootState extends State<XiudiRoot> {
   @override
   void initState() {
     super.initState();
-    game = AutoBattleGame(
-      playerEmojiOrIconPath: 'icon_dazuo_male_256.png',
-      isAssetImage: true,
-      currentMapStage: 1,
-    );
-    _loadPlayerData();
     _recordLoginTime();
+    _loadPlayerData();
   }
 
   Future<void> _recordLoginTime() async {
@@ -63,30 +57,37 @@ class _XiudiRootState extends State<XiudiRoot> {
     if (playerStr == null) return;
 
     final data = jsonDecode(playerStr);
-    player = Character.fromJson(data);
+    final loadedPlayer = Character.fromJson(data);
+
+    final savedStage = prefs.getInt('currentMapStage') ?? 1;
+    final newGender = loadedPlayer.gender;
 
     setState(() {
-      gender = player.gender;
-      currentStage = player.cultivationEfficiency.toInt();
-      _iconPaths[0] = (gender == 'female')
+      player = loadedPlayer;
+      gender = newGender;
+      currentStage = savedStage;
+
+      _iconPaths[0] = (newGender == 'female')
           ? 'assets/images/icon_dazuo_female.png'
           : 'assets/images/icon_dazuo_male.png';
 
       game = AutoBattleGame(
-        playerEmojiOrIconPath: gender == 'female'
+        playerEmojiOrIconPath: newGender == 'female'
             ? 'icon_dazuo_female_256.png'
             : 'icon_dazuo_male_256.png',
         isAssetImage: true,
-        currentMapStage: currentStage,
+        currentMapStage: savedStage,
       );
+    });
 
-      CultivationTracker.startTickWithPlayer(player, onUpdate: () {
-        setState(() {});
-      });
+    CultivationTracker.startTickWithPlayer(player!, onUpdate: () {
+      setState(() {});
     });
   }
 
   void _navigateToPage(int index) {
+    if (player == null) return;
+
     Widget page;
     switch (index) {
       case 0:
@@ -105,33 +106,45 @@ class _XiudiRootState extends State<XiudiRoot> {
         return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => page),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
 
   void _showMapDialog() {
+    if (player == null) return;
+
     showDialog(
       context: context,
       builder: (ctx) => MapSwitchDialog(
         currentStage: currentStage,
         onSelected: (stage) async {
           setState(() => currentStage = stage);
-          game.switchMap(stage);
-          game.updateBattleSpeed(stage);
 
-          player.cultivationEfficiency = pow(2, stage - 1).toDouble();
+          // 地图切换逻辑
+          game?.switchMap(stage);
+          game?.updateBattleSpeed(stage);
+
+          // 更新挂机效率（不保存）
+          player!.cultivationEfficiency = pow(2, stage - 1).toDouble();
+
+          // 保存当前地图阶段
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('playerData', jsonEncode(player.toJson()));
+          await prefs.setInt('currentMapStage', stage);
 
+          // ✅ 重新加载最新 player 数据，防止 startTick 用的是旧修为
+          final jsonStr = prefs.getString('playerData');
+          if (jsonStr == null) return;
+          player = Character.fromJson(jsonDecode(jsonStr)); // 🔥 替换为最新数据
+          if (player != null) {
+            player!.cultivationEfficiency = pow(2, stage - 1).toDouble();
+          }
+
+          // ✅ 重启修炼逻辑
           CultivationTracker.stopTick();
-          CultivationTracker.startTickWithPlayer(player, onUpdate: () {
-            setState(() {});
+          CultivationTracker.startTickWithPlayer(player!, onUpdate: () {
+            if (mounted) setState(() {});
           });
-
-          await CultivationTracker.savePlayerCultivation(player.cultivation);
         },
+
       ),
     );
   }
@@ -143,13 +156,18 @@ class _XiudiRootState extends State<XiudiRoot> {
 
   @override
   Widget build(BuildContext context) {
+    if (player == null || game == null) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          Positioned.fill(
-            child: game == null ? const SizedBox() : GameWidget(game: game),
-          ),
+          Positioned.fill(child: GameWidget(game: game!)),
           Positioned(
             left: 20,
             bottom: 120,
@@ -164,7 +182,7 @@ class _XiudiRootState extends State<XiudiRoot> {
             right: 0,
             height: 60,
             child: Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage('assets/images/menu_background_final.webp'),
                   fit: BoxFit.cover,
@@ -194,10 +212,7 @@ class _XiudiRootState extends State<XiudiRoot> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           clipBehavior: Clip.antiAlias,
-                          child: Image.asset(
-                            _iconPaths[index],
-                            fit: BoxFit.cover,
-                          ),
+                          child: Image.asset(_iconPaths[index], fit: BoxFit.cover),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -246,9 +261,8 @@ class _XiudiRootState extends State<XiudiRoot> {
             if (confirmed == true) {
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear();
-              player = Character.empty();
+              player = null;
               CultivationTracker.stopTick();
-
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const CreateRolePage()),
                     (route) => false,

@@ -42,11 +42,11 @@ const List<String> realms = [
   "渡劫期",
 ];
 
-const double baseExp = 100.0; // 第一层所需修为
-const double expMultiplier = 1.5; // 每层增长倍数
+const double baseExp = 100.0;      // 第一层所需修为
+const double expMultiplier = 1.5;  // 每层增长倍数
 const int levelsPerRealm = 9;
 
-/// 📊 计算当前层所需的修为（直接写死算法：每层 *1.5）
+/// 📊 每一层所需修为
 double expNeededForLevel(int level) {
   return baseExp * pow(expMultiplier, level - 1);
 }
@@ -61,18 +61,27 @@ double totalExpToLevel(int level) {
 }
 
 /// 🔍 根据当前修为返回所在的境界 + 重数 + 当前进度
+/// ✅ 满经验不进阶，只有“超出”才代表突破
 CultivationLevel calculateCultivationLevel(double cultivationExp) {
   int level = 1;
-  while (level < 189 && cultivationExp >= totalExpToLevel(level + 1)) {
+  double accumulatedExp = 0;
+
+  while (level < 189) {
+    final currentExp = expNeededForLevel(level);
+    final maxThisLevel = accumulatedExp + currentExp;
+
+    // 如果修为没超过当前层最大修为，就停在这层
+    if (cultivationExp < maxThisLevel) break;
+
+    accumulatedExp = maxThisLevel;
     level++;
   }
 
-  int realmIndex = (level - 1) ~/ levelsPerRealm;
-  int rank = (level - 1) % levelsPerRealm + 1;
-
   final currentLevelExp = expNeededForLevel(level);
-  final prevTotal = totalExpToLevel(level);
-  final progress = ((cultivationExp - prevTotal) / currentLevelExp).clamp(0.0, 1.0);
+  final progress = ((cultivationExp - accumulatedExp) / currentLevelExp).clamp(0.0, 1.0);
+
+  final realmIndex = (level - 1) ~/ levelsPerRealm;
+  final rank = (level - 1) % levelsPerRealm + 1;
 
   return CultivationLevel(
     realms[realmIndex],

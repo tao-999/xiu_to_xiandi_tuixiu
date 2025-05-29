@@ -10,22 +10,24 @@ import 'models/character.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 初始化修为系统
-  await CultivationTracker.init();
-
   // 判断是否已创建角色（根据 playerData 是否存在 + id 是否为空）
   final prefs = await SharedPreferences.getInstance();
   final playerStr = prefs.getString('playerData');
 
   bool hasCreatedRole = false;
+  Character? player;
+
   if (playerStr != null && playerStr.isNotEmpty) {
     final playerJson = jsonDecode(playerStr);
     final playerId = playerJson['id'];
-    hasCreatedRole = playerId != null && playerId.toString().isNotEmpty;
+    if (playerId != null && playerId.toString().isNotEmpty) {
+      hasCreatedRole = true;
+      player = Character.fromJson(playerJson);
+    }
   }
-  if (hasCreatedRole) {
-    final playerJson = jsonDecode(playerStr!);
-    final player = Character.fromJson(playerJson);
+
+  // ✅ 用角色数据初始化 Tracker（用 player.cultivation 作为修为起点）
+  if (hasCreatedRole && player != null) {
     CultivationTracker.startTickWithPlayer(player);
   }
 
