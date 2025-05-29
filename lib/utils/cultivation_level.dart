@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 
 /// 🌱 表示修炼者当前的境界状态（用于逻辑判断）
@@ -71,7 +73,7 @@ CultivationLevel calculateCultivationLevel(double cultivationExp) {
     final maxThisLevel = accumulatedExp + currentExp;
 
     // 如果修为没超过当前层最大修为，就停在这层
-    if (cultivationExp < maxThisLevel) break;
+    if (cultivationExp <= maxThisLevel) break;
 
     accumulatedExp = maxThisLevel;
     level++;
@@ -92,31 +94,40 @@ CultivationLevel calculateCultivationLevel(double cultivationExp) {
 }
 
 /// 🎯 返回用于 UI 展示的进度信息（突破后自动归零）
-CultivationLevelDisplay getDisplayLevel(double cultivationExp, [int? totalElement]) {
-  if (totalElement != null) {
-    final maxExp = CultivationTracker.getMaxExpByAptitude(totalElement);
+/// ✅ 修复显示：考虑挂机效率倍率（若已应用）
+/// ✅ 数据实时读取 SharedPreferences，避免状态滞后
+Future<CultivationLevelDisplay> getDisplayLevelFromPrefs() async {
+  final prefs = await SharedPreferences.getInstance();
+  final raw = prefs.getString('playerData') ?? '{}';
+  final json = jsonDecode(raw);
 
-    if (cultivationExp >= maxExp) {
-      final maxLevel = (totalElement * 0.9).floor().clamp(1, 189);
-      final realmIndex = (maxLevel - 1) ~/ levelsPerRealm;
-      final rank = (maxLevel - 1) % levelsPerRealm + 1;
-      final levelExp = expNeededForLevel(maxLevel);
+  final double cultivationExp = (json['cultivation'] ?? 0.0).toDouble();
+  final Map<String, dynamic> elements = (json['elements'] ?? {}) as Map<String, dynamic>;
+  final int totalElement = elements.values.fold(0, (a, b) => a + (b as int));
 
-      return CultivationLevelDisplay(
-        realms[realmIndex],
-        rank,
-        levelExp,
-        levelExp,
-      );
-    }
+  final maxExp = CultivationTracker.getMaxExpByAptitude(totalElement);
+  print("🐷cultivationExp=$cultivationExp");
+  if (cultivationExp >= maxExp) {
+    final maxLevel = (totalElement * 0.9).floor().clamp(1, 189);
+    final realmIndex = (maxLevel - 1) ~/ levelsPerRealm;
+    final rank = (maxLevel - 1) % levelsPerRealm + 1;
+    final levelExp = expNeededForLevel(maxLevel);
+
+    return CultivationLevelDisplay(
+      realms[realmIndex],
+      rank,
+      levelExp,
+      levelExp,
+    );
   }
 
   final level = calculateCultivationLevel(cultivationExp);
+  final bool justBreakthrough = level.progress == 0.0;
 
   return CultivationLevelDisplay(
     level.realm,
     level.rank,
-    level.progress * level.totalExp,
+    justBreakthrough ? 0.0 : level.progress * level.totalExp,
     level.totalExp,
   );
 }

@@ -1,9 +1,7 @@
 import 'dart:math';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class MapSwitchDialog extends StatefulWidget {
   final int currentStage;
@@ -29,17 +27,14 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
   }
 
   Future<void> _loadMaxStage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final playerStr = prefs.getString('playerData');
+    final player = await PlayerStorage.getPlayer();
+    if (player == null) return;
 
-    if (playerStr == null) return;
-
-    final player = Character.fromJson(jsonDecode(playerStr));
-    final exp = player.cultivation; // ✅ 用真正的角色数据中的修为！
-
+    final exp = player.cultivation;
     final level = calculateCultivationLevel(exp);
     final unlockedStage = ((level.totalLayer - 1) ~/ 9 + 1).clamp(1, 9);
-    print("😮‍💨level=$level-------unlockedStage=$unlockedStage");
+
+    print("😮‍💨 level=$level ------- unlockedStage=$unlockedStage");
 
     setState(() {
       maxStage = unlockedStage;

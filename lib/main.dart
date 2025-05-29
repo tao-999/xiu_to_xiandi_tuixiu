@@ -28,7 +28,7 @@ void main() async {
 
   // ✅ 用角色数据初始化 Tracker（用 player.cultivation 作为修为起点）
   if (hasCreatedRole && player != null) {
-    CultivationTracker.startTickWithPlayer(player);
+    CultivationTracker.startTickWithPlayer();
   }
 
   runApp(XiudiApp(hasCreatedRole: hasCreatedRole));

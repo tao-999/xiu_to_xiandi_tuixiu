@@ -5,6 +5,7 @@ class Character {
   String career;
   double cultivation; // 当前修为值
   double cultivationEfficiency; // 修炼效率倍率，默认 1.0
+  int currentMapStage; // ✅ 当前挂机地图阶段（新增）
 
   // 核心基础属性
   int hp;
@@ -53,7 +54,8 @@ class Character {
     required this.corrosionAura,
     required this.elements,
     required this.technique,
-    this.cultivationEfficiency = 1.0, // 新增字段，默认倍率为 1.0
+    this.cultivationEfficiency = 1.0,
+    this.currentMapStage = 1, // ✅ 默认地图为第1阶
   });
 
   int get totalElement => elements.values.fold(0, (a, b) => a + b);
@@ -81,7 +83,8 @@ class Character {
     'gender': gender,
     'career': career,
     'cultivation': cultivation,
-    'cultivationEfficiency': cultivationEfficiency, // 👈 保存效率字段
+    'cultivationEfficiency': cultivationEfficiency,
+    'currentMapStage': currentMapStage, // ✅ 加入序列化
     'hp': hp,
     'atk': atk,
     'def': def,
@@ -106,7 +109,8 @@ class Character {
     gender: json['gender'],
     career: json['career'],
     cultivation: (json['cultivation'] ?? 0).toDouble(),
-    cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(), // 👈 加载效率字段
+    cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
+    currentMapStage: json['currentMapStage'] ?? 1, // ✅ 加入反序列化
     hp: json['hp'],
     atk: json['atk'],
     def: json['def'],
@@ -132,6 +136,7 @@ class Character {
     career: '散修',
     cultivation: 0.0,
     cultivationEfficiency: 1.0,
+    currentMapStage: 1, // ✅ 空对象默认第1阶地图
     hp: 100,
     atk: 10,
     def: 5,
