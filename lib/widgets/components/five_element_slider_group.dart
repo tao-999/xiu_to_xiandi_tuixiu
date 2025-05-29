@@ -35,13 +35,30 @@ class WuxingAllocationPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("五行天赋分配（总点数上限：30）", style: TextStyle(color: Colors.black)),
-        const SizedBox(height: 6),
-        Text(
-          "剩余点数：${maxTotal - currentTotal}",
-          style: TextStyle(
-            color: (maxTotal - currentTotal) < 0 ? Colors.red : Colors.black,
-            fontWeight: FontWeight.bold,
+        RichText(
+          text: TextSpan(
+            style: const TextStyle(fontSize: 14, color: Colors.black),
+            children: [
+              const TextSpan(
+                text: '五行天赋分配（上限30，剩余点数：',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                ),
+              ),
+              TextSpan(
+                text: '${maxTotal - currentTotal}',
+                style: TextStyle(
+                  color: Colors.black54,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const TextSpan(
+                text: '）',
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),

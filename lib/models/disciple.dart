@@ -1,22 +1,22 @@
 class Disciple {
-  final String id;
-  final String name;
-  final String gender;
-  final int age;
-  final int aptitude;
-  final String realm;
-  final int loyalty;
-  final String specialty;
-  final List<String> talents;
-  final int lifespan;
-  final int cultivation;
+  final String id; // ✅ 弟子唯一标识符
+  final String name; // ✅ 弟子姓名
+  final String gender; // ✅ 性别（"男" / "女"）
+  final int age; // ✅ 年龄
+  final int aptitude; // ✅ 资质（决定成长上限，通常 1~200）
+  final String realm; // ✅ 当前境界（如“筑基期”、“金丹期”等）
+  final int loyalty; // ✅ 忠诚度（0~100，影响叛变、任务完成度等）
+  final String specialty; // ✅ 擅长类型（如“炼丹”、“战斗”、“管理”）
+  final List<String> talents; // ✅ 天赋标签（如“灵体”、“慧根”）
+  final int lifespan; // ✅ 剩余寿元（单位：年）
+  final int cultivation; // ✅ 当前修为数值（决定突破可能）
 
-  // 后期系统字段
-  final int breakthroughChance;
-  final List<String> skills;
-  final int fatigue;
-  final bool isOnMission;
-  final int? missionEndTimestamp;
+  // ✅ 后期系统字段，用于任务、技能、状态管理
+  final int breakthroughChance; // ✅ 当前突破成功率（0~100）
+  final List<String> skills; // ✅ 掌握的技能名称列表
+  final int fatigue; // ✅ 疲劳值（影响可否执行任务或战斗）
+  final bool isOnMission; // ✅ 是否正在执行外派任务
+  final int? missionEndTimestamp; // ✅ 当前任务结束时间戳（ms），为空表示未出征
 
   Disciple({
     required this.id,
@@ -37,7 +37,7 @@ class Disciple {
     required this.missionEndTimestamp,
   });
 
-  /// ✅ 存储序列化
+  /// ✅ 序列化为 Map（用于存储，如 Hive/JSON）
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -59,7 +59,7 @@ class Disciple {
     };
   }
 
-  /// ✅ 反序列化
+  /// ✅ 从 Map 反序列化为 Disciple 实例（用于读取保存的数据）
   factory Disciple.fromMap(Map<String, dynamic> map) {
     return Disciple(
       id: map['id'],
@@ -70,11 +70,11 @@ class Disciple {
       realm: map['realm'],
       loyalty: map['loyalty'],
       specialty: map['specialty'],
-      talents: [...(map['talents'] ?? <String>[])], // ✅ 强制复制
+      talents: [...(map['talents'] ?? <String>[])], // ✅ 防止共享引用
       lifespan: map['lifespan'],
       cultivation: map['cultivation'],
       breakthroughChance: map['breakthroughChance'],
-      skills: [...(map['skills'] ?? <String>[])],   // ✅ 强制复制
+      skills: [...(map['skills'] ?? <String>[])],   // ✅ 防止共享引用
       fatigue: map['fatigue'],
       isOnMission: map['isOnMission'],
       missionEndTimestamp: map['missionEndTimestamp'],

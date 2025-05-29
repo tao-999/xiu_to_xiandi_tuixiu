@@ -28,4 +28,14 @@ class PlayerStorage {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_playerKey, jsonEncode(player.toJson()));
   }
+
+  static Future<void> updateFields(Map<String, dynamic> fields) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_playerKey) ?? '{}';
+    final json = jsonDecode(raw);
+
+    json.addAll(fields); // 🧪 批量更新字段
+
+    await prefs.setString(_playerKey, jsonEncode(json));
+  }
 }

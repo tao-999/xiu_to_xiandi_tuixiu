@@ -1,3 +1,7 @@
+import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
+
+/// 👤 Character —— 修士角色类
+/// 记录角色基本信息、属性、资质、修为、地图阶段与资源信息等
 class Character {
   final String id;
   String name;
@@ -32,6 +36,8 @@ class Character {
 
   String technique;
 
+  Resources resources; // ✅ 加入资源对象（灵石、灵气等）
+
   Character({
     required this.id,
     required this.name,
@@ -54,6 +60,7 @@ class Character {
     required this.corrosionAura,
     required this.elements,
     required this.technique,
+    required this.resources, // ✅ 加入资源初始化
     this.cultivationEfficiency = 1.0,
     this.currentMapStage = 1, // ✅ 默认地图为第1阶
   });
@@ -101,6 +108,7 @@ class Character {
     'corrosionAura': corrosionAura,
     'elements': elements,
     'technique': technique,
+    'resources': resources.toMap(), // ✅ 序列化资源
   };
 
   factory Character.fromJson(Map<String, dynamic> json) => Character(
@@ -110,10 +118,13 @@ class Character {
     career: json['career'],
     cultivation: (json['cultivation'] ?? 0).toDouble(),
     cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
-    currentMapStage: json['currentMapStage'] ?? 1, // ✅ 加入反序列化
-    hp: json['hp'],
-    atk: json['atk'],
-    def: json['def'],
+    currentMapStage: json['currentMapStage'] ?? 1,
+
+    // ✅ 关键：确保类型安全转成 int，防止 prefs 中存了 double
+    hp: (json['hp'] as num).toInt(),
+    atk: (json['atk'] as num).toInt(),
+    def: (json['def'] as num).toInt(),
+
     atkSpeed: (json['atkSpeed'] ?? 1.5).toDouble(),
     critRate: (json['critRate'] ?? 0.0).toDouble(),
     critDamage: (json['critDamage'] ?? 0.0).toDouble(),
@@ -125,8 +136,16 @@ class Character {
     evilAura: (json['evilAura'] ?? 0.0).toDouble(),
     weakAura: (json['weakAura'] ?? 0.0).toDouble(),
     corrosionAura: (json['corrosionAura'] ?? 0.0).toDouble(),
-    elements: Map<String, int>.from(json['elements']),
+
+    // ✅ 五行转 int，防止被 double 污染
+    elements: Map<String, int>.fromEntries(
+      (json['elements'] as Map<String, dynamic>).entries.map(
+            (e) => MapEntry(e.key, (e.value as num).toInt()),
+      ),
+    ),
+
     technique: json['technique'],
+    resources: Resources.fromMap(json['resources'] ?? {}),
   );
 
   factory Character.empty() => Character(
@@ -159,5 +178,6 @@ class Character {
       'earth': 0,
     },
     technique: '无名功法',
+    resources: Resources(), // ✅ 空角色初始资源为 0
   );
 }

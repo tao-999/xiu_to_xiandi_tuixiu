@@ -13,15 +13,13 @@ class BackButtonOverlay extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.4),
+            color: const Color(0xFFE5D7B8),
             borderRadius: BorderRadius.circular(24),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: const [
-              Icon(Icons.arrow_back, size: 20, color: Colors.white),
-              SizedBox(width: 6),
-              Text('返回', style: TextStyle(color: Colors.white)),
+              Text('返回', style: TextStyle(color: Colors.black54)),
             ],
           ),
         ),

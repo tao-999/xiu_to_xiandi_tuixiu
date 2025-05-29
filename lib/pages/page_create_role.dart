@@ -7,12 +7,12 @@ import 'package:uuid/uuid.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/charts/polygon_radar_chart.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/effects/xiuxian_particle_background.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_root.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/name_generator.dart'; // 👈 引入名字生成器
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/fantasy_radio_box.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/fancy_name_input.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/five_element_slider_group.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
 class CreateRolePage extends StatefulWidget {
   const CreateRolePage({super.key});
@@ -76,6 +76,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
         'earth': earth,
       },
       technique: '无',
+      resources: Resources(),
     );
 
     await prefs.setString('playerData', jsonEncode(character.toJson()));

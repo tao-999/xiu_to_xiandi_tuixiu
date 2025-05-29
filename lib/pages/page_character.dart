@@ -11,6 +11,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/effects/break_through_aura.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format_util.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key});
@@ -151,8 +152,13 @@ class _CharacterPageState extends State<CharacterPage> {
                         final display = await getDisplayLevelFromPrefs();
                         final added = display.current;
 
-                        await CultivationTracker.applyRewardedExp(player, added, onUpdate: () {
-                          if (mounted) setState(() {});
+                        await CultivationTracker.applyRewardedExp(added, onUpdate: () async {
+                          final updated = await PlayerStorage.getPlayer(); // 🟢 从 storage 重新拉
+                          if (mounted && updated != null) {
+                            setState(() {
+                              player = updated; // 🧠 替换为最新数据
+                            });
+                          }
                         });
                       },
                       child: const Icon(Icons.bolt),

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class CultivationTracker {
   static const String _loginTimeKey = 'lastOnlineTimestamp';
@@ -82,11 +83,13 @@ class CultivationTracker {
 
   /// 发放额外修为（例如奖励、翻倍等）
   static Future<void> applyRewardedExp(
-      Character player,
       double addedExp, {
         void Function()? onUpdate,
       }) async {
     stopTick();
+
+    final player = await PlayerStorage.getPlayer();
+    if (player == null) return;
 
     final maxExp = getMaxExpByAptitude(player.totalElement);
     final oldStage = calculateCultivationLevel(player.cultivation);
@@ -94,18 +97,32 @@ class CultivationTracker {
     if (player.cultivation >= maxExp) {
       print('【溢出被禁止】无法增加修为');
     } else {
-      player.cultivation += addedExp;
-      if (player.cultivation > maxExp) {
-        player.cultivation = maxExp;
-      }
+      player.cultivation = (player.cultivation + addedExp).clamp(0, maxExp);
 
       final newStage = calculateCultivationLevel(player.cultivation);
+      bool hasBreakthrough = false;
+
       if (newStage.totalLayer > oldStage.totalLayer) {
-        player.applyBreakthroughBonus();
+        player.applyBreakthroughBonus(); // 会修改 hp、atk、def
+        hasBreakthrough = true;
       }
+
+      // ✅ 更新字段，必须加上突破属性！
+      final Map<String, dynamic> updateMap = {
+        'cultivation': player.cultivation,
+      };
+
+      if (hasBreakthrough) {
+        updateMap.addAll({
+          'hp': player.hp,
+          'atk': player.atk,
+          'def': player.def,
+        });
+      }
+
+      await PlayerStorage.updateFields(updateMap);
     }
 
-    await _updateCultivationOnly(player.cultivation);
     startTickWithPlayer(onUpdate: onUpdate);
   }
 

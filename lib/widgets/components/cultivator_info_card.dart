@@ -98,10 +98,10 @@ class CultivatorInfoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('${profile.name} · ${profile.career}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                  style: const TextStyle(color: Colors.black, fontSize: 16)),
               const SizedBox(height: 4),
               Text('战力：${formatLargeNumber(profile.power)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                  style: const TextStyle(color: Colors.black, fontSize: 16)),
               const SizedBox(height: 4),
               Text(
                 '五行属性：' +
@@ -109,12 +109,12 @@ class CultivatorInfoCard extends StatelessWidget {
                         .where((e) => e.value > 0)
                         .map((e) => '${elementLabels[e.key] ?? e.key}${e.value}')
                         .join('  '),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                style: const TextStyle(color: Colors.black, fontSize: 16),
               ),
               const SizedBox(height: 4),
               Text(
                 '资质：${profile.totalElement}（${_getAptitudeLabel(profile.totalElement)}）',
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                style: const TextStyle(color: Colors.black, fontSize: 16),
               ),
             ],
           ),
