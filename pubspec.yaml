@@ -39,3 +39,9 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
+    - assets/data/
+    - assets/fonts/
+  fonts:
+    - family: ZcoolCangEr
+      fonts:
+        - asset: assets/fonts/zcool_canger/zcool_canger-W02.ttf

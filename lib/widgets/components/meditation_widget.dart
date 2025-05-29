@@ -108,16 +108,6 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            ValueListenableBuilder<Duration>(
-              valueListenable: _elapsedNotifier,
-              builder: (context, duration, _) {
-                return Text(
-                  _formatDuration(duration),
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                );
-              },
-            ),
           ],
         ),
       ],
@@ -150,28 +140,5 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
         ),
       ),
     );
-  }
-
-  String _formatDuration(Duration d) {
-    final fast = Duration(seconds: d.inSeconds * 60);
-    final totalSeconds = fast.inSeconds;
-
-    final years = totalSeconds ~/ (60 * 60 * 24 * 365);
-    final months = (totalSeconds % (60 * 60 * 24 * 365)) ~/ (60 * 60 * 24 * 30);
-    final days = (totalSeconds % (60 * 60 * 24 * 30)) ~/ (60 * 60 * 24);
-
-    final bigZhoutian = (totalSeconds % (60 * 60 * 24)) ~/ (60 * 60 * 6); // 每6小时一个
-    final smallZhoutian = (totalSeconds % (60 * 60 * 6)) ~/ (60 * 30);     // 每30分钟一个
-    final seconds = totalSeconds % 60;
-
-    final parts = <String>[];
-    if (years > 0) parts.add('$years年');
-    if (months > 0) parts.add('$months月');
-    if (days > 0) parts.add('$days日');
-    if (bigZhoutian > 0) parts.add('$bigZhoutian大周天');
-    if (smallZhoutian > 0) parts.add('$smallZhoutian小周天');
-    if (seconds > 0 || parts.isEmpty) parts.add('$seconds息');
-
-    return '已修炼：${parts.join()}';
   }
 }

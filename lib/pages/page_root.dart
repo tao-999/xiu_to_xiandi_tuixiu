@@ -1,13 +1,21 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flame/game.dart'; // ✅ 必须有这个！
+import 'package:flame/game.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'page_character.dart';
 import 'page_youli.dart';
 import 'page_zongmen.dart';
 import 'page_zhaomu.dart';
+import 'page_create_role.dart';
+
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/auto_battle_game.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/map_button_component.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/map_switch_dialog.dart';
+
+import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 
 class XiudiRoot extends StatefulWidget {
   const XiudiRoot({super.key});
@@ -17,7 +25,10 @@ class XiudiRoot extends StatefulWidget {
 }
 
 class _XiudiRootState extends State<XiudiRoot> {
-  String gender = 'male'; // 默认值，后续从 SharedPreferences 加载
+  String gender = 'male';
+  int currentStage = 1;
+  late AutoBattleGame game;
+  late Character player;
 
   final List<String> _labels = ['角色', '游历', '宗门', '招募'];
 
@@ -31,23 +42,47 @@ class _XiudiRootState extends State<XiudiRoot> {
   @override
   void initState() {
     super.initState();
-    _loadGender(); // 初始化时加载性别
+    game = AutoBattleGame(
+      playerEmojiOrIconPath: 'icon_dazuo_male_256.png',
+      isAssetImage: true,
+      currentMapStage: 1,
+    );
+    _loadPlayerData();
+    _recordLoginTime();
   }
 
-  Future<void> _loadGender() async {
+  Future<void> _recordLoginTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await prefs.setInt('lastOnlineTimestamp', now);
+  }
+
+  Future<void> _loadPlayerData() async {
     final prefs = await SharedPreferences.getInstance();
     final playerStr = prefs.getString('playerData');
     if (playerStr == null) return;
 
-    final player = jsonDecode(playerStr);
-    final g = player['gender'];
-    debugPrint('🐉 获取到角色性别：$g');
+    final data = jsonDecode(playerStr);
+    player = Character.fromJson(data);
 
     setState(() {
-      gender = g;
+      gender = player.gender;
+      currentStage = player.cultivationEfficiency.toInt();
       _iconPaths[0] = (gender == 'female')
           ? 'assets/images/icon_dazuo_female.png'
           : 'assets/images/icon_dazuo_male.png';
+
+      game = AutoBattleGame(
+        playerEmojiOrIconPath: gender == 'female'
+            ? 'icon_dazuo_female_256.png'
+            : 'icon_dazuo_male_256.png',
+        isAssetImage: true,
+        currentMapStage: currentStage,
+      );
+
+      CultivationTracker.startTickWithPlayer(player, onUpdate: () {
+        setState(() {});
+      });
     });
   }
 
@@ -76,18 +111,54 @@ class _XiudiRootState extends State<XiudiRoot> {
     );
   }
 
+  void _showMapDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => MapSwitchDialog(
+        currentStage: currentStage,
+        cultivationExp: player.cultivation, // 👈 只传修为
+        onSelected: (stage) async {
+          setState(() => currentStage = stage);
+          game.switchMap(stage);
+          game.updateBattleSpeed(stage);
+
+          player.cultivationEfficiency = pow(2, stage - 1).toDouble();
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('playerData', jsonEncode(player.toJson()));
+
+          CultivationTracker.stopTick();
+          CultivationTracker.startTickWithPlayer(player, onUpdate: () {
+            setState(() {});
+          });
+
+          await CultivationTracker.savePlayerCultivation(player.cultivation);
+        },
+      ),
+    );
+  }
+
+  String _getStageName(int stage) {
+    const names = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    return stage >= 1 && stage <= 9 ? names[stage - 1] : '$stage';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Flame 战斗背景层
           Positioned.fill(
-            child: GameWidget(game: AutoBattleGame()),
+            child: game == null ? const SizedBox() : GameWidget(game: game),
           ),
-
-          // 背景栏（贴到底部，承托 icon）
+          Positioned(
+            left: 20,
+            bottom: 120,
+            child: MapButtonComponent(
+              text: '${_getStageName(currentStage)}阶地图',
+              onPressed: _showMapDialog,
+            ),
+          ),
           Positioned(
             bottom: 0,
             left: 0,
@@ -103,8 +174,6 @@ class _XiudiRootState extends State<XiudiRoot> {
               ),
             ),
           ),
-
-          // 图标 + 文字（完全独立悬浮）
           Positioned(
             bottom: 8,
             left: 0,
@@ -148,6 +217,46 @@ class _XiudiRootState extends State<XiudiRoot> {
             ),
           ),
         ],
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 120),
+        child: FloatingActionButton(
+          backgroundColor: Colors.redAccent,
+          tooltip: '清空角色数据',
+          child: const Icon(Icons.delete_forever),
+          onPressed: () async {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('确定要重置角色吗？'),
+                content: const Text('该操作将清空所有修为、信息和存档，无法恢复！'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('取消'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('确定'),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirmed == true) {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear();
+              player = Character.empty();
+              CultivationTracker.stopTick();
+
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const CreateRolePage()),
+                    (route) => false,
+              );
+            }
+          },
+        ),
       ),
     );
   }

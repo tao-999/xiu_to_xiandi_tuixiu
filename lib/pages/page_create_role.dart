@@ -1,10 +1,18 @@
-import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+
 import 'package:xiu_to_xiandi_tuixiu/widgets/charts/polygon_radar_chart.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/effects/xiuxian_particle_background.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_root.dart';
-import 'package:uuid/uuid.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/name_generator.dart'; // 👈 引入名字生成器
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/fantasy_radio_box.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/fancy_name_input.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/five_element_slider_group.dart';
 
 class CreateRolePage extends StatefulWidget {
   const CreateRolePage({super.key});
@@ -28,23 +36,50 @@ class _CreateRolePageState extends State<CreateRolePage> {
 
   int get currentTotal => gold + wood + water + fire + earth;
 
+  @override
+  void initState() {
+    super.initState();
+    nickname = NameGenerator.generate(); // 👈 初始化时生成骚名
+  }
+
   Future<void> _saveRoleData() async {
     final uuid = Uuid();
     final String playerId = uuid.v4();
     final prefs = await SharedPreferences.getInstance();
-    final Map<String, dynamic> player = {
-      'playerId': playerId,
-      'nickname': nickname,
-      'gender': gender,
-      'bio': bio,
-      'gold': gold,
-      'wood': wood,
-      'water': water,
-      'fire': fire,
-      'earth': earth,
-      'createdAt': DateTime.now().toIso8601String(), // ✅ 创建时间字段
-    };
-    await prefs.setString('playerData', jsonEncode(player));
+
+    final character = Character(
+      id: playerId,
+      name: nickname,
+      gender: gender,
+      career: '散修',
+      cultivation: 0.0,
+      hp: 100,
+      atk: 20,
+      def: 10,
+      atkSpeed: 1.0,
+      critRate: 0.05,
+      critDamage: 0.5,
+      dodgeRate: 0.05,
+      lifeSteal: 0.0,
+      breakArmorRate: 0.0,
+      luckRate: 0.05,
+      comboRate: 0.1,
+      evilAura: 0.0,
+      weakAura: 0.0,
+      corrosionAura: 0.0,
+      cultivationEfficiency:1.0,
+      elements: {
+        'gold': gold,
+        'wood': wood,
+        'water': water,
+        'fire': fire,
+        'earth': earth,
+      },
+      technique: '无',
+    );
+
+    await prefs.setString('playerData', jsonEncode(character.toJson()));
+    await CultivationTracker.init();
   }
 
   void _updateValue(String element, int value) {
@@ -85,11 +120,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
             ),
           ),
           Container(color: Colors.white.withOpacity(0.4)),
-          SizedBox(
-            width: double.infinity,
-            height: MediaQuery.of(context).size.height,
-            child: const XiuxianParticleBackground(),
-          ),
+          const XiuxianParticleBackground(),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
@@ -98,78 +129,37 @@ class _CreateRolePageState extends State<CreateRolePage> {
                 children: [
                   const Text("灵魂投放 · 创建角色", style: TextStyle(fontSize: 20, color: Colors.black)),
                   const SizedBox(height: 16),
-                  TextField(
-                    onChanged: (value) => setState(() => nickname = value),
-                    decoration: const InputDecoration(labelText: "修士道号", labelStyle: TextStyle(color: Colors.black)),
-                    style: const TextStyle(color: Colors.black),
+
+                  /// 昵称输入 + 随机按钮
+                  FancyNameInput(
+                    value: nickname,
+                    onChanged: (val) => setState(() => nickname = val),
+                    onRandom: () => setState(() => nickname = NameGenerator.generate()),
                   ),
+
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Text("性别：", style: TextStyle(color: Colors.black)),
-                      Radio(
-                        value: "male",
-                        groupValue: gender,
-                        activeColor: Colors.teal,
-                        onChanged: (value) => setState(() => gender = value!),
-                      ),
-                      const Text("男", style: TextStyle(color: Colors.black)),
-                      Radio(
-                        value: "female",
-                        groupValue: gender,
-                        activeColor: Colors.teal,
-                        onChanged: (value) => setState(() => gender = value!),
-                      ),
-                      const Text("女", style: TextStyle(color: Colors.black)),
-                    ],
+
+                  /// 性别选择
+                  FantasyRadioGroup(
+                    groupLabel: "性别：",
+                    selected: gender, // 这里一定是 "male" 或 "female"
+                    options: ["male", "female"],
+                    onChanged: (val) => setState(() => gender = val),
                   ),
+
                   const SizedBox(height: 12),
-                  TextField(
-                    onChanged: (value) => setState(() => bio = value),
-                    decoration: const InputDecoration(labelText: "道心宣言（可空）", labelStyle: TextStyle(color: Colors.black45)),
-                    style: const TextStyle(color: Colors.black),
+
+                  /// 五行分配
+                  WuxingAllocationPanel(
+                    gold: gold,
+                    wood: wood,
+                    water: water,
+                    fire: fire,
+                    earth: earth,
+                    onValueChanged: _updateValue,
                   ),
-                  const SizedBox(height: 12),
-                  const Text("五行天赋分配（总点数上限：30）", style: TextStyle(color: Colors.black)),
-                  const SizedBox(height: 6),
-                  Text(
-                    "剩余点数：${maxTotal - currentTotal}",
-                    style: TextStyle(
-                      color: (maxTotal - currentTotal) < 0 ? Colors.red : Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  ...["金", "木", "水", "火", "土"].map((e) {
-                    int current = {
-                      '金': gold,
-                      '木': wood,
-                      '水': water,
-                      '火': fire,
-                      '土': earth,
-                    }[e]!;
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("$e：$current", style: const TextStyle(color: Colors.black)),
-                        Slider(
-                          min: 0,
-                          max: 15,
-                          divisions: 15,
-                          activeColor: Colors.teal,
-                          inactiveColor: Colors.teal.shade100,
-                          label: current.toString(),
-                          value: current.toDouble(),
-                          onChanged: (val) {
-                            if (currentTotal - current + val.toInt() <= maxTotal) {
-                              _updateValue(e, val.toInt());
-                            }
-                          },
-                        ),
-                      ],
-                    );
-                  }),
-                  const SizedBox(height: 12),
+
+                  /// 雷达图展示
                   Center(
                     child: SizedBox(
                       width: 240,
@@ -184,7 +174,10 @@ class _CreateRolePageState extends State<CreateRolePage> {
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 24),
+
+                  /// 启灵按钮
                   Center(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
