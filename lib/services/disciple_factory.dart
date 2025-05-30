@@ -1,54 +1,60 @@
 import 'dart:math';
 import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/name_generator.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/ssr_disciple_pool.dart';
 
-/// ------------------------------
-/// 资质权重结构体
-/// ------------------------------
+final _rng = Random();
+
+/// 🎯 保底计数器键名
+const String _drawsKey = 'draws_since_ssr';
+
+/// 🧠 获取并更新持久化计数
+Future<int> generateHumanAptitude() async {
+  final prefs = await SharedPreferences.getInstance();
+  int count = prefs.getInt(_drawsKey) ?? 0;
+  count++;
+
+  // 🎯 达到保底
+  if (count >= 100) {
+    await prefs.setInt(_drawsKey, 0);
+    return 81 + _rng.nextInt(10); // 强制出 SSR
+  }
+
+  int a = _generateAptitude(_humanAptitudeTable);
+
+  if (a >= 81) {
+    await prefs.setInt(_drawsKey, 0); // 出 SSR 自动重置
+  } else {
+    await prefs.setInt(_drawsKey, count); // 更新抽数
+  }
+
+  return a;
+}
+
+/// 📦 权重结构
 class _AptitudeEntry {
   final int min;
   final int max;
   final int weight;
-
   const _AptitudeEntry(this.min, this.max, this.weight);
 }
 
-/// ------------------------------
-/// 人界资质权重（总和 1000）
-/// ------------------------------
+/// 🎲 人界权重表
 const List<_AptitudeEntry> _humanAptitudeTable = [
-  _AptitudeEntry(81, 90, 1),    // 渡劫期 - 0.1%
-  _AptitudeEntry(71, 80, 10),   // 大乘期 - 1%
-  _AptitudeEntry(61, 70, 30),   // 合体期 - 3%
-  _AptitudeEntry(51, 60, 60),   // 炼虚期 - 6%
-  _AptitudeEntry(41, 50, 100),  // 化神期 - 10%
-  _AptitudeEntry(31, 40, 200),  // 元婴期 - 20%
-  _AptitudeEntry(21, 30, 250),  // 金丹期 - 25%
-  _AptitudeEntry(11, 20, 200),  // 筑基期 - 20%
-  _AptitudeEntry(1, 10, 149),   // 练气期 - 14.9%
+  _AptitudeEntry(81, 90, 1),
+  _AptitudeEntry(71, 80, 10),
+  _AptitudeEntry(61, 70, 30),
+  _AptitudeEntry(51, 60, 60),
+  _AptitudeEntry(41, 50, 100),
+  _AptitudeEntry(31, 40, 200),
+  _AptitudeEntry(21, 30, 250),
+  _AptitudeEntry(11, 20, 200),
+  _AptitudeEntry(1, 10, 149),
 ];
 
-/// ------------------------------
-/// 仙界资质权重（总和约 1994）
-/// ------------------------------
-const List<_AptitudeEntry> _immortalAptitudeTable = [
-  _AptitudeEntry(101, 110, 700),  // 地仙
-  _AptitudeEntry(111, 120, 600),  // 天仙
-  _AptitudeEntry(121, 130, 500),  // 真仙
-  _AptitudeEntry(131, 140, 330),  // 玄仙
-  _AptitudeEntry(141, 150, 300),  // 灵仙
-  _AptitudeEntry(151, 160, 200),  // 虚仙
-  _AptitudeEntry(161, 170, 100),  // 圣仙
-  _AptitudeEntry(171, 180, 50),   // 混元仙
-  _AptitudeEntry(181, 190, 10),   // 太乙仙
-  _AptitudeEntry(191, 200, 2),    // 太清仙
-  _AptitudeEntry(201, 210, 2),    // 至尊仙帝（可调整权重）
-];
-
-final _rng = Random();
-int _drawsSinceLastDuJie = 0; // 渡劫保底计数器
-
+/// 🎲 根据权重随机生成资质
 int _generateAptitude(List<_AptitudeEntry> table) {
   int totalWeight = table.fold(0, (sum, e) => sum + e.weight);
   int roll = _rng.nextInt(totalWeight);
@@ -63,106 +69,61 @@ int _generateAptitude(List<_AptitudeEntry> table) {
   return last.min + _rng.nextInt(last.max - last.min + 1);
 }
 
-int generateHumanAptitude() {
-  _drawsSinceLastDuJie++;
-  if (_drawsSinceLastDuJie >= 100) {
-    _drawsSinceLastDuJie = 0;
-    return _rng.nextInt(10) + 81; // 强制出渡劫期
-  }
-  int aptitude = _generateAptitude(_humanAptitudeTable);
-  if (aptitude >= 81) {
-    _drawsSinceLastDuJie = 0;
-  }
-  return aptitude;
+/// 🖼️ 资质区间映射通用图片
+String getImageForAptitude(int apt) {
+  if (apt <= 10) return 'assets/images/lianqi.png';
+  if (apt <= 20) return 'assets/images/zhuji.png';
+  if (apt <= 30) return 'assets/images/jindan.png';
+  if (apt <= 40) return 'assets/images/yuanying.png';
+  if (apt <= 50) return 'assets/images/huashen.png';
+  if (apt <= 60) return 'assets/images/lianxu.png';
+  if (apt <= 70) return 'assets/images/heti.png';
+  return 'assets/images/dacheng.png';
 }
 
-String _mapHumanAptitudeToRealm(int aptitude) {
-  if (aptitude >= 81) return "渡劫期";
-  if (aptitude >= 71) return "大乘期";
-  if (aptitude >= 61) return "合体期";
-  if (aptitude >= 51) return "炼虚期";
-  if (aptitude >= 41) return "化神期";
-  if (aptitude >= 31) return "元婴期";
-  if (aptitude >= 21) return "金丹期";
-  if (aptitude >= 11) return "筑基期";
-  return "练气期";
-}
-
-String _mapImmortalAptitudeToRealm(int aptitude) {
-  if (aptitude >= 201) return "至尊仙帝";
-  if (aptitude >= 191) return "太清仙";
-  if (aptitude >= 181) return "太乙仙";
-  if (aptitude >= 171) return "混元仙";
-  if (aptitude >= 161) return "圣仙";
-  if (aptitude >= 151) return "虚仙";
-  if (aptitude >= 141) return "灵仙";
-  if (aptitude >= 131) return "玄仙";
-  if (aptitude >= 121) return "真仙";
-  if (aptitude >= 111) return "天仙";
-  return "地仙";
-}
-
-class SpecialtyGenerator {
-  static const List<String> _options = [
-    "剑术", "符箓", "炼丹", "炼器", "御兽", "驭雷",
-    "毒术", "阵法", "控火", "驭水", "冰封", "遁术"
-  ];
-  static String pick() {
-    final list = List<String>.from(_options);
-    list.shuffle();
-    return list.first;
-  }
-}
-
-class TalentGenerator {
-  static const List<String> _options = [
-    "灵根纯粹", "神识强大", "身法如电", "百毒不侵", "火系亲和",
-    "冰封万物", "御剑天成", "精神免疫", "炼丹奇才", "战意滔天",
-    "隐匿天赋", "灵气吞噬"
-  ];
-  static List<String> pickMultiple(int count) {
-    final list = List<String>.from(_options);
-    list.shuffle();
-    return list.take(count).toList();
-  }
-}
-
+/// ✅ 主入口：人界招募（支持 SSR Map 池子结构）
 class DiscipleFactory {
-  static Disciple generateRandom({String pool = 'human'}) {
-    final rng = Random();
+  static Future<Disciple> generateRandom({String pool = 'human'}) async {
     final uuid = const Uuid();
+    final aptitude = await generateHumanAptitude();
+    final isFemale = _rng.nextBool();
+    final gender = isFemale ? 'female' : 'male';
+    final name = NameGenerator.generate(isMale: !isFemale);
+    final age = 12 + _rng.nextInt(7); // 12~18岁
 
-    final int aptitude = pool == 'human'
-        ? generateHumanAptitude()
-        : _generateAptitude(_immortalAptitudeTable);
+    if (aptitude >= 81) {
+      // 🎯 SSR 从 raw pool 中找一位
+      final matchMap = ssrDiscipleRawPool.firstWhere(
+            (d) => d['aptitude'] == aptitude,
+        orElse: () => ssrDiscipleRawPool[_rng.nextInt(ssrDiscipleRawPool.length)],
+      );
 
-    final realm = pool == 'human'
-        ? _mapHumanAptitudeToRealm(aptitude)
-        : _mapImmortalAptitudeToRealm(aptitude);
+      return Disciple(
+        id: uuid.v4(),
+        name: matchMap['name'],
+        gender: matchMap['gender'],
+        age: matchMap['age'],
+        aptitude: matchMap['aptitude'],
+        hp: matchMap['hp'],
+        atk: matchMap['atk'],
+        def: matchMap['def'],
+        realm: '凡人',
+        imagePath: matchMap['imagePath'],
+      );
+    }
 
-    final bool isFemale = rng.nextBool();
-    final String gender = isFemale ? 'female' : 'male';
-
-    final String name = NameGenerator.generate(isMale: !isFemale); // 👈 用布尔值匹配你的生成器
-
+    // 🎲 非 SSR 自由生成
     return Disciple(
       id: uuid.v4(),
       name: name,
       gender: gender,
-      age: rng.nextInt(19), // 0~18岁
+      age: age,
       aptitude: aptitude,
-      realm: "凡人", // 🧙‍♂️ 修为写死凡人
-      loyalty: 30 + rng.nextInt(41),
-      specialty: SpecialtyGenerator.pick(),
-      talents: TalentGenerator.pickMultiple(2),
-      lifespan: 100 + rng.nextInt(200),
-      cultivation: 0,
-      breakthroughChance: rng.nextInt(15) + 5,
-      skills: [],
-      fatigue: 0,
-      isOnMission: false,
-      missionEndTimestamp: null,
-      imagePath: '', // ✅ 暂无立绘路径
+      hp: 100,
+      atk: 20,
+      def: 10,
+      realm: '凡人',
+      imagePath: getImageForAptitude(aptitude),
     );
   }
 }

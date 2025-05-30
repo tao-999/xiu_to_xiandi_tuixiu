@@ -5,6 +5,8 @@ import 'package:xiu_to_xiandi_tuixiu/services/disciple_factory.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/recruit_probability_dialog.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/recruit_card_widget.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/disciple_list_dialog.dart';
 
 class ZhaomuPage extends StatefulWidget {
   const ZhaomuPage({super.key});
@@ -38,6 +40,7 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
     final player = await PlayerStorage.getPlayer();
     if (player == null) return;
 
+    // ✅ 检查人界招募券
     if (currentPool == 'human') {
       final current = player.resources.humanRecruitTicket;
       if (current < count) {
@@ -46,28 +49,27 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
         );
         return;
       }
+
       player.resources.humanRecruitTicket -= count;
-      await PlayerStorage.savePlayer(player); // ✅ 回存整个 player，保持一致
+      await PlayerStorage.savePlayer(player);
       setState(() {
         ticketCount = player.resources.humanRecruitTicket;
       });
     }
 
-    final List<Disciple> newList = [];
-    for (int i = 0; i < count; i++) {
-      final d = DiscipleFactory.generateRandom(pool: currentPool);
-      newList.add(d);
-    }
-
-    // ✨ 展示卡牌弹窗
+    // ✅ 生成修士列表
+    final List<Disciple> newList = await Future.wait(
+      List.generate(count, (_) => DiscipleFactory.generateRandom(pool: currentPool)),
+    );
+    await DiscipleStorage.addAll(newList); // ✅ 关键保存
+    // ✅ 展示卡牌弹窗
     showDialog(
       context: context,
-      barrierDismissible: true, // ✅ 允许点击空白关闭
+      barrierDismissible: true,
       builder: (_) => RecruitCardWidget(
-        disciples: newList, // 你刚招募出来的修士列表
+        disciples: newList,
         onDismiss: () {
-          // 👇 这里可选：弹窗关闭后你要干嘛（比如刷新券数量）
-          setState(() {});
+          setState(() {}); // 可选：关闭弹窗后刷新界面
         },
       ),
     );
@@ -258,6 +260,23 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
           ),
 
           const BackButtonOverlay(),
+          Positioned(
+            right: 20,
+            bottom: 30,
+            child: FloatingActionButton(
+              backgroundColor: Colors.amber,
+              onPressed: () async {
+                final all = await DiscipleStorage.getAll();
+                if (!context.mounted) return;
+                showDialog(
+                  context: context,
+                  builder: (_) => DiscipleListDialog(disciples: all),
+                );
+              },
+              child: const Icon(Icons.people_alt_rounded),
+            ),
+          ),
+
         ],
       ),
     );

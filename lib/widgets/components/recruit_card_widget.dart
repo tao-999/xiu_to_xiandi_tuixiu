@@ -73,6 +73,14 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
     Navigator.of(context).pop();
   }
 
+  Color _getCardBackgroundColor(int aptitude) {
+    if (aptitude <= 20) return Colors.grey.shade300; // 凡人灰
+    if (aptitude <= 40) return Colors.green.shade100; // 绿油油
+    if (aptitude <= 60) return Colors.blue.shade100; // 蓝瘦香菇
+    if (aptitude <= 80) return Colors.purple.shade100; // 紫气东来
+    return Colors.amber.shade100; // 金色传说
+  }
+
   @override
   Widget build(BuildContext context) {
     final disciples = widget.disciples.take(10).toList();
@@ -105,30 +113,98 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
       children: row.asMap().entries.map((entry) {
         final index = entry.key + offsetIndex;
         final d = entry.value;
-        final imagePath = d.imagePath;
 
         return SlideTransition(
           position: _animations[index],
           child: Container(
             width: 60,
-            height: 350, // ✅ 高度固定为 350
-            margin: const EdgeInsets.symmetric(horizontal: 4),
+            height: 350,
+            margin: const EdgeInsets.symmetric(horizontal: 6),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: _getCardBackgroundColor(d.aptitude),
+              borderRadius: BorderRadius.circular(14),
               boxShadow: [
+                if (d.aptitude >= 81)
+                  BoxShadow(
+                    color: Colors.amberAccent.withOpacity(0.8), // SSR 发光
+                    blurRadius: 12,
+                    spreadRadius: 4,
+                  ),
                 BoxShadow(
                   color: Colors.black26,
                   blurRadius: 6,
                   spreadRadius: 1,
+                  offset: Offset(0, 3),
                 ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: imagePath.isNotEmpty
-                  ? Image.asset(imagePath, fit: BoxFit.cover)
-                  : const SizedBox.shrink(),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // 🌄 修士立绘图（全屏填充）
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: d.imagePath.isNotEmpty
+                      ? Image.asset(
+                    d.imagePath,
+                    fit: BoxFit.cover,
+                    width: 60,
+                    height: 350,
+                  )
+                      : Container(
+                    width: 60,
+                    height: 350,
+                    color: Colors.grey.shade200,
+                    child: const Icon(Icons.person, size: 36, color: Colors.grey),
+                  ),
+                ),
+
+                // 🌀 资质圆圈（右上角贴边）
+                Positioned(
+                  top: -6,
+                  right: -6,
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: _getCardBackgroundColor(d.aptitude),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.black87, width: 1.5),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${d.aptitude}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black, // 黑色字体更清晰
+                      ),
+                    ),
+                  ),
+                ),
+
+                // 🌟 SSR 贴纸（可选）
+                if (d.aptitude >= 81)
+                  Positioned(
+                    bottom: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'SSR',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         );
