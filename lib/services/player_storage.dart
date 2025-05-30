@@ -15,6 +15,15 @@ class PlayerStorage {
     await prefs.setString(_playerKey, jsonEncode(json));
   }
 
+  /// 批量更新字段
+  static Future<void> updateFields(Map<String, dynamic> fields) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_playerKey) ?? '{}';
+    final json = jsonDecode(raw);
+    json.addAll(fields);
+    await prefs.setString(_playerKey, jsonEncode(json));
+  }
+
   /// 获取整个 player 对象
   static Future<Character?> getPlayer() async {
     final prefs = await SharedPreferences.getInstance();
@@ -29,13 +38,19 @@ class PlayerStorage {
     await prefs.setString(_playerKey, jsonEncode(player.toJson()));
   }
 
-  static Future<void> updateFields(Map<String, dynamic> fields) async {
+  /// 读取 playerData 中指定字段（返回 int，默认 0）
+  static Future<int> getIntField(String key) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_playerKey) ?? '{}';
     final json = jsonDecode(raw);
+    return (json[key] ?? 0) as int;
+  }
 
-    json.addAll(fields); // 🧪 批量更新字段
-
-    await prefs.setString(_playerKey, jsonEncode(json));
+  /// 泛型读取任意字段（可选）
+  static Future<T?> getField<T>(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_playerKey) ?? '{}';
+    final json = jsonDecode(raw);
+    return json[key] as T?;
   }
 }

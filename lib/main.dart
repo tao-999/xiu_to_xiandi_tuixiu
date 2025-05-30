@@ -1,14 +1,19 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
+import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'pages/page_create_role.dart';
 import 'pages/page_root.dart';
 import 'models/character.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ 初始化 Hive 本地存储
+  await Hive.initFlutter();
+  await Hive.openBox('disciples');
 
   // 判断是否已创建角色（根据 playerData 是否存在 + id 是否为空）
   final prefs = await SharedPreferences.getInstance();

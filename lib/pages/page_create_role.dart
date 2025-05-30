@@ -39,7 +39,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
   @override
   void initState() {
     super.initState();
-    nickname = NameGenerator.generate(); // 👈 初始化时生成骚名
+    nickname = NameGenerator.generate(isMale: gender == 'male'); // 👈 初始化时生成骚名
   }
 
   Future<void> _saveRoleData() async {
@@ -136,7 +136,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
                   FancyNameInput(
                     value: nickname,
                     onChanged: (val) => setState(() => nickname = val),
-                    onRandom: () => setState(() => nickname = NameGenerator.generate()),
+                    onRandom: () => setState(() => nickname = NameGenerator.generate(isMale: gender == 'male')),
                   ),
 
                   const SizedBox(height: 12),

@@ -12,6 +12,7 @@ import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format_util.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/resource_bar.dart';
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key});
@@ -85,6 +86,7 @@ class _CharacterPageState extends State<CharacterPage> {
                   fit: BoxFit.cover,
                 ),
               ),
+              const ResourceBar(),
               Align(
                 alignment: const Alignment(0, 0.4),
                 child: Column(
@@ -141,8 +143,8 @@ class _CharacterPageState extends State<CharacterPage> {
               ),
               const BackButtonOverlay(),
               Positioned(
-                top: 40,
-                right: 20,
+                top: 100,
+                right: 30,
                 child: Column(
                   children: [
                     FloatingActionButton(

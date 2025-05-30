@@ -49,14 +49,8 @@ const List<_AptitudeEntry> _immortalAptitudeTable = [
 final _rng = Random();
 int _drawsSinceLastDuJie = 0; // 渡劫保底计数器
 
-/// ------------------------------
-/// 根据权重表随机生成资质
-/// ------------------------------
 int _generateAptitude(List<_AptitudeEntry> table) {
-  int totalWeight = 0;
-  for (var e in table) {
-    totalWeight += e.weight;
-  }
+  int totalWeight = table.fold(0, (sum, e) => sum + e.weight);
   int roll = _rng.nextInt(totalWeight);
 
   for (final entry in table) {
@@ -65,32 +59,23 @@ int _generateAptitude(List<_AptitudeEntry> table) {
     }
     roll -= entry.weight;
   }
-  // 万一没匹配到，默认最低
   final last = table.last;
   return last.min + _rng.nextInt(last.max - last.min + 1);
 }
 
-/// ------------------------------
-/// 生成人界资质，带渡劫保底机制
-/// ------------------------------
 int generateHumanAptitude() {
   _drawsSinceLastDuJie++;
-
   if (_drawsSinceLastDuJie >= 100) {
     _drawsSinceLastDuJie = 0;
-    return _rng.nextInt(10) + 81; // 81-90渡劫期强制爆
+    return _rng.nextInt(10) + 81; // 强制出渡劫期
   }
-
   int aptitude = _generateAptitude(_humanAptitudeTable);
   if (aptitude >= 81) {
-    _drawsSinceLastDuJie = 0; // 出渡劫重置保底计数
+    _drawsSinceLastDuJie = 0;
   }
   return aptitude;
 }
 
-/// ------------------------------
-/// 资质到境界映射（人界）
-/// ------------------------------
 String _mapHumanAptitudeToRealm(int aptitude) {
   if (aptitude >= 81) return "渡劫期";
   if (aptitude >= 71) return "大乘期";
@@ -103,9 +88,6 @@ String _mapHumanAptitudeToRealm(int aptitude) {
   return "练气期";
 }
 
-/// ------------------------------
-/// 资质到境界映射（仙界）
-/// ------------------------------
 String _mapImmortalAptitudeToRealm(int aptitude) {
   if (aptitude >= 201) return "至尊仙帝";
   if (aptitude >= 191) return "太清仙";
@@ -120,15 +102,11 @@ String _mapImmortalAptitudeToRealm(int aptitude) {
   return "地仙";
 }
 
-/// ------------------------------
-/// 内嵌特长生成器
-/// ------------------------------
 class SpecialtyGenerator {
   static const List<String> _options = [
     "剑术", "符箓", "炼丹", "炼器", "御兽", "驭雷",
     "毒术", "阵法", "控火", "驭水", "冰封", "遁术"
   ];
-
   static String pick() {
     final list = List<String>.from(_options);
     list.shuffle();
@@ -136,16 +114,12 @@ class SpecialtyGenerator {
   }
 }
 
-/// ------------------------------
-/// 内嵌天赋生成器
-/// ------------------------------
 class TalentGenerator {
   static const List<String> _options = [
     "灵根纯粹", "神识强大", "身法如电", "百毒不侵", "火系亲和",
     "冰封万物", "御剑天成", "精神免疫", "炼丹奇才", "战意滔天",
     "隐匿天赋", "灵气吞噬"
   ];
-
   static List<String> pickMultiple(int count) {
     final list = List<String>.from(_options);
     list.shuffle();
@@ -153,9 +127,6 @@ class TalentGenerator {
   }
 }
 
-/// ------------------------------
-/// Disciple 工厂方法
-/// ------------------------------
 class DiscipleFactory {
   static Disciple generateRandom({String pool = 'human'}) {
     final rng = Random();
@@ -170,14 +141,17 @@ class DiscipleFactory {
         : _mapImmortalAptitudeToRealm(aptitude);
 
     final bool isFemale = rng.nextBool();
+    final String gender = isFemale ? 'female' : 'male';
+
+    final String name = NameGenerator.generate(isMale: !isFemale); // 👈 用布尔值匹配你的生成器
 
     return Disciple(
       id: uuid.v4(),
-      name: NameGenerator.generate(),
-      gender: isFemale ? 'female' : 'male',
-      age: 16 + rng.nextInt(40),
+      name: name,
+      gender: gender,
+      age: rng.nextInt(19), // 0~18岁
       aptitude: aptitude,
-      realm: realm,
+      realm: "凡人", // 🧙‍♂️ 修为写死凡人
       loyalty: 30 + rng.nextInt(41),
       specialty: SpecialtyGenerator.pick(),
       talents: TalentGenerator.pickMultiple(2),
@@ -188,6 +162,7 @@ class DiscipleFactory {
       fatigue: 0,
       isOnMission: false,
       missionEndTimestamp: null,
+      imagePath: '', // ✅ 暂无立绘路径
     );
   }
 }

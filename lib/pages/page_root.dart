@@ -17,6 +17,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/map_switch_dialog.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/gift_popup.dart';
 
 class XiudiRoot extends StatefulWidget {
   const XiudiRoot({super.key});
@@ -30,6 +31,7 @@ class _XiudiRootState extends State<XiudiRoot> {
   String gender = 'male';
   int currentStage = 1;
   AutoBattleGame? game;
+  bool hasClaimedGift = false;
 
   final List<String> _labels = ['角色', '游历', '宗门', '招募'];
   final List<String> _iconPaths = [
@@ -44,6 +46,7 @@ class _XiudiRootState extends State<XiudiRoot> {
     super.initState();
     _recordLoginTime();
     _loadPlayerData();
+    _checkGiftClaimed();
   }
 
   Future<void> _recordLoginTime() async {
@@ -147,6 +150,14 @@ class _XiudiRootState extends State<XiudiRoot> {
     return stage >= 1 && stage <= 9 ? names[stage - 1] : '$stage';
   }
 
+  Future<void> _checkGiftClaimed() async {
+    final prefs = await SharedPreferences.getInstance();
+    final claimed = prefs.getBool('hasClaimedGift') ?? false;
+    setState(() {
+      hasClaimedGift = claimed;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (player == null || game == null) {
@@ -220,6 +231,54 @@ class _XiudiRootState extends State<XiudiRoot> {
                     ),
                   );
                 }),
+              ),
+            ),
+          ),
+          // ✅ 新增：大礼包按钮
+          if (!hasClaimedGift)
+          Positioned(
+            top: 30,
+            right: 20,
+            child: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => GiftPopup(
+                      onClaimed: () async {
+                        final player = await PlayerStorage.getPlayer();
+                        if (player == null) return;
+
+                        // ✅ 修改资源
+                        player.resources.add('spiritStoneLow', 10000);
+                        player.resources.add('humanRecruitTicket', 100);
+
+                        // ✅ 存回去
+                        await PlayerStorage.savePlayer(player);
+
+                        if (mounted) {
+                          setState(() {
+                            hasClaimedGift = true;
+                          });
+                        }
+                      }
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.card_giftcard, color: Colors.white, size: 20),
+                    SizedBox(width: 6),
+                    Text('修仙大礼包', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ],
+                ),
               ),
             ),
           ),

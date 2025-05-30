@@ -1,6 +1,8 @@
 /// 📦 Resources —— 修士角色身上的资源系统
 /// 管理各种灵石、灵气、贡献、因果、招募券等资源，用于修炼、招募、兑换、剧情等功能
 
+import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+
 class Resources {
   // 💰 灵石系列（修炼提升专用）
   int spiritStoneLow;      // 下品灵石
@@ -104,22 +106,54 @@ class Resources {
   /// ✅ 设置某个资源的值（内部私用）
   void _set(String type, int value) {
     switch (type) {
-      case 'spiritStoneLow': spiritStoneLow = value; break;
-      case 'spiritStoneMid': spiritStoneMid = value; break;
-      case 'spiritStoneHigh': spiritStoneHigh = value; break;
-      case 'spiritStoneSupreme': spiritStoneSupreme = value; break;
-      case 'humanRecruitTicket': humanRecruitTicket = value; break;
-      case 'immortalSummonOrder': immortalSummonOrder = value; break;
-      case 'fateRecruitCharm': fateRecruitCharm = value; break;
-      case 'contribution': contribution = value; break;
-      case 'reputation': reputation = value; break;
-      case 'aura': aura = value; break;
-      case 'insight': insight = value; break;
-      case 'karma': karma = value; break;
-      case 'wishPower': wishPower = value; break;
-      case 'refinedQi': refinedQi = value; break;
-      case 'mindEnergy': mindEnergy = value; break;
-      case 'battleWill': battleWill = value; break;
+      case 'spiritStoneLow':
+        spiritStoneLow = value;
+        break;
+      case 'spiritStoneMid':
+        spiritStoneMid = value;
+        break;
+      case 'spiritStoneHigh':
+        spiritStoneHigh = value;
+        break;
+      case 'spiritStoneSupreme':
+        spiritStoneSupreme = value;
+        break;
+      case 'humanRecruitTicket':
+        humanRecruitTicket = value;
+        break;
+      case 'immortalSummonOrder':
+        immortalSummonOrder = value;
+        break;
+      case 'fateRecruitCharm':
+        fateRecruitCharm = value;
+        break;
+      case 'contribution':
+        contribution = value;
+        break;
+      case 'reputation':
+        reputation = value;
+        break;
+      case 'aura':
+        aura = value;
+        break;
+      case 'insight':
+        insight = value;
+        break;
+      case 'karma':
+        karma = value;
+        break;
+      case 'wishPower':
+        wishPower = value;
+        break;
+      case 'refinedQi':
+        refinedQi = value;
+        break;
+      case 'mindEnergy':
+        mindEnergy = value;
+        break;
+      case 'battleWill':
+        battleWill = value;
+        break;
     }
   }
 
@@ -141,5 +175,10 @@ class Resources {
     refinedQi = other.refinedQi;
     mindEnergy = other.mindEnergy;
     battleWill = other.battleWill;
+  }
+
+  /// ✅ 保存当前资源到 SharedPreferences
+  Future<void> saveToStorage() async {
+    await PlayerStorage.updateField('resources', toMap());
   }
 }
