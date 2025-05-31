@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/world_map_image_view.dart';
+import 'package:flame/game.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/youli_map_game.dart'; // 👈 注意导入
 
 class YouliPage extends StatefulWidget {
   const YouliPage({super.key});
@@ -14,20 +15,25 @@ class _YouliPageState extends State<YouliPage>
   @override
   bool get wantKeepAlive => true;
 
+  late final YouliMapGame _game;
+
+  @override
+  void initState() {
+    super.initState();
+    _game = YouliMapGame();
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final safePadding = MediaQuery.of(context).padding;
 
     return Scaffold(
       body: Stack(
         children: [
-          // 地图背景
-          Positioned.fill(
-            child: WorldMapImageView(safePadding: safePadding),
-          ),
+          // ✅ 地图背景：用 Flame Game 渲染
+          GameWidget(game: _game),
 
-          // 左下角返回按钮
+          // ✅ 左下角返回按钮悬浮
           const BackButtonOverlay(),
         ],
       ),

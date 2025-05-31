@@ -40,9 +40,23 @@ class _ZongmenPageState extends State<ZongmenPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0D0B),
+      backgroundColor: const Color(0xFF0F0D0B), // 背景兜底色
       body: Stack(
         children: [
+          // 🌄 背景图层
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/bg_zongmen_shiwaitaoyuan.png',
+              fit: BoxFit.cover,
+            ),
+          ),
+          // 🌓 蒙版层（可调深浅）
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withOpacity(0.35),
+            ),
+          ),
+          // 🌟 主体内容
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
