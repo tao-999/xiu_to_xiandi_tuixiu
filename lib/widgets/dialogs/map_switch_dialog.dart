@@ -34,8 +34,6 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
     final level = calculateCultivationLevel(exp);
     final unlockedStage = ((level.totalLayer - 1) ~/ 9 + 1).clamp(1, 9);
 
-    print("😮‍💨 level=$level ------- unlockedStage=$unlockedStage");
-
     setState(() {
       maxStage = unlockedStage;
     });
@@ -45,7 +43,13 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
-      title: const Text("选择挂机地图"),
+      title: const Text(
+        "选择挂机地图",
+        style: TextStyle(
+          fontSize: 16,         // 👈 字号你想多大都行
+          fontWeight: FontWeight.bold, // 可选：加粗一点更有气势
+        ),
+      ),
       content: SizedBox(
         width: 300,
         height: 400,
@@ -58,33 +62,50 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
             final name = ['一','二','三','四','五','六','七','八','九'][index];
             final efficiency = pow(2, stage - 1).toInt();
 
-            return ListTile(
-              enabled: !isDisabled,
-              title: RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: isDisabled ? Colors.grey : Colors.black,
-                  ),
-                  children: [
-                    TextSpan(text: '$name阶地图'),
-                    TextSpan(
-                      text: '（挂机效率 ×$efficiency）',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDisabled ? Colors.grey.shade400 : Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              trailing: isSelected ? const Icon(Icons.check, color: Colors.green) : null,
+            return GestureDetector(
               onTap: isDisabled
                   ? null
                   : () {
                 Navigator.of(context).pop();
                 widget.onSelected(stage);
               },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? Colors.green.withOpacity(0.1) : null,
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade300),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDisabled ? Colors.grey : Colors.black,
+                          ),
+                          children: [
+                            TextSpan(text: '$name阶地图'),
+                            TextSpan(
+                              text: '（挂机效率 ×$efficiency）',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDisabled
+                                    ? Colors.grey.shade400
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (isSelected)
+                      const Icon(Icons.check, color: Colors.green),
+                  ],
+                ),
+              ),
             );
           },
         ),

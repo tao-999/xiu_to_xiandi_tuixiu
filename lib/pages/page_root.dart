@@ -9,15 +9,16 @@ import 'page_youli.dart';
 import 'page_zongmen.dart';
 import 'page_zhaomu.dart';
 import 'page_create_role.dart';
+import 'page_beibao.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/auto_battle_game.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/map_button_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/map_switch_dialog.dart';
-
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/reset_player_button.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/gift_popup.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/gift_button_overlay.dart';
 
 class XiudiRoot extends StatefulWidget {
   const XiudiRoot({super.key});
@@ -33,10 +34,11 @@ class _XiudiRootState extends State<XiudiRoot> {
   AutoBattleGame? game;
   bool hasClaimedGift = false;
 
-  final List<String> _labels = ['角色', '游历', '宗门', '招募'];
+  final List<String> _labels = ['角色', '背包', '游历', '宗门', '招募'];
   final List<String> _iconPaths = [
     'assets/images/icon_dazuo_male.png',
-    'assets/images/icon_youli.png',
+    'assets/images/icon_beibao.png',
+    'assets/images/icon_youli_male.png',
     'assets/images/icon_zongmen.png',
     'assets/images/icon_zhaomu.png',
   ];
@@ -75,6 +77,10 @@ class _XiudiRootState extends State<XiudiRoot> {
           ? 'assets/images/icon_dazuo_female.png'
           : 'assets/images/icon_dazuo_male.png';
 
+      _iconPaths[2] = (newGender == 'female')
+          ? 'assets/images/icon_youli_female.png'
+          : 'assets/images/icon_youli_male.png';
+
       game = AutoBattleGame(
         playerEmojiOrIconPath: newGender == 'female'
             ? 'icon_dazuo_female_256.png'
@@ -98,12 +104,15 @@ class _XiudiRootState extends State<XiudiRoot> {
         page = const CharacterPage();
         break;
       case 1:
-        page = const YouliPage();
+        page = const BeibaoPage();
         break;
       case 2:
-        page = const ZongmenPage();
+        page = const YouliPage();
         break;
       case 3:
+        page = const ZongmenPage();
+        break;
+      case 4:
         page = const ZhaomuPage();
         break;
       default:
@@ -221,93 +230,17 @@ class _XiudiRootState extends State<XiudiRoot> {
           ),
           // ✅ 新增：大礼包按钮
           if (!hasClaimedGift)
-          Positioned(
-            top: 30,
-            right: 20,
-            child: GestureDetector(
-              onTap: () {
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (_) => GiftPopup(
-                      onClaimed: () async {
-                        final player = await PlayerStorage.getPlayer();
-                        if (player == null) return;
-
-                        // ✅ 修改资源
-                        player.resources.add('spiritStoneLow', 10000);
-                        player.resources.add('humanRecruitTicket', 100);
-
-                        // ✅ 存回去
-                        await PlayerStorage.savePlayer(player);
-
-                        if (mounted) {
-                          setState(() {
-                            hasClaimedGift = true;
-                          });
-                        }
-                      }
-                  ),
-                );
+            GiftButtonOverlay(
+              onGiftClaimed: () {
+                setState(() {
+                  hasClaimedGift = true;
+                });
               },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.card_giftcard, color: Colors.white, size: 20),
-                    SizedBox(width: 6),
-                    Text('修仙大礼包', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
             ),
-          ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 120),
-        child: FloatingActionButton(
-          backgroundColor: Colors.redAccent,
-          tooltip: '清空角色数据',
-          child: const Icon(Icons.delete_forever),
-          onPressed: () async {
-            final confirmed = await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('确定要重置角色吗？'),
-                content: const Text('该操作将清空所有修为、信息和存档，无法恢复！'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('取消'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('确定'),
-                  ),
-                ],
-              ),
-            );
-
-            if (confirmed == true) {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.clear();
-              player = null;
-              CultivationTracker.stopTick();
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const CreateRolePage()),
-                    (route) => false,
-              );
-            }
-          },
-        ),
-      ),
+      floatingActionButton: const ResetPlayerButton(),
     );
   }
 }
