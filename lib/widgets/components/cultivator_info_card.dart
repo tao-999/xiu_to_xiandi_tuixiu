@@ -68,7 +68,7 @@ class CultivatorInfoCard extends StatelessWidget {
                 softWrap: false,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Colors.black45,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),

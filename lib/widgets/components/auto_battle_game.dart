@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart'; // 必须要这个！🔥
+import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/lightning_effect_component.dart';
 
 class AutoBattleGame extends FlameGame {
   final String playerEmojiOrIconPath;
@@ -16,60 +17,66 @@ class AutoBattleGame extends FlameGame {
   });
 
   late PositionComponent player;
-  final List<TextComponent> enemies = [];
-  final List<TextComponent> enemiesToRemove = [];
+  final List<PositionComponent> enemies = [];
+  final List<PositionComponent> enemiesToRemove = [];
+  final Map<String, Sprite> _enemySpriteCache = {};
   final Random rng = Random();
   late Timer spawnTimer;
   late Timer attackTimer;
+  late Timer clearWaveTimer;
   SpriteComponent? bg;
-  RectangleComponent? mask;
 
   @override
   Future<void> onLoad() async {
     await _loadMap(currentMapStage);
 
-    // 加载角色
+    player = await _loadPlayer();
+    add(player);
+
+    spawnTimer = Timer(1.5, repeat: true, onTick: () async {
+      for (int i = 0; i < 2; i++) {
+        await _spawnEnemy();
+      }
+    })..start();
+
+    attackTimer = Timer(1.0, repeat: true, onTick: _fireProjectile)..start();
+    clearWaveTimer = Timer(30.0, repeat: true, onTick: _clearAllEnemies)..start();
+  }
+
+  Future<PositionComponent> _loadPlayer() async {
     if (isAssetImage) {
-      player = SpriteComponent()
-        ..sprite = await Sprite.load(
-          playerEmojiOrIconPath.replaceFirst('assets/images/', ''),
-        )
-        ..size = Vector2.all(128)
+      final imagePath = playerEmojiOrIconPath.replaceFirst('assets/images/', '');
+      final image = await images.load(imagePath);
+      final sprite = Sprite(image);
+      const double targetWidth = 64;
+      final double aspectRatio = image.height / image.width;
+      final double targetHeight = targetWidth * aspectRatio;
+
+      return SpriteComponent()
+        ..sprite = sprite
+        ..size = Vector2(targetWidth, targetHeight)
         ..anchor = Anchor.center
         ..position = size / 2;
     } else {
-      player = TextComponent(
+      return TextComponent(
         text: playerEmojiOrIconPath,
         textRenderer: TextPaint(style: const TextStyle(fontSize: 48)),
       )
         ..anchor = Anchor.center
         ..position = size / 2;
     }
-
-    add(player);
-
-    spawnTimer = Timer(1.5, repeat: true, onTick: () {
-      for (int i = 0; i < 2; i++) {
-        _spawnEnemy();
-      }
-    })..start();
-
-    attackTimer = Timer(1.0, repeat: true, onTick: _fireProjectile)..start();
   }
-
-  double getEffectDuration(double base) => base / currentMapStage.clamp(1, 9);
 
   Future<void> _loadMap(int stage) async {
     bg?.removeFromParent();
-    mask?.removeFromParent();
 
     String bgPath;
     if (stage <= 3) {
-      bgPath = 'assets/images/hell_stage_1_to_3.jpg';
+      bgPath = 'assets/images/hell_stage_1_to_3.png';
     } else if (stage <= 6) {
-      bgPath = 'assets/images/hell_stage_4_to_6_compressed.jpg';
+      bgPath = 'assets/images/hell_stage_4_to_6.png';
     } else {
-      bgPath = 'assets/images/hell_stage_7_to_9_compressed.jpg';
+      bgPath = 'assets/images/hell_stage_7_to_9.png';
     }
 
     bg = SpriteComponent()
@@ -80,219 +87,118 @@ class AutoBattleGame extends FlameGame {
       ..priority = -1;
 
     add(bg!);
-
-    // 蒙版可选
-    mask = RectangleComponent(
-      size: size,
-      position: Vector2.zero(),
-      paint: Paint()..color = const Color(0xFFDFCCAA).withOpacity(0.3),
-    )
-      ..anchor = Anchor.topLeft
-      ..priority = 0;
-
-    add(mask!);
   }
 
-  void switchMap(int newStage) async {
-    currentMapStage = newStage;
-    await _loadMap(newStage);
-  }
+  Future<void> _spawnEnemy() async {
+    final imagePath = _getEnemyImagePathByStage(currentMapStage);
+    final sprite = await _loadEnemySprite(imagePath);
 
-  List<String> _getMonsterEmojisByStage(int stage) {
-    if (stage <= 3) {
-      return ['🦙', '🐛', '🐍', '🐢', '🐸'];
-    } else if (stage <= 6) {
-      return ['💀', '👺', '🧌', '🦂', '🧟‍♂️'];
-    } else {
-      return ['🐲', '🐉', '🧟‍♀️', '🦠', '🐙'];
-    }
-  }
-
-  void _spawnEnemy() {
-    final emojiList = _getMonsterEmojisByStage(currentMapStage);
-    final emoji = emojiList[rng.nextInt(emojiList.length)];
-
-    final enemy = TextComponent(
-      text: emoji,
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 36)),
-    )
+    final enemy = SpriteComponent()
+      ..sprite = sprite
+      ..size = Vector2.all(48)
       ..anchor = Anchor.center
-      ..position = _randomSpawnOutside();
+      ..position = _randomSpawnAroundPlayer();
 
     add(enemy);
     enemies.add(enemy);
   }
 
-  Vector2 _randomSpawnOutside() {
+  Vector2 _randomSpawnAroundPlayer() {
     final edge = rng.nextInt(4);
     double x, y;
 
+    const double buffer = 30.0; // 出生缓冲距离
+    final playerYLimit = player.position.y - 20; // 不高于主角
+
     switch (edge) {
-      case 0:
-        x = rng.nextDouble() * size.x;
-        y = -30;
+      case 0: // 左侧中下
+        x = -buffer;
+        y = rng.nextDouble() * (size.y - playerYLimit) + playerYLimit;
         break;
-      case 1:
-        x = rng.nextDouble() * size.x;
-        y = size.y + 30;
+      case 1: // 右侧中下
+        x = size.x + buffer;
+        y = rng.nextDouble() * (size.y - playerYLimit) + playerYLimit;
         break;
-      case 2:
-        x = -30;
-        y = rng.nextDouble() * size.y;
+      case 2: // 左下角
+        x = rng.nextDouble() * (size.x / 3);
+        y = size.y + buffer;
+        break;
+      case 3: // 右下角
+        x = rng.nextDouble() * (size.x / 3) + (2 * size.x / 3);
+        y = size.y + buffer;
         break;
       default:
-        x = size.x + 30;
-        y = rng.nextDouble() * size.y;
-        break;
+        x = size.x / 2;
+        y = size.y + buffer;
     }
 
     return Vector2(x, y);
   }
 
+  String _getEnemyImagePathByStage(int stage) {
+    final random = Random();
+    if (stage <= 3) {
+      return 'assets/images/enemies/enemy_stage1_${random.nextInt(5) + 1}.png';
+    } else if (stage <= 6) {
+      return 'assets/images/enemies/enemy_stage4_${random.nextInt(5) + 1}.png';
+    } else {
+      return 'assets/images/enemies/enemy_stage7_${random.nextInt(5) + 1}.png';
+    }
+  }
+
+  Future<Sprite> _loadEnemySprite(String path) async {
+    if (_enemySpriteCache.containsKey(path)) return _enemySpriteCache[path]!;
+    final img = await images.load(path.replaceFirst('assets/images/', ''));
+    final sprite = Sprite(img);
+    _enemySpriteCache[path] = sprite;
+    return sprite;
+  }
+
   void _fireProjectile() {
     if (enemies.isEmpty) return;
-    final target = enemies.first;
 
-    final effects = [
-      _buildFlyingSword,
-      _buildSpinningBlade,
-      _buildFireball,
-      _buildIceArrow,
-      _buildTornadoWave,
-      _buildQiBlast,
-      _buildMeteorStrike,
-    ];
+    final count = currentMapStage.clamp(1, enemies.length);
+    final visibleEnemies = enemies.where((e) {
+      final pos = e.position;
+      return pos.x >= 0 && pos.x <= size.x && pos.y >= 0 && pos.y <= size.y - 60;
+    }).toList();
 
-    final effectBuilder = effects[rng.nextInt(effects.length)];
-    final projectile = effectBuilder(target);
-    add(projectile);
-  }
+    visibleEnemies.sort((a, b) =>
+        player.position.distanceTo(a.position).compareTo(player.position.distanceTo(b.position)));
 
-  TextComponent _buildFlyingSword(PositionComponent target) {
-    final comp = TextComponent(
-      text: '🗡️',
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 24)),
-      anchor: Anchor.center,
-      position: player.position.clone(),
-    );
-
-    comp.add(MoveEffect.to(
-      target.position,
-      EffectController(duration: getEffectDuration(0.4)),
-      onComplete: () => _applyHit(comp, target),
-    ));
-    return comp;
-  }
-
-  TextComponent _buildSpinningBlade(PositionComponent target) {
-    final comp = TextComponent(
-      text: '🌀',
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 24)),
-      anchor: Anchor.center,
-      position: player.position.clone(),
-    );
-
-    comp.add(RotateEffect.by(3.14 * 4, EffectController(duration: getEffectDuration(0.4))));
-    comp.add(MoveEffect.to(
-      target.position,
-      EffectController(duration: getEffectDuration(0.4)),
-      onComplete: () => _applyHit(comp, target),
-    ));
-    return comp;
-  }
-
-  TextComponent _buildFireball(PositionComponent target) {
-    final comp = TextComponent(
-      text: '🔥',
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 26)),
-      anchor: Anchor.center,
-      position: player.position.clone(),
-    );
-
-    comp.add(ScaleEffect.to(Vector2.all(1.5), EffectController(duration: 0.2)));
-    comp.add(MoveEffect.to(
-      target.position,
-      EffectController(duration: getEffectDuration(0.4), curve: Curves.easeIn),
-      onComplete: () => _applyHit(comp, target),
-    ));
-    return comp;
-  }
-
-  TextComponent _buildIceArrow(PositionComponent target) {
-    final comp = TextComponent(
-      text: '❄️',
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 22)),
-      anchor: Anchor.center,
-      position: player.position.clone(),
-    );
-
-    comp.add(MoveEffect.to(
-      target.position,
-      EffectController(duration: getEffectDuration(0.8)),
-      onComplete: () => _applyHit(comp, target),
-    ));
-    return comp;
-  }
-
-  TextComponent _buildTornadoWave(PositionComponent target) {
-    final comp = TextComponent(
-      text: '🌪️',
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 24)),
-      anchor: Anchor.center,
-      position: player.position.clone(),
-    );
-
-    comp.add(ScaleEffect.to(Vector2.all(2.0), EffectController(duration: 0.4)));
-    comp.add(MoveEffect.to(
-      target.position,
-      EffectController(duration: getEffectDuration(0.4)),
-      onComplete: () => _applyHit(comp, target),
-    ));
-    return comp;
-  }
-
-  TextComponent _buildQiBlast(PositionComponent target) {
-    final comp = TextComponent(
-      text: '💥',
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 26)),
-      anchor: Anchor.center,
-      position: player.position.clone(),
-    );
-
-    comp.add(ScaleEffect.by(Vector2.all(1.3), EffectController(duration: 0.2)));
-    comp.add(MoveEffect.to(
-      target.position,
-      EffectController(duration: getEffectDuration(0.3)),
-      onComplete: () => _applyHit(comp, target),
-    ));
-    return comp;
-  }
-
-  TextComponent _buildMeteorStrike(PositionComponent target) {
-    final comp = TextComponent(
-      text: '☄️',
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 28)),
-      anchor: Anchor.center,
-      position: Vector2(target.position.x, -50),
-    );
-
-    comp.add(MoveEffect.to(
-      target.position,
-      EffectController(duration: getEffectDuration(0.5), curve: Curves.easeOut),
-      onComplete: () => _applyHit(comp, target),
-    ));
-    return comp;
-  }
-
-  void _applyHit(PositionComponent projectile, PositionComponent target) {
-    if (children.contains(target)) {
-      _showDamageText(target.position, damage: 999);
-      enemiesToRemove.add(target as TextComponent);
+    for (final target in visibleEnemies.take(count)) {
+      final lightning = LightningEffectComponent(
+        source: player.position.clone(),
+        target: target.position.clone(),
+        lifespan: 0.45,
+        segments: 10,
+        deviation: 15.0,
+        color: Colors.white,
+      );
+      add(lightning);
+      _applyHit(target);
     }
-    projectile.removeFromParent();
   }
 
-  void _showDamageText(Vector2 pos, {required int damage, String? text}) {
+  void _applyHit(PositionComponent target) {
+    if (children.contains(target)) {
+      final damage = int.parse('9' * currentMapStage);
+      _showDamageText(target.position, damage: damage);
+      enemiesToRemove.add(target);
+    }
+  }
+
+  void switchMap(int newStage) async {
+    currentMapStage = newStage;
+    for (final e in enemies) {
+      e.removeFromParent();
+    }
+    enemies.clear();
+    enemiesToRemove.clear();
+    await _loadMap(newStage);
+  }
+
+  void _showDamageText(Vector2 pos, {int damage = 0, String? text}) {
     final textComp = TextComponent(
       text: text ?? '-$damage',
       textRenderer: TextPaint(
@@ -315,18 +221,18 @@ class AutoBattleGame extends FlameGame {
     });
   }
 
-  void _explodeEnemy(TextComponent enemy) {
-    if (children.contains(enemy)) {
-      _showDamageText(enemy.position, damage: 0, text: '💥');
-      if (!enemiesToRemove.contains(enemy)) {
-        enemiesToRemove.add(enemy);
+  void _clearAllEnemies() {
+    for (final enemy in List<PositionComponent>.from(enemies)) {
+      if (children.contains(enemy)) {
+        _showDamageText(enemy.position, text: '⚡');
+        enemy.removeFromParent();
       }
     }
+    enemies.clear();
   }
 
   void updateBattleSpeed(int stage) {
     currentMapStage = stage;
-
     final multiplier = stage.toDouble();
     final attackInterval = 1.0 / multiplier;
     final spawnInterval = 1.5 / multiplier;
@@ -335,13 +241,11 @@ class AutoBattleGame extends FlameGame {
     attackTimer = Timer(attackInterval, repeat: true, onTick: _fireProjectile)..start();
 
     spawnTimer.stop();
-    spawnTimer = Timer(spawnInterval, repeat: true, onTick: () {
+    spawnTimer = Timer(spawnInterval, repeat: true, onTick: () async {
       for (int i = 0; i < 2; i++) {
-        _spawnEnemy();
+        await _spawnEnemy();
       }
     })..start();
-
-    debugPrint("⚔️ 攻速间隔: ${attackInterval.toStringAsFixed(2)}s, 👹 刷怪间隔: ${spawnInterval.toStringAsFixed(2)}s");
   }
 
   @override
@@ -349,14 +253,16 @@ class AutoBattleGame extends FlameGame {
     super.update(dt);
     spawnTimer.update(dt);
     attackTimer.update(dt);
+    clearWaveTimer.update(dt);
 
-    for (final enemy in List<TextComponent>.from(enemies)) {
+    for (final enemy in List<PositionComponent>.from(enemies)) {
       final dir = (player.position - enemy.position).normalized();
       enemy.position += dir * 40 * dt;
 
       final distance = player.position.distanceTo(enemy.position);
       if (distance < 30) {
-        _explodeEnemy(enemy);
+        _showDamageText(enemy.position, text: '💥');
+        enemiesToRemove.add(enemy);
       }
     }
 

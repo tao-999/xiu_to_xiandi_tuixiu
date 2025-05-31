@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/aptitude_color_util.dart';
 
 class RecruitCardWidget extends StatefulWidget {
   final List<Disciple> disciples;
@@ -73,14 +74,6 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
     Navigator.of(context).pop();
   }
 
-  Color _getCardBackgroundColor(int aptitude) {
-    if (aptitude <= 20) return Colors.grey.shade300; // 凡人灰
-    if (aptitude <= 40) return Colors.green.shade100; // 绿油油
-    if (aptitude <= 60) return Colors.blue.shade100; // 蓝瘦香菇
-    if (aptitude <= 80) return Colors.purple.shade100; // 紫气东来
-    return Colors.amber.shade100; // 金色传说
-  }
-
   @override
   Widget build(BuildContext context) {
     final disciples = widget.disciples.take(10).toList();
@@ -121,7 +114,7 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
             height: 350,
             margin: const EdgeInsets.symmetric(horizontal: 6),
             decoration: BoxDecoration(
-              color: _getCardBackgroundColor(d.aptitude),
+              color: AptitudeColorUtil.getBackgroundColor(d.aptitude),
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
                 if (d.aptitude >= 81)
@@ -167,7 +160,7 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: _getCardBackgroundColor(d.aptitude),
+                      color: AptitudeColorUtil.getBackgroundColor(d.aptitude),
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.black87, width: 1.5),
                     ),

@@ -117,7 +117,7 @@ class _CharacterPageState extends State<CharacterPage> {
                           Text(
                             realmText,
                             style: const TextStyle(
-                              color: Colors.amber,
+                              color: Colors.black54,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -125,7 +125,7 @@ class _CharacterPageState extends State<CharacterPage> {
                           const SizedBox(height: 4),
                           Text(
                             "修为：${formatLargeNumber(display.current)} / ${formatLargeNumber(display.max)}",
-                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            style: const TextStyle(color: Colors.black45, fontSize: 14),
                           ),
                           const SizedBox(height: 4),
                           LinearProgressIndicator(

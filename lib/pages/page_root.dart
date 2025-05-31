@@ -181,21 +181,6 @@ class _XiudiRootState extends State<XiudiRoot> {
             ),
           ),
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 60,
-            child: Container(
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/menu_background_final.webp'),
-                  fit: BoxFit.cover,
-                  alignment: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
             bottom: 8,
             left: 0,
             right: 0,
@@ -210,8 +195,8 @@ class _XiudiRootState extends State<XiudiRoot> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 48,
-                          height: 48,
+                          width: 60,
+                          height: 60,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -224,7 +209,7 @@ class _XiudiRootState extends State<XiudiRoot> {
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF333333),
+                            color: Colors.white,
                           ),
                         ),
                       ],
