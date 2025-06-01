@@ -28,7 +28,7 @@ class Maze2p5DGame extends FlameGame with HasCollisionDetection {
   static const int rows = 41;
   static const int cols = 41;
   static const double tileSize = 48;
-  static const double wallHeight = 32;
+  static const double wallHeight = 8;
 
   late final List<List<int>> grid;
   late final PositionComponent mapLayer;
@@ -171,13 +171,14 @@ class Maze2p5DGame extends FlameGame with HasCollisionDetection {
     final rand = Random();
     final edgePoints = <Vector2>[];
 
-    for (int i = 1; i < cols - 1; i += 2) {
-      edgePoints.add(Vector2(i.toDouble(), 0));
-      edgePoints.add(Vector2(i.toDouble(), (rows - 1).toDouble()));
+    // ⚠️ 改成倒数第二层而不是边缘
+    for (int i = 2; i < cols - 2; i += 2) {
+      edgePoints.add(Vector2(i.toDouble(), 1)); // 上边偏内
+      edgePoints.add(Vector2(i.toDouble(), (rows - 2).toDouble())); // 下边偏内
     }
-    for (int j = 1; j < rows - 1; j += 2) {
-      edgePoints.add(Vector2(0, j.toDouble()));
-      edgePoints.add(Vector2((cols - 1).toDouble(), j.toDouble()));
+    for (int j = 2; j < rows - 2; j += 2) {
+      edgePoints.add(Vector2(1, j.toDouble())); // 左边偏内
+      edgePoints.add(Vector2((cols - 2).toDouble(), j.toDouble())); // 右边偏内
     }
 
     edgePoints.shuffle();
