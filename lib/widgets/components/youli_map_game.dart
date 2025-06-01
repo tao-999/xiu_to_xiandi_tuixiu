@@ -1,62 +1,106 @@
+import 'dart:math';
 import 'package:flame/components.dart';
-import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/extensions.dart';
+import 'package:flutter/material.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_maze_2p5d.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart'; // 你封装的组件
 
 class YouliMapGame extends FlameGame {
+  final BuildContext context;
   late final SpriteComponent bg;
+  final List<_EntryIcon> entryIcons = [];
+
+  YouliMapGame(this.context);
 
   @override
   Future<void> onLoad() async {
-    // 加载地图贴图
+    final screen = canvasSize;
+
     bg = SpriteComponent()
       ..sprite = await loadSprite('bg_map_youli_horizontal.png')
       ..size = Vector2(3000, 2400)
-      ..position = Vector2.zero()
-      ..anchor = Anchor.topLeft;
-
-    // ✅ 设置初始缩放倍率（例如 0.4倍）
-    bg.scale = Vector2.all(0.4);
-
+      ..anchor = Anchor.topLeft
+      ..scale = Vector2.all(0.45)
+      ..position = Vector2(0, screen.y - 2400 * 0.45);
     add(bg);
 
-    // 添加拖动组件
-    add(_DragMap(onDragged: _onDragged));
+    await _addEntry('youli_fanchenshiji.png', Vector2(600, 2200));
+    await _addEntry('youli_huanyueshan.png', Vector2(900, 1700), onTap: () {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const Maze2p5DPage()),
+      );
+    });
+    await _addEntry('youli_ciyangu.png', Vector2(1400, 1300));
+    await _addEntry('youli_fukongxiandao.png', Vector2(1800, 900));
+    await _addEntry('youli_dengtianti.png', Vector2(2400, 400));
+    await _addEntry('youli_youmingguiku.png', Vector2(2700, 600));
+
+    // 添加封装好的 DragMap
+    add(DragMap(
+      onDragged: _onDragged,
+      onTap: _handleTap,
+    ));
+  }
+
+  Future<void> _addEntry(String imageName, Vector2 position, {void Function()? onTap}) async {
+    final icon = _EntryIcon(
+      sprite: await loadSprite(imageName),
+      position: position,
+      onTap: onTap,
+    );
+    entryIcons.add(icon);
+    bg.add(icon);
   }
 
   void _onDragged(Vector2 delta) {
     bg.position += delta;
     _clampPosition();
-    print('📍 拖动后 bg.position: ${bg.position}');
   }
 
   void _clampPosition() {
     final screen = canvasSize;
     final scaledSize = bg.size.clone()..multiply(bg.scale);
 
-    final double maxX = 0.0;
-    final double maxY = 0.0;
-    final double minX = screen.x - scaledSize.x;
-    final double minY = screen.y - scaledSize.y;
+    final minX = screen.x - scaledSize.x;
+    final minY = screen.y - scaledSize.y;
+    const maxX = 0.0;
+    const maxY = 0.0;
 
     bg.position.x = bg.position.x.clamp(minX, maxX);
     bg.position.y = bg.position.y.clamp(minY, maxY);
   }
+
+  void _handleTap(Vector2 tapInScreen) {
+    final local = (tapInScreen - bg.position) / bg.scale.x;
+
+    for (final icon in entryIcons) {
+      final center = icon.position;
+      final halfSize = icon.size.x / 2;
+      final hitbox = Rect.fromCenter(
+        center: Offset(center.x, center.y),
+        width: icon.size.x,
+        height: icon.size.y,
+      );
+      if (hitbox.contains(Offset(local.x, local.y))) {
+        icon.onTap?.call();
+        break;
+      }
+    }
+  }
 }
 
-class _DragMap extends PositionComponent with DragCallbacks {
-  final void Function(Vector2 delta) onDragged;
+class _EntryIcon extends SpriteComponent {
+  final void Function()? onTap;
 
-  _DragMap({required this.onDragged}) {
-    size = Vector2.all(99999); // 全屏覆盖
-    position = Vector2.zero();
-    priority = 9999;
-  }
-
-  @override
-  void onDragUpdate(DragUpdateEvent event) {
-    final delta = event.localDelta;
-    print('✅ 拖动 delta: $delta');
-    onDragged(delta);
+  _EntryIcon({
+    required Sprite sprite,
+    required Vector2 position,
+    this.onTap,
+  }) {
+    this.sprite = sprite;
+    size = Vector2.all(256);
+    anchor = Anchor.center;
+    this.position = position;
   }
 }

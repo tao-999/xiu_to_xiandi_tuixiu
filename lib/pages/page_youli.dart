@@ -15,17 +15,20 @@ class _YouliPageState extends State<YouliPage>
   @override
   bool get wantKeepAlive => true;
 
-  late final YouliMapGame _game;
+  late YouliMapGame _game;
 
   @override
   void initState() {
     super.initState();
-    _game = YouliMapGame();
+    // 暂不在 initState 初始化，改为 build 时延迟构造（因为 context 在 initState 不能安全使用）
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
+
+    // 每次构造 Game 实例（保证 context 可用）
+    _game = YouliMapGame(context);
 
     return Scaffold(
       body: Stack(

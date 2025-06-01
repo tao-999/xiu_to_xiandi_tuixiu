@@ -28,6 +28,7 @@ dependencies:
   flame: 1.29.0
   flame_forge2d: 0.18.3+1    # 2D物理（撞飞修士用）
   flame_audio: 2.11.6
+  collection: ^1.18.0
 
 dev_dependencies:
   flutter_test:

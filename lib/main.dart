@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -11,11 +12,24 @@ import 'models/character.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // ✅ 沉浸式全屏（系统UI自动隐藏，滑动出现再自动隐藏）
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+  // ✅ 透明状态栏和导航栏 + 白色图标
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.black,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
+
   // ✅ 初始化 Hive 本地存储
   await Hive.initFlutter();
   await Hive.openBox('disciples');
 
-  // 判断是否已创建角色（根据 playerData 是否存在 + id 是否为空）
+  // ✅ 判断是否已创建角色
   final prefs = await SharedPreferences.getInstance();
   final playerStr = prefs.getString('playerData');
 
@@ -31,7 +45,7 @@ void main() async {
     }
   }
 
-  // ✅ 用角色数据初始化 Tracker（用 player.cultivation 作为修为起点）
+  // ✅ 启动修为增长 Tracker
   if (hasCreatedRole && player != null) {
     CultivationTracker.startTickWithPlayer();
   }
@@ -54,7 +68,26 @@ class XiudiApp extends StatelessWidget {
           bodyMedium: TextStyle(fontSize: 18),
         ),
       ),
-      home: hasCreatedRole ? const XiudiRoot() : const CreateRolePage(),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) {
+            return Stack(
+              children: [
+                hasCreatedRole ? const XiudiRoot() : const CreateRolePage(),
+
+                // ✅ 透明填充顶部刘海区域（避免黑边）
+                const Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 40, // 根据你设备刘海高度可调
+                  child: ColoredBox(color: Colors.transparent),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }

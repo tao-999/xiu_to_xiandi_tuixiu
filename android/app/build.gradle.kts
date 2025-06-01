@@ -42,3 +42,8 @@ android {
 flutter {
     source = "../.."
 }
+
+// ✅ 在这里加上
+dependencies {
+    implementation("androidx.appcompat:appcompat:1.6.1") // ✅ 正确加法
+}
