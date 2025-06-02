@@ -3,38 +3,86 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/maze_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/maze_renderer.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/maze_player_component.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/chest_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/astar_pathfinder.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/enemy_spawner.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/maze_chest_spawner.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/exit_detector_component.dart';
 
-class Maze2p5DPage extends StatelessWidget {
+class Maze2p5DPage extends StatefulWidget {
   const Maze2p5DPage({super.key});
+
+  @override
+  State<Maze2p5DPage> createState() => _Maze2p5DPageState();
+}
+
+class _Maze2p5DPageState extends State<Maze2p5DPage> {
+  int currentFloor = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFloor();
+  }
+
+  Future<void> _loadFloor() async {
+    final floor = await MazeStorage.loadCurrentFloor();
+    setState(() => currentFloor = floor);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        GameWidget(game: Maze2p5DGame()),
+        GameWidget(game: Maze2p5DGame(onNextFloor: _goToNextFloor)),
         const BackButtonOverlay(),
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '第 $currentFloor 层',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
       ],
     );
+  }
+
+  void _goToNextFloor() async {
+    await MazeStorage.clearAllMazeData();
+    await MazeStorage.saveCurrentFloor(currentFloor + 1);
+    setState(() => currentFloor++);
   }
 }
 
 class Maze2p5DGame extends FlameGame with HasCollisionDetection {
-  static const int rows = 41;
-  static const int cols = 41;
+  static const int rows = 27;
+  static const int cols = 27;
   static const double tileSize = 48;
   static const double wallHeight = 8;
 
-  late final List<List<int>> grid;
+  final VoidCallback onNextFloor;
+  Maze2p5DGame({required this.onNextFloor});
+
+  late List<List<int>> grid;
   late final PositionComponent mapLayer;
   late Vector2 entry;
   late Vector2 exit;
-  late ChestComponent chest;
   late MazePlayerComponent player;
 
   TextComponent? marker;
@@ -42,13 +90,23 @@ class Maze2p5DGame extends FlameGame with HasCollisionDetection {
   @override
   Future<void> onLoad() async {
     final gender = await PlayerStorage.getField<String>('gender') ?? 'male';
+    final savedGrid = await MazeStorage.loadMazeGrid();
+    final savedEntry = await MazeStorage.loadEntry();
+    final savedExit = await MazeStorage.loadExit();
+    final savedPlayerPos = await MazeStorage.getPlayerPosition();
 
-    grid = List.generate(rows, (y) => List.generate(cols, (x) => 0));
-    _generateEntryAndExit();
-    _digMaze(entry.x.toInt(), entry.y.toInt());
-
-    grid[entry.y.toInt()][entry.x.toInt()] = 1;
-    grid[exit.y.toInt()][exit.x.toInt()] = 1;
+    if (savedGrid != null && savedEntry != null && savedExit != null) {
+      grid = savedGrid;
+      entry = savedEntry;
+      exit = savedExit;
+    } else {
+      grid = List.generate(rows, (y) => List.generate(cols, (x) => 0));
+      _generateEntryAndExit();
+      _digMaze(entry.x.toInt(), entry.y.toInt());
+      grid[entry.y.toInt()][entry.x.toInt()] = 1;
+      grid[exit.y.toInt()][exit.x.toInt()] = 1;
+      await MazeStorage.saveMaze(grid, entry, exit);
+    }
 
     mapLayer = PositionComponent()
       ..anchor = Anchor.topLeft
@@ -64,40 +122,55 @@ class Maze2p5DGame extends FlameGame with HasCollisionDetection {
       wallHeight: wallHeight,
     ));
 
-    final validTiles = <Vector2>[];
-    for (int y = 1; y < rows - 1; y++) {
-      for (int x = 1; x < cols - 1; x++) {
-        if (grid[y][x] == 1 && !(entry.x == x && entry.y == y)) {
-          validTiles.add(Vector2(x.toDouble(), y.toDouble()));
-        }
-      }
-    }
-    validTiles.shuffle();
-    final chestGrid = validTiles.first;
+    final currentFloor = await MazeStorage.loadCurrentFloor();
 
-    final chestSprite = await loadSprite('migong_baoxiang.png');
-    final chestOpenSprite = await loadSprite('migong_baoxiang_open.png');
-    chest = ChestComponent(
-      closedSprite: chestSprite,
-      openSprite: chestOpenSprite,
-      position: chestGrid * tileSize + Vector2.all(tileSize / 2),
-    );
-    mapLayer.add(chest);
+    mapLayer.add(MazeChestSpawner(
+      grid: grid,
+      tileSize: tileSize,
+      excluded: {entry, exit},
+      currentFloor: currentFloor,
+    ));
 
     final playerSprite = await loadSprite(
       gender == 'female' ? 'icon_youli_female.png' : 'icon_youli_male.png',
     );
+
+    final startPos = savedPlayerPos ?? entry * tileSize + Vector2.all(tileSize / 2);
     player = MazePlayerComponent(
       sprite: playerSprite,
       grid: grid,
       tileSize: tileSize,
-      position: Vector2(
-        entry.x * tileSize + tileSize / 2,
-        entry.y * tileSize + tileSize / 2,
-      ),
-      onCollideWithChest: () => chest.open(),
+      position: startPos,
+      onCollideWithChest: () async {
+        // ✅ 可保留也可删
+        final chestOpened = await MazeStorage.getChestOpened();
+        final enemies = await MazeStorage.loadEnemyStates();
+        final killed = await MazeStorage.getKilledEnemies();
+        final remaining = enemies?.where((e) => !killed.any((k) => k.x == e.x && k.y == e.y)).toList() ?? [];
+        final playerTile = player.gridPosition;
+        if (chestOpened && remaining.isEmpty) {
+          if ((playerTile.x - exit.x).abs() < 0.1 && (playerTile.y - exit.y).abs() < 0.1) {
+            onNextFloor();
+          }
+        }
+      },
     );
     mapLayer.add(player);
+
+    mapLayer.add(EnemySpawner(
+      grid: grid,
+      tileSize: tileSize,
+      excluded: {entry, exit},
+      currentFloor: currentFloor,
+    ));
+
+    // ✅ 新增：出口检测器组件
+    mapLayer.add(ExitDetectorComponent(
+      exitTile: exit,
+      tileSize: tileSize,
+      currentFloor: currentFloor,
+      onNextFloor: onNextFloor,
+    ));
 
     add(DragMap(
       onDragged: _onDragged,
@@ -105,9 +178,8 @@ class Maze2p5DGame extends FlameGame with HasCollisionDetection {
     ));
 
     camera.viewfinder.zoom = 1.0;
-
     await Future.delayed(Duration.zero);
-    _centerMapOn(entry);
+    _centerMapOn(player.position / tileSize);
   }
 
   @override
@@ -120,7 +192,6 @@ class Maze2p5DGame extends FlameGame with HasCollisionDetection {
   }
 
   void _handleTap(Vector2 tapInScreen) {
-    print("🤣🤣🤣🤣🤣🤣");
     final tapInWorld = tapInScreen - mapLayer.position;
 
     final gx = (tapInWorld.x / tileSize).floor();
@@ -171,14 +242,16 @@ class Maze2p5DGame extends FlameGame with HasCollisionDetection {
     final rand = Random();
     final edgePoints = <Vector2>[];
 
-    // ⚠️ 改成倒数第二层而不是边缘
-    for (int i = 2; i < cols - 2; i += 2) {
-      edgePoints.add(Vector2(i.toDouble(), 1)); // 上边偏内
-      edgePoints.add(Vector2(i.toDouble(), (rows - 2).toDouble())); // 下边偏内
+    final safeRows = rows - 2;
+    final safeCols = cols - 2;
+
+    for (int i = 1; i < safeCols; i += 2) {
+      edgePoints.add(Vector2(i.toDouble(), 1));
+      edgePoints.add(Vector2(i.toDouble(), (rows - 2).toDouble()));
     }
-    for (int j = 2; j < rows - 2; j += 2) {
-      edgePoints.add(Vector2(1, j.toDouble())); // 左边偏内
-      edgePoints.add(Vector2((cols - 2).toDouble(), j.toDouble())); // 右边偏内
+    for (int j = 1; j < safeRows; j += 2) {
+      edgePoints.add(Vector2(1, j.toDouble()));
+      edgePoints.add(Vector2((cols - 2).toDouble(), j.toDouble()));
     }
 
     edgePoints.shuffle();

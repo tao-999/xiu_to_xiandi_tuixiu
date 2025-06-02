@@ -25,16 +25,16 @@ class YouliMapGame extends FlameGame {
       ..position = Vector2(0, screen.y - 2400 * 0.45);
     add(bg);
 
-    await _addEntry('youli_fanchenshiji.png', Vector2(600, 2200));
-    await _addEntry('youli_huanyueshan.png', Vector2(900, 1700), onTap: () {
+    await _addEntry('youli_fanchenshiji.png', Vector2(500, 1900));
+    await _addEntry('youli_huanyueshan.png', Vector2(700, 1350), onTap: () {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const Maze2p5DPage()),
       );
     });
-    await _addEntry('youli_ciyangu.png', Vector2(1400, 1300));
-    await _addEntry('youli_fukongxiandao.png', Vector2(1800, 900));
-    await _addEntry('youli_dengtianti.png', Vector2(2400, 400));
-    await _addEntry('youli_youmingguiku.png', Vector2(2700, 600));
+    await _addEntry('youli_ciyangu.png', Vector2(400, 800));
+    await _addEntry('youli_fukongxiandao.png', Vector2(1100, 400));
+    await _addEntry('youli_dengtianti.png', Vector2(1600, 800));
+    await _addEntry('youli_youmingguiku.png', Vector2(2700, 1800));
 
     // 添加封装好的 DragMap
     add(DragMap(

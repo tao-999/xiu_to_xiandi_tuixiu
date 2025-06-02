@@ -39,7 +39,6 @@ class CultivationTracker {
       if (jsonStr == null) return;
 
       final player = Character.fromJson(jsonDecode(jsonStr));
-      print("🐂player.cultivationEfficiency=${player.cultivationEfficiency}");
       // 初始化起始修为与境界层数（只执行一次）
       if (lastTotalLayer == -1) {
         lastTotalLayer = calculateCultivationLevel(player.cultivation).totalLayer;

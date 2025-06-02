@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/maze_storage.dart';
 
 class MazeRenderer extends PositionComponent {
   final List<List<int>> grid;
@@ -21,7 +22,7 @@ class MazeRenderer extends PositionComponent {
     final rows = grid.length;
     final cols = grid[0].length;
 
-    _digExitTunnel(); // 🔧 确保出口不孤立
+    _digExitTunnel();
 
     for (int y = 1; y < rows - 1; y++) {
       for (int x = 1; x < cols - 1; x++) {
@@ -50,6 +51,8 @@ class MazeRenderer extends PositionComponent {
       tileSize: tileSize,
       color: Colors.orangeAccent,
     ));
+
+    await MazeStorage.saveMazeGrid(grid); // ✅ 保存当前迷宫
   }
 
   void _digExitTunnel() {
@@ -81,7 +84,6 @@ class MazeRenderer extends PositionComponent {
     final exitY = exit.y.toInt();
 
     if ((x == entryX && y == entryY) || (x == exitX && y == exitY)) return true;
-
     if ((x - entryX).abs() <= 1 && (y - entryY).abs() <= 1) return true;
     if ((x - exitX).abs() <= 1 && (y - exitY).abs() <= 1) return true;
 
