@@ -28,6 +28,7 @@ class HuanyuePlayerComponent extends SpriteComponent
 
   bool hasTriggeredEnter = false;
   bool hintCooldown = false;
+  bool _isFacingLeft = false; // ✅ 当前朝向
 
   late TextComponent powerText;
   late final Future<void> Function() _onPowerUpdate;
@@ -140,6 +141,15 @@ class HuanyuePlayerComponent extends SpriteComponent
     final distance = dir.length;
     final move = dir.normalized() * _moveSpeed * dt;
 
+    // ✅ 判断左右方向并翻转角色图像
+    if (dir.x.abs() > 1e-3) {
+      final shouldFaceLeft = dir.x < 0;
+      if (shouldFaceLeft != _isFacingLeft) {
+        flipHorizontally();
+        _isFacingLeft = shouldFaceLeft;
+      }
+    }
+
     if (move.length >= distance) {
       position = target;
       _currentStep++;
@@ -185,8 +195,10 @@ class HuanyuePlayerComponent extends SpriteComponent
       other.removeFromParent();
 
       final isAptitudeReward = ((currentFloor ~/ 5) % 2 == 1);
-      final rewardKey = isAptitudeReward ? 'fateRecruitCharm' : 'humanRecruitTicket';
-      final rewardText = isAptitudeReward ? '资质提升券 x1' : '人界招募券 x1';
+      final rewardKey =
+      isAptitudeReward ? 'fateRecruitCharm' : 'humanRecruitTicket';
+      final rewardText =
+      isAptitudeReward ? '资质提升券 x1' : '人界招募券 x1';
 
       final player = await PlayerStorage.getPlayer();
       if (player != null) {
@@ -200,8 +212,10 @@ class HuanyuePlayerComponent extends SpriteComponent
     if (other is HuanyueDoorComponent) {
       if (hasTriggeredEnter) return;
 
-      final allEnemiesKilled = await HuanyueStorage.areAllEnemiesKilled(currentFloor);
-      final isChestOpened = await HuanyueStorage.isCurrentFloorChestOpened(currentFloor);
+      final allEnemiesKilled =
+      await HuanyueStorage.areAllEnemiesKilled(currentFloor);
+      final isChestOpened =
+      await HuanyueStorage.isCurrentFloorChestOpened(currentFloor);
 
       if (!allEnemiesKilled || !isChestOpened) {
         if (!hintCooldown) {
