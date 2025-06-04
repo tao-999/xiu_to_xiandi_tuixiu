@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/number_format_util.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class CultivatorInfoCard extends StatelessWidget {
   final Character profile;
@@ -100,8 +101,10 @@ class CultivatorInfoCard extends StatelessWidget {
               Text('${profile.name} · ${profile.career}',
                   style: const TextStyle(color: Colors.black, fontSize: 16)),
               const SizedBox(height: 4),
-              Text('战力：${formatLargeNumber(profile.power)}',
-                  style: const TextStyle(color: Colors.black, fontSize: 16)),
+              Text(
+                '战力：${formatLargeNumber(PlayerStorage.calculatePower(hp: profile.hp, atk: profile.atk, def: profile.def))}',
+                style: const TextStyle(color: Colors.black, fontSize: 16),
+              ),
               const SizedBox(height: 4),
               Text(
                 '五行属性：' +

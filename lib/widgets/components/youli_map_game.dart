@@ -3,7 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_maze_2p5d.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_huanyue_explore.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart'; // 你封装的组件
 
 class YouliMapGame extends FlameGame {
@@ -28,7 +28,7 @@ class YouliMapGame extends FlameGame {
     await _addEntry('youli_fanchenshiji.png', Vector2(500, 1900));
     await _addEntry('youli_huanyueshan.png', Vector2(700, 1350), onTap: () {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const Maze2p5DPage()),
+        MaterialPageRoute(builder: (_) => const HuanyueExplorePage()),
       );
     });
     await _addEntry('youli_ciyangu.png', Vector2(400, 800));

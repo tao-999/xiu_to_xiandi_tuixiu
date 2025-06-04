@@ -1,7 +1,11 @@
 // lib/services/player_storage.dart
+
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
+
+import '../utils/cultivation_level.dart';
 
 class PlayerStorage {
   static const _playerKey = 'playerData';
@@ -52,5 +56,27 @@ class PlayerStorage {
     final raw = prefs.getString(_playerKey) ?? '{}';
     final json = jsonDecode(raw);
     return json[key] as T?;
+  }
+
+  /// ✨ 通用战斗力计算（用于角色、怪物等）
+  static int calculatePower({
+    required int hp,
+    required int atk,
+    required int def,
+  }) {
+    return (hp * 0.4 + atk * 2 + def * 1.5).toInt();
+  }
+
+  /// 🌱 获取当前玩家的境界总层数（练气1重 = 1，筑基1重 = 10 ...）
+  static Future<int> getCultivationLayer() async {
+    final player = await getPlayer();
+    if (player == null) return 1;
+    return calculateCultivationLevel(player.cultivation).totalLayer;
+  }
+
+  /// 💪 获取当前玩家尺寸倍率（如 2.0、2.2）
+  static Future<double> getSizeMultiplier() async {
+    final layer = await getCultivationLayer();
+    return 2.0 + (layer - 1) * 0.02;
   }
 }

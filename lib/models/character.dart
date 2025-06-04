@@ -1,5 +1,7 @@
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
+import '../services/global_event_bus.dart';
+
 /// 👤 Character —— 修士角色类
 /// 记录角色基本信息、属性、资质、修为、地图阶段与资源信息等
 class Character {
@@ -67,14 +69,6 @@ class Character {
 
   int get totalElement => elements.values.fold(0, (a, b) => a + b);
 
-  int get power {
-    return (
-        hp * 0.4 +
-            atk * 2 +
-            def * 1.5
-    ).toInt();
-  }
-
   double get growthMultiplier => 1 + totalElement / 100;
 
   void applyBreakthroughBonus() {
@@ -82,6 +76,9 @@ class Character {
     hp = (hp * m).round();
     atk = (atk * m).round();
     def = (def * m).round();
+
+    // 🚀 在突破时发射事件（更骚）
+    EventBus.emit('powerUpdated');
   }
 
   Map<String, dynamic> toJson() => {

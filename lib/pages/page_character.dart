@@ -10,7 +10,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/effects/break_through_aura.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/number_format_util.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/resource_bar.dart';
 

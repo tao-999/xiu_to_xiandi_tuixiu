@@ -1,49 +1,57 @@
+// 📂 lib/widgets/components/huanyue_chest_spawner.dart
+
 import 'dart:math';
-import 'dart:ui';
-import 'package:flame/effects.dart';
-import 'package:flutter/animation.dart';
-import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/maze_storage.dart';
+import 'package:flame/effects.dart';
+import 'package:flutter/material.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/huanyue_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/tile_manager.dart';
 
-final _uuid = Uuid(); // ✅ 全局 UUID 生成器
-
-class MazeChestSpawner extends Component {
+class HuanyueChestSpawner extends Component {
   final List<List<int>> grid;
   final double tileSize;
-  final Set<Vector2> excluded;
   final int currentFloor;
+  final TileManager tileManager;
 
-  MazeChestSpawner({
+  HuanyueChestSpawner({
     required this.grid,
     required this.tileSize,
     required this.currentFloor,
-    this.excluded = const {},
+    required this.tileManager,
   });
 
   @override
   Future<void> onLoad() async {
     if (currentFloor % 5 != 0) return;
 
-    final savedPos = await MazeStorage.getChestPosition();
-
+    final savedPos = await HuanyueStorage.getChestPosition(currentFloor);
     Vector2? chestGrid;
 
     if (savedPos != null) {
       chestGrid = savedPos;
     } else {
-      // 随机生成位置
       final rows = grid.length;
       final cols = grid[0].length;
-
       final validTiles = <Vector2>[];
-      for (int y = 1; y < rows - 1; y++) {
-        for (int x = 1; x < cols - 1; x++) {
-          final tile = Vector2(x.toDouble(), y.toDouble());
-          if (grid[y][x] == 1 && !excluded.contains(tile)) {
-            validTiles.add(tile);
+
+      for (int y = 1; y < rows - 3; y++) {
+        for (int x = 1; x < cols - 3; x++) {
+          bool canPlace = true;
+          for (int dx = 0; dx < 2; dx++) {
+            for (int dy = 0; dy < 2; dy++) {
+              final tx = x + dx;
+              final ty = y + dy;
+              final tile = Vector2(tx.toDouble(), ty.toDouble());
+              if (grid[ty][tx] != 1 || tileManager.isTileOccupied(tx, ty)) {
+                canPlace = false;
+                break;
+              }
+            }
+            if (!canPlace) break;
+          }
+          if (canPlace) {
+            validTiles.add(Vector2(x.toDouble(), y.toDouble()));
           }
         }
       }
@@ -51,23 +59,28 @@ class MazeChestSpawner extends Component {
       if (validTiles.isEmpty) return;
       validTiles.shuffle(Random());
       chestGrid = validTiles.removeLast();
-
-      await MazeStorage.setChestPosition(chestGrid);
+      await HuanyueStorage.setChestPosition(currentFloor, chestGrid);
     }
 
-    // ✅ 此时位置已定，生成 ID
     final chestId = '${currentFloor}_${chestGrid.x.toInt()}_${chestGrid.y.toInt()}';
-    final isOpened = await MazeStorage.isChestOpened(chestId);
+    final isOpened = await HuanyueStorage.isChestOpened(chestId);
     if (isOpened) return;
+
+    tileManager.occupy(
+      chestGrid.x.toInt(),
+      chestGrid.y.toInt(),
+      2,
+      2,
+    );
 
     final chestSprite = await Sprite.load('migong_baoxiang.png');
     final chestOpenSprite = await Sprite.load('migong_baoxiang_open.png');
 
-    final chest = _InternalChestComponent(
-      id: chestId, // ✅ 现在可以传 ID 了
+    final chest = _HuanyueChestComponent(
+      id: chestId,
       closedSprite: chestSprite,
       openSprite: chestOpenSprite,
-      position: chestGrid * tileSize + Vector2.all(tileSize / 2),
+      position: chestGrid * tileSize + Vector2.all(tileSize),
       currentFloor: currentFloor,
     );
 
@@ -75,13 +88,13 @@ class MazeChestSpawner extends Component {
   }
 }
 
-class _InternalChestComponent extends SpriteComponent with CollisionCallbacks {
-  final String id; // ✅ 唯一 ID
+class _HuanyueChestComponent extends SpriteComponent with CollisionCallbacks {
+  final String id;
   final Sprite openSprite;
   final int currentFloor;
   bool opened = false;
 
-  _InternalChestComponent({
+  _HuanyueChestComponent({
     required this.id,
     required Sprite closedSprite,
     required this.openSprite,
@@ -89,7 +102,7 @@ class _InternalChestComponent extends SpriteComponent with CollisionCallbacks {
     required this.currentFloor,
   }) : super(
     sprite: closedSprite,
-    size: Vector2.all(48),
+    size: Vector2.all(64),
     position: position,
     anchor: Anchor.center,
   );
@@ -108,13 +121,10 @@ class _InternalChestComponent extends SpriteComponent with CollisionCallbacks {
       sprite = openSprite;
       opened = true;
 
-      // ✅ 后续要替换为 MazeStorage.setChestOpenedById(id)
-      MazeStorage.markChestOpened(id);
+      HuanyueStorage.markChestOpened(id);
 
       final isAptitudeReward = ((currentFloor ~/ 5) % 2 == 1);
       final reward = isAptitudeReward ? '资质提升券 x1' : '人界招募券 x1';
-
-      print('🎁 第 $currentFloor 层宝箱开启，获得：$reward');
 
       final rewardText = TextComponent(
         text: '🎁 $reward',
@@ -130,7 +140,6 @@ class _InternalChestComponent extends SpriteComponent with CollisionCallbacks {
         ),
       );
 
-// 加个动画效果，向上飘
       rewardText.add(
         MoveEffect.by(
           Vector2(0, -40),
@@ -138,7 +147,6 @@ class _InternalChestComponent extends SpriteComponent with CollisionCallbacks {
         ),
       );
 
-// 自动移除
       Future.delayed(const Duration(milliseconds: 1500), () {
         rewardText.removeFromParent();
       });
