@@ -46,7 +46,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
           // 🌄 背景图层
           Positioned.fill(
             child: Image.asset(
-              'assets/images/bg_zongmen_shiwaitaoyuan.png',
+              'assets/images/bg_zongmen_shiwaitaoyuan.webp',
               fit: BoxFit.cover,
             ),
           ),

@@ -190,25 +190,6 @@ class HuanyuePlayerComponent extends SpriteComponent
       }
     }
 
-    if (other is SpriteComponent &&
-        other.sprite?.image.toString().contains('baoxiang') == true) {
-      other.removeFromParent();
-
-      final isAptitudeReward = ((currentFloor ~/ 5) % 2 == 1);
-      final rewardKey =
-      isAptitudeReward ? 'fateRecruitCharm' : 'humanRecruitTicket';
-      final rewardText =
-      isAptitudeReward ? '资质提升券 x1' : '人界招募券 x1';
-
-      final player = await PlayerStorage.getPlayer();
-      if (player != null) {
-        player.resources.add(rewardKey, 1);
-        await player.resources.saveToStorage();
-      }
-
-      _showRewardText(rewardText, position);
-    }
-
     if (other is HuanyueDoorComponent) {
       if (hasTriggeredEnter) return;
 

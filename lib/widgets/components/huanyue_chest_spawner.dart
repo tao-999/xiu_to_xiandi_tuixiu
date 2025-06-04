@@ -6,6 +6,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/huanyue_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/tile_manager.dart';
 
 class HuanyueChestSpawner extends Component {
@@ -124,7 +125,17 @@ class _HuanyueChestComponent extends SpriteComponent with CollisionCallbacks {
       HuanyueStorage.markChestOpened(id);
 
       final isAptitudeReward = ((currentFloor ~/ 5) % 2 == 1);
+      final rewardKey = isAptitudeReward ? 'fateRecruitCharm' : 'humanRecruitTicket';
       final reward = isAptitudeReward ? '资质提升券 x1' : '人界招募券 x1';
+
+      // ✅ 给资源 + 存储
+      PlayerStorage.getPlayer().then((player) async {
+        if (player != null) {
+          player.resources.add(rewardKey, 1);
+          await player.resources.saveToStorage();
+          print('📦 奖励后资源快照：${player.resources.toMap()}');
+        }
+      });
 
       final rewardText = TextComponent(
         text: '🎁 $reward',

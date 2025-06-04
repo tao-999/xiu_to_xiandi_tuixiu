@@ -122,7 +122,7 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
           // 背景图
           Positioned.fill(
             child: Image.asset(
-              'assets/images/paper_lantern_inn.png',
+              'assets/images/paper_lantern_inn.webp',
               fit: BoxFit.cover,
             ),
           ),

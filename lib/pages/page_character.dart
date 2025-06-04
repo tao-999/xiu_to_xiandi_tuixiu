@@ -1,8 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/meditation_widget.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/cultivator_info_card.dart';
@@ -13,6 +10,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/resource_bar.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/aptitude_upgrade_dialog.dart';
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key});
@@ -23,49 +21,35 @@ class CharacterPage extends StatefulWidget {
 
 class _CharacterPageState extends State<CharacterPage> {
   late Character player;
-  bool isReady = false;
+  late CultivationLevelDisplay display;
   bool showAura = false;
-  late Timer _refreshTimer;
+
+  Future<void> _reloadData() async {
+    final updated = await PlayerStorage.getPlayer();
+    if (mounted && updated != null) {
+      setState(() {
+        player = updated;
+      });
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _loadPlayer();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
-    });
-  }
-
-  Future<void> _loadPlayer() async {
-    final prefs = await SharedPreferences.getInstance();
-    final playerStr = prefs.getString('playerData');
-    if (playerStr == null) return;
-
-    player = Character.fromJson(jsonDecode(playerStr));
-    setState(() => isReady = true);
-
-    CultivationTracker.startTickWithPlayer(onUpdate: () {
-      if (mounted) setState(() {});
-    });
   }
 
   @override
   void dispose() {
-    _refreshTimer.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!isReady) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.amber)),
-      );
-    }
-
-    return FutureBuilder<CultivationLevelDisplay>(
-      future: getDisplayLevelFromPrefs(),
+    return FutureBuilder<List<dynamic>>(
+      future: Future.wait([
+        PlayerStorage.getPlayer(),
+        getDisplayLevelFromPrefs(),
+      ]),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Scaffold(
@@ -74,7 +58,8 @@ class _CharacterPageState extends State<CharacterPage> {
           );
         }
 
-        final display = snapshot.data!;
+        player = snapshot.data![0] as Character;
+        display = snapshot.data![1] as CultivationLevelDisplay;
         final realmText = "${display.realm}${display.rank}层";
 
         return Scaffold(
@@ -82,11 +67,11 @@ class _CharacterPageState extends State<CharacterPage> {
             children: [
               Positioned.fill(
                 child: Image.asset(
-                  'assets/images/bg_xiuxian_mountain.png',
+                  'assets/images/bg_xiuxian_mountain.webp',
                   fit: BoxFit.cover,
                 ),
               ),
-              const ResourceBar(),
+              ResourceBar(player: player),
               Align(
                 alignment: const Alignment(0, 0.4),
                 child: Column(
@@ -151,17 +136,10 @@ class _CharacterPageState extends State<CharacterPage> {
                       mini: true,
                       backgroundColor: Colors.deepPurple,
                       onPressed: () async {
-                        final display = await getDisplayLevelFromPrefs();
-                        final added = display.current;
-
-                        await CultivationTracker.applyRewardedExp(added, onUpdate: () async {
-                          final updated = await PlayerStorage.getPlayer(); // 🟢 从 storage 重新拉
-                          if (mounted && updated != null) {
-                            setState(() {
-                              player = updated; // 🧠 替换为最新数据
-                            });
-                          }
-                        });
+                        await CultivationTracker.applyRewardedExp(
+                          display.current,
+                          onUpdate: () => _reloadData(),
+                        );
                       },
                       child: const Icon(Icons.bolt),
                     ),
@@ -173,29 +151,11 @@ class _CharacterPageState extends State<CharacterPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                       ),
                       onPressed: () async {
-                        for (final key in player.elements.keys) {
-                          player.elements[key] = (player.elements[key] ?? 0) + 2;
-                        }
-
-                        final prefs = await SharedPreferences.getInstance();
-                        final raw = prefs.getString('playerData') ?? '{}';
-                        final json = jsonDecode(raw);
-                        json['elements'] = player.elements;
-
-                        await prefs.setString('playerData', jsonEncode(json));
-                        setState(() {
-                          isReady = false;
-                        });
-                        await _loadPlayer();
-
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("✨ 资质提升成功！"),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
+                        await showDialog(
+                          context: context,
+                          builder: (context) => AptitudeUpgradeDialog(player: player),
+                        );
+                        await _reloadData();
                       },
                       child: const Text("升资质", style: TextStyle(fontSize: 12)),
                     ),

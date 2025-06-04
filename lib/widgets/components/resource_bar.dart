@@ -1,44 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
 
-class ResourceBar extends StatefulWidget {
-  const ResourceBar({super.key});
+class ResourceBar extends StatelessWidget {
+  final Character player;
 
-  @override
-  State<ResourceBar> createState() => _ResourceBarState();
-}
-
-class _ResourceBarState extends State<ResourceBar> {
-  Character? _player;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPlayer();
-  }
-
-  Future<void> _loadPlayer() async {
-    final player = await PlayerStorage.getPlayer();
-    if (mounted) {
-      setState(() {
-        _player = player;
-      });
-    }
-  }
+  const ResourceBar({super.key, required this.player});
 
   @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top;
-
-    if (_player == null) {
-      return SizedBox(height: topInset + 48); // 留高度 + 占位
-    }
-
-    final res = _player!.resources;
+    final res = player.resources;
 
     return Padding(
-      padding: EdgeInsets.only(top: topInset), // ✅ 关键：避开刘海
+      padding: EdgeInsets.only(top: topInset),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
@@ -49,13 +25,15 @@ class _ResourceBarState extends State<ResourceBar> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _buildItem('下品灵石', res.spiritStoneLow, Icons.circle),
+              _buildItem('下品灵石', formatLargeNumber(res.spiritStoneLow), Icons.circle),
               const SizedBox(width: 16),
-              _buildItem('中品灵石', res.spiritStoneMid, Icons.change_history),
+              _buildItem('中品灵石', formatLargeNumber(res.spiritStoneMid), Icons.change_history),
               const SizedBox(width: 16),
-              _buildItem('上品灵石', res.spiritStoneHigh, Icons.diamond),
+              _buildItem('上品灵石', formatLargeNumber(res.spiritStoneHigh), Icons.diamond),
               const SizedBox(width: 16),
-              _buildItem('极品灵石', res.spiritStoneSupreme, Icons.star),
+              _buildItem('极品灵石', formatLargeNumber(res.spiritStoneSupreme), Icons.star),
+              const SizedBox(width: 16),
+              _buildItem('资质提升券', formatLargeNumber(res.fateRecruitCharm), Icons.school),
             ],
           ),
         ),
@@ -63,7 +41,7 @@ class _ResourceBarState extends State<ResourceBar> {
     );
   }
 
-  Widget _buildItem(String label, int value, IconData icon) {
+  Widget _buildItem(String label, String value, IconData icon) {
     return Row(
       children: [
         Icon(icon, size: 18, color: Colors.amber[800]),

@@ -115,7 +115,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
           Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage("assets/images/bg_xiuxian.png"),
+                image: AssetImage("assets/images/bg_xiuxian.webp"),
                 fit: BoxFit.cover,
                 alignment: Alignment.topCenter,
               ),

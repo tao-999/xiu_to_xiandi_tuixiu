@@ -72,11 +72,11 @@ class AutoBattleGame extends FlameGame {
 
     String bgPath;
     if (stage <= 3) {
-      bgPath = 'assets/images/hell_stage_1_to_3.png';
+      bgPath = 'assets/images/hell_stage_1_to_3.webp';
     } else if (stage <= 6) {
-      bgPath = 'assets/images/hell_stage_4_to_6.png';
+      bgPath = 'assets/images/hell_stage_4_to_6.webp';
     } else {
-      bgPath = 'assets/images/hell_stage_7_to_9.png';
+      bgPath = 'assets/images/hell_stage_7_to_9.webp';
     }
 
     bg = SpriteComponent()
