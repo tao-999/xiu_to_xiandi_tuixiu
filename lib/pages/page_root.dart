@@ -128,7 +128,7 @@ class _XiudiRootState extends State<XiudiRoot> {
     showDialog(
       context: context,
       builder: (ctx) => MapSwitchDialog(
-        currentStage: currentStage,
+          currentStage: currentStage,
           onSelected: (stage) async {
             setState(() => currentStage = stage);
 
@@ -229,14 +229,13 @@ class _XiudiRootState extends State<XiudiRoot> {
             ),
           ),
           // ✅ 新增：大礼包按钮
-          if (!hasClaimedGift)
-            GiftButtonOverlay(
-              onGiftClaimed: () {
-                setState(() {
-                  hasClaimedGift = true;
-                });
-              },
-            ),
+          GiftButtonOverlay(
+            onGiftClaimed: () {
+              setState(() {
+                hasClaimedGift = true;
+              });
+            },
+          ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
