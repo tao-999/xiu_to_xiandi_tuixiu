@@ -133,7 +133,7 @@ class FreeMapGame extends FlameGame with TapCallbacks {
     final path = pathFinder.findPath(player.position, safeTarget);
 
     if (path.isEmpty) {
-      debugPrint('骚哥你点的地方被灵气封印了，走不动 ❌');
+      debugPrint('你点的地方被灵气封印了，走不动 ❌');
       return;
     }
 

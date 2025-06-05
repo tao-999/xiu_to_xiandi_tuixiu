@@ -126,12 +126,11 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.grey.shade800.withOpacity(0.85),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             '下次可领取：${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white, fontSize: 14),
           ),
         ),
       );
@@ -153,7 +152,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
             children: [
               Icon(Icons.card_giftcard, color: Colors.white, size: 20),
               SizedBox(width: 6),
-              Text('修仙大礼包', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text('修仙大礼包', style: TextStyle(color: Colors.white, fontSize: 14)),
             ],
           ),
         ),
@@ -198,7 +197,7 @@ class _GiftPopup extends StatelessWidget {
                   Future.delayed(Duration.zero, onClaimed);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
+                  backgroundColor: Colors.orange.withOpacity(0.5),
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),

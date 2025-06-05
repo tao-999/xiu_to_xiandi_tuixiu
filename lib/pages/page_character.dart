@@ -12,6 +12,8 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/resource_bar.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/aptitude_upgrade_dialog.dart';
 
+import '../widgets/dialogs/cultivation_boost_dialog.dart';
+
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key});
 
@@ -132,16 +134,20 @@ class _CharacterPageState extends State<CharacterPage> {
                 right: 30,
                 child: Column(
                   children: [
-                    FloatingActionButton(
-                      mini: true,
-                      backgroundColor: Colors.deepPurple,
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        minimumSize: const Size(40, 32),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                       onPressed: () async {
-                        await CultivationTracker.applyRewardedExp(
-                          display.current,
-                          onUpdate: () => _reloadData(),
+                        await showDialog(
+                          context: context,
+                          builder: (context) => const CultivationBoostDialog(),
                         );
+                        await _reloadData();
                       },
-                      child: const Icon(Icons.bolt),
+                      child: const Text("升修为", style: TextStyle(fontSize: 12, color: Colors.white)),
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
@@ -157,7 +163,7 @@ class _CharacterPageState extends State<CharacterPage> {
                         );
                         await _reloadData();
                       },
-                      child: const Text("升资质", style: TextStyle(fontSize: 12)),
+                      child: const Text("升资质", style: TextStyle(fontSize: 12, color: Colors.white)),
                     ),
                   ],
                 ),
