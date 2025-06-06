@@ -13,7 +13,7 @@ class MiningCellComponent {
     required String gridKey, // ✅ 新增：坐标key
   }) {
     final r = Random().nextDouble();
-    if (r < 0.7) {
+    if (r < 0.9) {
       return DirtCellComponent(
         position: position,
         size: size,

@@ -1,9 +1,13 @@
 // 📦 文件：chiyangu_game.dart
+import 'dart:convert';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/animation.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../services/chiyangu_storage.dart';
 import 'dirt_cell_component.dart';
 import 'rock_cell_component.dart';
 import 'mining_cell_component.dart';
@@ -24,6 +28,12 @@ class ChiyanguGame extends FlameGame {
   bool isShifting = false;
   String? lastTappedKey;
 
+  // ✅ 公共深度监听器（UI用）
+  static final ValueNotifier<int> depthNotifier = ValueNotifier<int>(0);
+
+  @override
+  Color backgroundColor() => Colors.transparent;
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -40,10 +50,40 @@ class ChiyanguGame extends FlameGame {
     add(maskLayer);
     maskLayer.add(mapLayer);
 
-    currentDepth = visibleRows;
-    for (int row = 0; row < visibleRows; row++) {
-      _addRow(row);
+    // ✅ 尝试从 ChiyanguStorage 恢复
+    final saved = await ChiyanguStorage.load();
+    if (saved != null) {
+      final savedCells = saved['cells'] as Map<String, Map<String, dynamic>>;
+      currentDepth = saved['depth'] ?? visibleRows;
+      await _buildCellMapFromSavedData(savedCells);
+      mapLayer.position.y = await _loadOffsetY();
+    } else {
+      currentDepth = visibleRows;
+      for (int row = 0; row < visibleRows; row++) {
+        _addRow(row);
+      }
     }
+
+    depthNotifier.value = _getTopVisibleRow();
+  }
+
+  Future<double> _loadOffsetY() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble('chiyangu_map_offset_y') ?? 0.0;
+  }
+
+  Future<void> saveCurrentState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final offsetY = mapLayer.position.y;
+
+    await prefs.setDouble('chiyangu_map_offset_y', offsetY);
+
+    await ChiyanguStorage.save(
+      depth: currentDepth,
+      cells: buildCellStorageData(),
+    );
+
+    print('✅ 已保存赤炎谷状态（via ChiyanguStorage）');
   }
 
   void _addRow(int row) {
@@ -85,15 +125,9 @@ class ChiyanguGame extends FlameGame {
   }
 
   void shiftGridUp({int lines = 1}) {
-    if (isShifting) {
-      print('🚫 忽略重复 shift');
-      return;
-    }
-
+    if (isShifting) return;
     isShifting = true;
     final double distance = -cellSize * lines;
-
-    print('🌍 shiftGridUp 被调用！lines: $lines');
 
     mapLayer.add(
       MoveEffect.by(
@@ -105,6 +139,7 @@ class ChiyanguGame extends FlameGame {
             _addRow(currentDepth);
             currentDepth += 1;
           }
+          depthNotifier.value = _getTopVisibleRow();
           isShifting = false;
         },
       ),
@@ -112,53 +147,24 @@ class ChiyanguGame extends FlameGame {
   }
 
   void tryShiftIfNeeded(String fromKey, {bool onlyIfTapped = false}) {
-    if (isShifting) {
-      print('🚫 正在移动中，跳过这次 shift 判断 [$fromKey]');
-      return;
-    }
-
-    if (onlyIfTapped && !isTappedCell(fromKey)) {
-      print('🚫 [$fromKey] 不是主动点击，不触发 shift 判断');
-      return;
-    }
+    if (isShifting) return;
+    if (onlyIfTapped && !isTappedCell(fromKey)) return;
 
     final self = cellMap[fromKey];
     if (self is! PositionComponent) return;
 
-    print('🧩 判断是否上移：key=$fromKey');
     final double selfY = self.position.y;
-
-    final topY = cellMap.values
-        .map((c) => c.position.y)
-        .reduce((a, b) => a < b ? a : b);
-
+    final topY = cellMap.values.map((c) => c.position.y).reduce((a, b) => a < b ? a : b);
     final secondY = topY + cellSize;
-    print('🔹 selfY=$selfY, topY=$topY, secondY=$secondY');
-    print('🔹 self类型: ${self.runtimeType}');
-
-    // ✅ 打印格子所在层级
-    if ((selfY - topY).abs() < 0.01) {
-      print('🧱 当前是【最顶层】格子');
-    } else if ((selfY - secondY).abs() < 0.01) {
-      print('🧱 当前是【次顶层】格子');
-    } else {
-      print('🧱 当前不是顶层也不是次顶层');
-    }
 
     int shiftLines = 0;
 
-    // ✅ 最顶层：必须当前是 Dirt，且下方是 Dirt，才允许移动
     if ((selfY - topY).abs() < 0.01) {
       if (self is DirtCellComponent) {
         final below = _getComponentAt(self.position.x, self.position.y + cellSize);
-        if (below is DirtCellComponent) {
-          shiftLines = 1;
-        }
+        if (below is DirtCellComponent) shiftLines = 1;
       }
-    }
-
-    // ✅ 次顶层：Rock 也可以触发移动，但只有 Dirt+下方也是 Dirt 时才 2 行
-    else if ((selfY - secondY).abs() < 0.01) {
+    } else if ((selfY - secondY).abs() < 0.01) {
       final below = _getComponentAt(self.position.x, self.position.y + cellSize);
       if (self is DirtCellComponent && below is DirtCellComponent) {
         shiftLines = 2;
@@ -168,10 +174,7 @@ class ChiyanguGame extends FlameGame {
     }
 
     if (shiftLines > 0) {
-      print('🚀 触发上移：移动 $shiftLines 行');
       shiftGridUp(lines: shiftLines);
-    } else {
-      print('🛑 [$fromKey] 不满足上移条件');
     }
   }
 
@@ -181,10 +184,7 @@ class ChiyanguGame extends FlameGame {
     final col = int.parse(parts[1]);
 
     for (final offset in [
-      [0, -1],
-      [0, 1],
-      [-1, 0],
-      [1, 0],
+      [0, -1], [0, 1], [-1, 0], [1, 0],
     ]) {
       final r = row + offset[0];
       final c = col + offset[1];
@@ -223,5 +223,83 @@ class ChiyanguGame extends FlameGame {
       }
     }
     return null;
+  }
+
+  int _getTopVisibleRow() {
+    final rows = cellMap.keys.map((key) => int.parse(key.split('_')[0]));
+    return rows.isEmpty ? 0 : rows.reduce((a, b) => a < b ? a : b);
+  }
+
+  Map<String, Map<String, dynamic>> buildCellStorageData() {
+    final result = <String, Map<String, dynamic>>{};
+    cellMap.forEach((key, comp) {
+      if (comp is DirtCellComponent) {
+        result[key] = {
+          'type': 'dirt',
+          'breakLevel': comp.broken ? 1 : 0,
+        };
+      } else if (comp is RockCellComponent) {
+        result[key] = {
+          'type': 'rock',
+          'breakLevel': comp.hitCount.clamp(0, 3),
+        };
+      }
+    });
+    return result;
+  }
+
+  Future<void> _buildCellMapFromSavedData(Map<String, Map<String, dynamic>> data) async {
+    for (final entry in data.entries) {
+      final key = entry.key;
+      final value = entry.value;
+      final parts = key.split('_');
+      final row = int.parse(parts[0]);
+      final col = int.parse(parts[1]);
+      final x = col * cellSize;
+      final y = row * cellSize;
+      final position = Vector2(x, y);
+      final type = value['type'];
+      final breakLevel = value['breakLevel'] ?? 0;
+
+      PositionComponent? cell;
+
+      if (type == 'dirt') {
+        if (breakLevel == 1) continue;
+        final dirt = DirtCellComponent(
+          position: position,
+          size: cellSize,
+          depth: row,
+          gridKey: key,
+        );
+        cell = dirt;
+        cellMap[key] = dirt;
+        mapLayer.add(dirt);
+      } else if (type == 'rock') {
+        if (breakLevel >= 3) continue;
+        final rock = RockCellComponent(
+          position: position,
+          size: cellSize,
+          gridKey: key,
+        );
+        cell = rock;
+        cellMap[key] = rock;
+        mapLayer.add(rock);
+        await rock.restoreFromStorage(breakLevel); // ✅ 加载状态贴图
+      }
+    }
+
+    currentDepth = cellMap.keys.map((k) => int.parse(k.split('_')[0]))
+        .fold(0, (prev, curr) => curr >= prev ? curr + 1 : prev);
+  }
+
+  Future<Map<String, Map<String, dynamic>>> _loadSavedCellData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final str = prefs.getString('chiyangu_cell_data');
+    if (str == null) return {};
+    final raw = jsonDecode(str) as Map<String, dynamic>;
+    return raw.map((key, value) => MapEntry(
+      key,
+      Map<String, dynamic>.from(value),
+    ));
   }
 }

@@ -9,15 +9,14 @@ import 'chiyangu_game.dart';
 
 class RockCellComponent extends PositionComponent
     with TapCallbacks, HasGameRef<ChiyanguGame> {
-  late String gridKey;
+  final String gridKey;
   bool broken = false;
   int hitCount = 0;
-  bool tapped = false; // ✅ 加锁防连点
 
-  final List<PolygonComponent> cracks = [];
-  late RectangleComponent fillRect;
+  SpriteComponent? rockSprite;
+  SpriteComponent? crackOverlay;
 
-  bool get isBroken => hitCount >= 3;
+  bool get isBroken => hitCount >= 2;
 
   RockCellComponent({
     required Vector2 position,
@@ -27,30 +26,43 @@ class RockCellComponent extends PositionComponent
 
   @override
   Future<void> onLoad() async {
-    super.onLoad();
+    await super.onLoad();
+    await _updateSpriteByHitCount();
+  }
 
-    fillRect = RectangleComponent(
-      size: size,
-      paint: Paint()..color = const Color(0xFF888888),
-    );
-    add(fillRect);
+  Future<void> _updateSpriteByHitCount() async {
+    if (isBroken) {
+      broken = true;
+      removeFromParent();
+      return;
+    }
 
-    add(RectangleComponent(
-      size: size,
-      paint: Paint()
-        ..color = Colors.black
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.0,
-    ));
+    await _setNormalSprite();
+    if (hitCount == 1) {
+      await _addCrackOverlay();
+    }
+  }
+
+  Future<void> _setNormalSprite() async {
+    final sprite = await gameRef.loadSprite('chiyangu_shitou.webp');
+    rockSprite?.removeFromParent();
+    rockSprite = SpriteComponent(sprite: sprite, size: size);
+    add(rockSprite!);
+  }
+
+  Future<void> _addCrackOverlay() async {
+    if (crackOverlay != null) return;
+    final sprite = await gameRef.loadSprite('chiyangu_shitou_liefeng.png');
+    crackOverlay = SpriteComponent(sprite: sprite, size: size);
+    add(crackOverlay!);
   }
 
   @override
   void onTapDown(TapDownEvent event) {
-    if (broken || gameRef.isShifting) return; // ✅ 只判断是否已经碎 + 正在移动
+    if (broken || gameRef.isShifting) return;
     if (!gameRef.canBreak(gridKey)) return;
 
-    gameRef.lastTappedKey = gridKey; // ✅ 记录本次点击
-
+    gameRef.lastTappedKey = gridKey;
     final globalClick = absolutePosition + size / 2;
 
     gameRef.add(PickaxeEffectComponent(
@@ -64,29 +76,24 @@ class RockCellComponent extends PositionComponent
 
   void externalBreak() {
     if (broken) return;
-    _onPickaxeStrike(size / 2, shouldShift: false); // ❌ 外部触发不引发 shift
+    _onPickaxeStrike(size / 2, shouldShift: false);
   }
 
   void _onPickaxeStrike(Vector2 clickPoint, {required bool shouldShift}) {
     hitCount++;
-    if (hitCount <= 2) {
-      final segments = _generateFracturePolygon(clickPoint);
-      for (final c in segments) {
-        add(c);
-        cracks.add(c);
-      }
+    gameRef.saveCurrentState(); // ✅ 每次敲击后保存状态
+
+    if (hitCount == 1) {
+      _addCrackOverlay();
     } else {
       _breakBlock(shouldShift: shouldShift);
     }
   }
 
   void _breakBlock({required bool shouldShift}) {
-    if (broken) return; // ✅ 防止重复执行
-
-    broken = true;       // ✅ 第三击标记为碎
-    removeFromParent();  // ✅ 从地图中移除
-    cracks.forEach((e) => e.removeFromParent());
-    cracks.clear();
+    if (broken) return;
+    broken = true;
+    removeFromParent();
 
     final debris = _createShatteredDebris();
     for (final frag in debris) {
@@ -96,68 +103,8 @@ class RockCellComponent extends PositionComponent
     gameRef.add(_showSpiritStoneReward(absolutePosition + size / 2));
 
     if (shouldShift) {
-      gameRef.tryShiftIfNeeded(gridKey, onlyIfTapped: true); // ✅ 第三击后触发 shift
+      gameRef.tryShiftIfNeeded(gridKey, onlyIfTapped: true);
     }
-  }
-
-  List<PolygonComponent> _generateFracturePolygon(Vector2 from) {
-    final List<PolygonComponent> segments = [];
-    final rand = Random();
-    Vector2 current = from;
-    final baseDir = (Vector2(
-      rand.nextDouble() - 0.5,
-      rand.nextDouble() - 0.5,
-    )).normalized();
-    final count = 4 + rand.nextInt(3);
-    double baseWidth = 6;
-
-    for (int i = 0; i < count; i++) {
-      final dir = baseDir + Vector2(
-        (rand.nextDouble() - 0.5) * 0.5,
-        (rand.nextDouble() - 0.5) * 0.5,
-      );
-      final len = 20 + rand.nextDouble() * 10;
-      final offset = dir.normalized() * len;
-      final next = current + offset;
-
-      if (next.x < 0 || next.x > size.x || next.y < 0 || next.y > size.y) break;
-
-      final mid = (current + next) / 2;
-      final angle = offset.angleTo(Vector2(1, 0));
-      final w1 = baseWidth, w2 = baseWidth * 0.5;
-
-      final points = [
-        Vector2(-len / 2, -w1 / 2),
-        Vector2(len / 2, -w2 / 2),
-        Vector2(len / 2, w2 / 2),
-        Vector2(-len / 2, w1 / 2),
-      ];
-
-      final shadow = PolygonComponent(
-        points,
-        paint: Paint()..color = Colors.black.withOpacity(0.3),
-        position: mid + Vector2(1, 1),
-        angle: angle,
-        anchor: Anchor.center,
-        priority: 199,
-      );
-      final crack = PolygonComponent(
-        points,
-        paint: Paint()..color = Colors.black,
-        position: mid,
-        angle: angle,
-        anchor: Anchor.center,
-        priority: 200,
-      );
-
-      segments.add(shadow);
-      segments.add(crack);
-
-      current = next;
-      baseWidth *= 0.7;
-    }
-
-    return segments;
   }
 
   List<Component> _createShatteredDebris() {
@@ -184,7 +131,7 @@ class RockCellComponent extends PositionComponent
           startDelay: delay,
           curve: Curves.easeIn,
         ),
-        onComplete: () => frag.removeFromParent(),
+        onComplete: () => frag.removeFromParent(), // ✅ 注意这里改位置了
       ));
 
       frag.add(RotateEffect.by(
@@ -212,7 +159,7 @@ class RockCellComponent extends PositionComponent
       MoveEffect.by(
         Vector2(0, -30),
         EffectController(duration: 0.8),
-        onComplete: () => text.removeFromParent(),
+        onComplete: () => text.removeFromParent(), // ✅ Flame 1.29 新语法
       ),
     );
 
@@ -283,5 +230,17 @@ class RockCellComponent extends PositionComponent
 
   double _cross(Vector2 o, Vector2 a, Vector2 b) {
     return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  }
+
+  Map<String, dynamic> toStorage() {
+    return {
+      'type': 'rock',
+      'breakLevel': hitCount.clamp(0, 2),
+    };
+  }
+
+  Future<void> restoreFromStorage(int level) async {
+    hitCount = level.clamp(0, 2);
+    await _updateSpriteByHitCount();
   }
 }

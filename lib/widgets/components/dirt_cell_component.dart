@@ -55,11 +55,11 @@ class DirtCellComponent extends PositionComponent
 
   @override
   void onTapDown(TapDownEvent event) {
-    if (tapped || broken || gameRef.isShifting) return; // ✅ 多重锁判断
+    if (tapped || broken || gameRef.isShifting) return;
     if (!gameRef.canBreak(gridKey)) return;
 
-    gameRef.lastTappedKey = gridKey; // ✅ 记录本次点击
-    tapped = true; // ✅ 锁定点击，防止多次触发
+    gameRef.lastTappedKey = gridKey;
+    tapped = true;
 
     final globalClick = absolutePosition + size / 2;
 
@@ -67,7 +67,7 @@ class DirtCellComponent extends PositionComponent
       targetPosition: globalClick,
       onFinish: () async {
         await Future.delayed(const Duration(milliseconds: 500));
-        _breakBlock(shouldShift: true); // ✅ 主动点击才允许 shift
+        _breakBlock(shouldShift: true);
         gameRef.breakAdjacent(gridKey, fromDirt: true);
       },
     ));
@@ -76,7 +76,7 @@ class DirtCellComponent extends PositionComponent
   void externalBreak() {
     if (broken) return;
     debugPrint('🔥 爆格子 $gridKey');
-    _breakBlock(shouldShift: false); // ❌ 被动破坏不触发 shift
+    _breakBlock(shouldShift: false);
   }
 
   void _breakBlock({required bool shouldShift}) {
@@ -89,7 +89,23 @@ class DirtCellComponent extends PositionComponent
     }
 
     if (shouldShift) {
-      gameRef.tryShiftIfNeeded(gridKey, onlyIfTapped: true); // ✅ 限定主动触发
+      gameRef.tryShiftIfNeeded(gridKey, onlyIfTapped: true);
+    }
+  }
+
+  // ✅ 存档支持
+  Map<String, dynamic> toStorage() {
+    return {
+      'type': 'dirt',
+      'breakLevel': broken ? 1 : 0,
+    };
+  }
+
+  // ✅ 加载支持
+  void restoreFromStorage(int level) {
+    if (level >= 1) {
+      broken = true;
+      removeFromParent();
     }
   }
 
