@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
+import '../common/toast_tip.dart';
+
 /// ⏱️ 调试用：礼包冷却时间 Duration(seconds: 10)
 /// 上线前改回：Duration(hours: 24)
 const Duration giftCooldown = Duration(hours: 24);
@@ -101,10 +103,10 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
             setState(() {});
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(isFirstTime
-                ? '🎁 首次礼包领取成功！下品灵石+10000，招募券+100'
-                : '🪙 每日修仙奖励：下品灵石 +8640')),
+          ToastTip.show(context, isFirstTime
+              ? '🎁 首次礼包领取成功！下品灵石 +10000，招募券 +100'
+              : '🪙 每日修仙奖励：下品灵石 +8640',
+            duration: const Duration(seconds: 3),
           );
         },
       ),

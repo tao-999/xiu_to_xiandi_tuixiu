@@ -9,7 +9,7 @@ class ToastTip {
 
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
-        top: MediaQuery.of(context).padding.top + 40,
+        top: MediaQuery.of(context).padding.top + 180,
         left: 0,
         right: 0,
         child: IgnorePointer(
@@ -20,7 +20,7 @@ class ToastTip {
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                 margin: const EdgeInsets.symmetric(horizontal: 32),
                 decoration: BoxDecoration(
-                  color: Colors.black87,
+                  color: Colors.white.withOpacity(0.75), // 👈 这里你可以自由控制透明度
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
@@ -31,7 +31,7 @@ class ToastTip {
                 ),
                 child: Text(
                   message,
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  style: const TextStyle(color: Colors.black, fontSize: 14),
                 ),
               ),
             ),

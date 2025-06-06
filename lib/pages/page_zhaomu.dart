@@ -8,6 +8,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/recruit_card_widget.dart
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/disciple_list_dialog.dart';
 
+import '../widgets/common/toast_tip.dart';
+
 class ZhaomuPage extends StatefulWidget {
   const ZhaomuPage({super.key});
 
@@ -44,9 +46,7 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
     if (currentPool == 'human') {
       final current = player.resources.humanRecruitTicket;
       if (current < count) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('招募券不足，无法招募')),
-        );
+        ToastTip.show(context, '招募券不足，无法招募');
         return;
       }
 

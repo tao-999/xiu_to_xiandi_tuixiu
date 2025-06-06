@@ -14,6 +14,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/fancy_name_input.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/five_element_slider_group.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
+import '../widgets/common/toast_tip.dart';
+
 class CreateRolePage extends StatefulWidget {
   const CreateRolePage({super.key});
 
@@ -190,9 +192,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
                       onPressed: () async {
                         if (nickname.trim().isEmpty) return;
                         await _saveRoleData();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("角色 $nickname 创建完成！")),
-                        );
+                        ToastTip.show(context, "角色 $nickname 创建完成！");
                         await Future.delayed(const Duration(seconds: 1));
                         if (!mounted) return;
                         Navigator.of(context).pushAndRemoveUntil(
