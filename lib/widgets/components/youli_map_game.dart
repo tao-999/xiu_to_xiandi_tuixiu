@@ -5,6 +5,7 @@ import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_huanyue_explore.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_chiyangu.dart';
 
 class YouliMapGame extends FlameGame {
   final BuildContext context;
@@ -31,7 +32,11 @@ class YouliMapGame extends FlameGame {
         MaterialPageRoute(builder: (_) => const HuanyueExplorePage()),
       );
     });
-    await _addEntry('youli_ciyangu.png', Vector2(400, 800));
+    await _addEntry('youli_ciyangu.png', Vector2(400, 800), onTap: () {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ChiyanguPage()),
+      );
+    });
     await _addEntry('youli_fukongxiandao.png', Vector2(1100, 400));
     await _addEntry('youli_dengtianti.png', Vector2(1600, 800));
     await _addEntry('youli_youmingguiku.png', Vector2(2700, 1800));

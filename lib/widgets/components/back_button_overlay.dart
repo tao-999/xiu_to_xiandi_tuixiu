@@ -7,7 +7,7 @@ class BackButtonOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return Positioned(
       left: 0,
-      bottom:-25,
+      bottom:-35,
       child: GestureDetector(
         onTap: () => Navigator.of(context).pop(),
         child: SizedBox(
