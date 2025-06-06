@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_create_role.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 
+import '../../services/chiyangu_storage.dart';
 import '../../services/maze_storage.dart';
 
 class ResetPlayerButton extends StatelessWidget {
@@ -34,6 +35,7 @@ class ResetPlayerButton extends StatelessWidget {
       await prefs.clear();
       MazeStorage.clearAllMazeData(); // 如果你写了这种方法，就一起调用
       CultivationTracker.stopTick();
+      ChiyanguStorage.resetPickaxeData();
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const CreateRolePage()),
             (route) => false,

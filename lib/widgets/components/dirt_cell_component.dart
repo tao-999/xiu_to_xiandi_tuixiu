@@ -4,6 +4,8 @@ import 'package:flame/effects.dart';
 import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/chiyangu_storage.dart';
+import '../common/toast_tip.dart';
 import 'pickaxe_effect_component.dart';
 import 'chiyangu_game.dart';
 
@@ -54,9 +56,19 @@ class DirtCellComponent extends PositionComponent
   }
 
   @override
-  void onTapDown(TapDownEvent event) {
+  void onTapDown(TapDownEvent event) async {
     if (tapped || broken || gameRef.isShifting) return;
     if (!gameRef.canBreak(gridKey)) return;
+
+    // ✅ 获取当前锄头数量
+    final count = await ChiyanguStorage.getPickaxeCount();
+    if (count <= 0) {
+      ToastTip.show(gameRef.buildContext!, '⛏️ 你的锄头已经用完了！');
+      return;
+    }
+
+    // ✅ 扣除锄头
+    await ChiyanguStorage.consumePickaxe();
 
     gameRef.lastTappedKey = gridKey;
     tapped = true;

@@ -80,7 +80,6 @@ class ChiyanguStorage {
   /// ✅ 获取当前锄头数量（自动计算离线恢复）
   static Future<int> getPickaxeCount() async {
     final prefs = await SharedPreferences.getInstance();
-    await _autoRefillPickaxe(prefs);
     return prefs.getInt(_keyPickaxeCount) ?? maxPickaxe;
   }
 
@@ -128,6 +127,22 @@ class ChiyanguStorage {
       await prefs.setInt(_keyPickaxeCount, current);
       final newLast = last + refillCount * refillCooldown.inMilliseconds;
       await prefs.setInt(_keyPickaxeLastRefill, newLast);
+    }
+  }
+
+  static Future<void> resetPickaxeData() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyPickaxeCount, 100); // 初始锄头数
+    await prefs.setInt(_keyPickaxeLastRefill, DateTime.now().millisecondsSinceEpoch); // 立即开始倒计时
+    print('🧹 [ChiyanguStorage] 锄头系统已重置为100个');
+  }
+
+  static Future<void> consumePickaxe() async {
+    final prefs = await SharedPreferences.getInstance();
+    await _autoRefillPickaxe(prefs); // 这会确保先执行恢复逻辑
+    final current = prefs.getInt(_keyPickaxeCount) ?? maxPickaxe;
+    if (current > 0) {
+      await prefs.setInt(_keyPickaxeCount, current - 1);
     }
   }
 
