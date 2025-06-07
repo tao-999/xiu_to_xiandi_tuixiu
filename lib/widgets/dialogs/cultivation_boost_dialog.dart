@@ -29,9 +29,11 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
 
   Future<void> _loadPlayer() async {
     player = (await PlayerStorage.getPlayer())!;
-    setState(() {
-      loading = false;
-    });
+    if (mounted) {
+      setState(() {
+        loading = false;
+      });
+    }
   }
 
   int get estimatedExp => PlayerStorage.calculateAddedExp(
@@ -99,7 +101,9 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
               high: high,
               supreme: supreme,
               onUpdate: () {
-                Navigator.of(context).pop();
+                if (mounted) {
+                  Navigator.of(context).pop();
+                }
               },
             );
           },

@@ -1,41 +1,39 @@
-import 'package:hive/hive.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 
 class ZongmenStorage {
-  static const String _discipleBoxKey = 'disciples';
+  static const String _zongmenKey = 'current_zongmen';
 
-  /// 加载所有弟子
+  /// 读取当前宗门
+  static Future<Zongmen?> loadZongmen() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_zongmenKey);
+    if (jsonStr == null) return null;
+
+    final map = json.decode(jsonStr);
+    return Zongmen.fromMap(map);
+  }
+
+  /// 保存当前宗门
+  static Future<void> saveZongmen(Zongmen zongmen) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = json.encode(zongmen.toMap());
+    await prefs.setString(_zongmenKey, jsonStr);
+  }
+
+  /// 模拟读取弟子列表（你可以独立存储弟子表）
   static Future<List<Disciple>> loadDisciples() async {
-    final box = await Hive.openBox(_discipleBoxKey);
-    final list = box.get('list');
-    if (list == null) return [];
-    return List<Disciple>.from(list.map((e) => Disciple.fromMap(Map<String, dynamic>.from(e))));
+    final zongmen = await loadZongmen();
+    return zongmen?.disciples ?? [];
   }
 
-  /// 保存弟子列表（全覆盖）
-  static Future<void> saveDisciples(List<Disciple> disciples) async {
-    final box = await Hive.openBox(_discipleBoxKey);
-    final list = disciples.map((e) => e.toMap()).toList();
-    await box.put('list', list);
-  }
-
-  /// 添加一个新弟子
-  static Future<void> addDisciple(Disciple disciple) async {
-    final current = await loadDisciples();
-    current.add(disciple);
-    await saveDisciples(current);
-  }
-
-  /// 删除弟子（比如出宗、暴毙）
-  static Future<void> removeDisciple(String id) async {
-    final current = await loadDisciples();
-    current.removeWhere((d) => d.id == id);
-    await saveDisciples(current);
-  }
-
-  /// 清空所有弟子（debug 用）
-  static Future<void> clearAll() async {
-    final box = await Hive.openBox(_discipleBoxKey);
-    await box.clear();
+  /// 保存弟子列表回宗门（可配合增删弟子使用）
+  static Future<void> saveDisciples(List<Disciple> list) async {
+    final zongmen = await loadZongmen();
+    if (zongmen == null) return;
+    zongmen.disciples = list;
+    await saveZongmen(zongmen);
   }
 }
