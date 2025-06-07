@@ -4,9 +4,7 @@ import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/create_zongmen_card.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_disciples.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_danfang.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_cangjingge.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_quick_menu.dart';
 
 class ZongmenPage extends StatefulWidget {
   const ZongmenPage({super.key});
@@ -78,7 +76,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
                       const Icon(Icons.auto_awesome, color: Colors.orangeAccent),
                       const SizedBox(width: 8),
                       Text(
-                        "宗门总览 - ${zongmen!.name}",
+                        "${zongmen!.name}",
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -93,7 +91,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
                   const SizedBox(height: 16),
                   _buildResourceBar(),
                   const SizedBox(height: 16),
-                  _buildQuickActions(context),
+                  const ZongmenQuickMenu(),
                 ],
               ),
             ),
@@ -124,7 +122,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
               ),
             ),
 
-          const BackButtonOverlay(), // 返回按钮永远在最顶层
+          const BackButtonOverlay(),
         ],
       ),
     );
@@ -187,62 +185,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
-    final actions = [
-      ["弟子管理", Icons.group, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiscipleListPage()))],
-      ["任务派遣", Icons.task_alt, () => _toast(context, "任务派遣模块开发中")],
-      ["升级宗门", Icons.auto_fix_high, () => _toast(context, "升级功能开发中")],
-      ["炼丹房", Icons.local_pharmacy, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DanfangPage()))],
-      ["藏经阁", Icons.menu_book, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CangjinggePage()))],
-      ["灵田", Icons.grass, () => _toast(context, "灵田开发中")],
-      ["洞天福地", Icons.park, () => _toast(context, "洞天福地开发中")],
-      ["宗门职位", Icons.chair_alt, () => _toast(context, "职位系统开发中")],
-      ["历代志", Icons.history_edu, () => _toast(context, "宗门事件记录开发中")],
-    ];
-
-    return Expanded(
-      child: GridView.count(
-        crossAxisCount: 3,
-        childAspectRatio: 1,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        children: actions.map((action) {
-          return _quickButton(action[0] as String, action[1] as IconData, action[2] as VoidCallback);
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _quickButton(String label, IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 32, color: Colors.orangeAccent),
-            const SizedBox(height: 8),
-            Text(label, style: const TextStyle(color: Colors.white, fontFamily: 'ZcoolCangEr')),
-          ],
-        ),
-      ),
-    );
-  }
-
   TextStyle _infoStyle() {
     return const TextStyle(fontSize: 16, color: Colors.white70, fontFamily: 'ZcoolCangEr');
-  }
-
-  void _toast(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(fontFamily: 'ZcoolCangEr')),
-      duration: const Duration(seconds: 2),
-    ));
   }
 }
