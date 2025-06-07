@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_huanyue_explore.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_chiyangu.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_xianling_qizhen.dart';
 
 class YouliMapGame extends FlameGame {
   final BuildContext context;
@@ -40,6 +41,11 @@ class YouliMapGame extends FlameGame {
     await _addEntry('youli_fukongxiandao.png', Vector2(1100, 400));
     await _addEntry('youli_dengtianti.png', Vector2(1600, 800));
     await _addEntry('youli_youmingguiku.png', Vector2(2700, 1800));
+    await _addEntry('youli_xianlingqizhen.png', Vector2(1350, 2200), onTap: () {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const XianlingQizhenPage()),
+      );
+    });
 
     add(DragMap(
       onDragged: _onDragged,
@@ -65,6 +71,7 @@ class YouliMapGame extends FlameGame {
     if (imageName.contains('fukongxiandao')) return '浮空仙岛';
     if (imageName.contains('dengtianti')) return '登天梯';
     if (imageName.contains('youmingguiku')) return '幽冥鬼窟';
+    if (imageName.contains('xianlingqizhen')) return '仙灵棋阵';
     return '未知区域';
   }
 

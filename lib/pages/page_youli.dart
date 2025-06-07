@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/youli_map_game.dart'; // 👈 注意导入
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/youli_map_game.dart';
 
 class YouliPage extends StatefulWidget {
   const YouliPage({super.key});
