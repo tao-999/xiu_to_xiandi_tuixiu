@@ -21,9 +21,14 @@ class _DanfangPageState extends State<DanfangPage> {
     final isReady = remaining <= 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1D1A17),
       body: Stack(
         children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/zongmen_bg_liandanfang.webp',
+              fit: BoxFit.cover,
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -38,45 +43,42 @@ class _DanfangPageState extends State<DanfangPage> {
                       fontFamily: 'ZcoolCangEr',
                     )),
                 const SizedBox(height: 20),
-                _infoRow("当前等级", "$level 级"),
+                _infoRow("当前等级", "$level 级", trailing: const CirclePlusIcon()),
                 _infoRow("每小时产出", "$outputPerHour 颗灵药"),
                 _infoRow("冷却状态", isReady ? "可收取" : _formatTime(remaining)),
                 const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: isReady ? _collectOutput : null,
-                  icon: const Icon(Icons.local_florist),
-                  label: const Text("收取炼丹成果"),
+                Center(
+                  child: Image.asset(
+                    'assets/images/zongmen_liandanlu.png',
+                    width: 240,
+                    height: 240,
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 const SizedBox(height: 32),
                 Text("驻守弟子", style: _titleStyle()),
                 const SizedBox(height: 12),
                 _buildDiscipleSlot(),
-                const SizedBox(height: 32),
-                Center(
-                  child: ElevatedButton.icon(
-                    onPressed: _upgrade,
-                    icon: const Icon(Icons.upgrade),
-                    label: const Text("升级炼丹房"),
-                  ),
-                ),
               ],
             ),
           ),
-
-          // ✅ 返回按钮叠在页面底部
           const BackButtonOverlay(),
         ],
       ),
     );
   }
 
-  Widget _infoRow(String label, String value) {
+  Widget _infoRow(String label, String value, {Widget? trailing}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Text("$label：", style: const TextStyle(color: Colors.white70, fontFamily: 'ZcoolCangEr')),
           Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'ZcoolCangEr')),
+          if (trailing != null) ...[
+            const SizedBox(width: 8),
+            trailing,
+          ],
         ],
       ),
     );
@@ -117,19 +119,61 @@ class _DanfangPageState extends State<DanfangPage> {
     );
   }
 
-  void _upgrade() {
-    setState(() {
-      level += 1;
-      outputPerHour += 2;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("炼丹房升级至 Lv.$level！")),
-    );
-  }
-
   String _formatTime(int seconds) {
     final m = (seconds ~/ 60).toString().padLeft(2, '0');
     final s = (seconds % 60).toString().padLeft(2, '0');
     return "$m 分 $s 秒后可收取";
   }
+}
+
+// ✅ 圆圈 + 号图标
+class CirclePlusIcon extends StatelessWidget {
+  const CirclePlusIcon({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 24,
+      height: 24,
+      child: CustomPaint(
+        painter: _CirclePlusPainter(),
+      ),
+    );
+  }
+}
+
+class _CirclePlusPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.orangeAccent
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 2;
+
+    // 画圆圈
+    canvas.drawCircle(center, radius, paint);
+
+    // 画十字
+    final plusPaint = Paint()
+      ..color = Colors.orangeAccent
+      ..strokeWidth = 2;
+
+    final offset = radius * 0.6;
+    canvas.drawLine(
+      Offset(center.dx - offset, center.dy),
+      Offset(center.dx + offset, center.dy),
+      plusPaint,
+    );
+    canvas.drawLine(
+      Offset(center.dx, center.dy - offset),
+      Offset(center.dx, center.dy + offset),
+      plusPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
