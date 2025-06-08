@@ -2,7 +2,7 @@ class Disciple {
   final String id;
   final String name;
   final String gender;
-  final int age;
+  final int age; // 初始年龄
   final int aptitude;
   final int hp;
   final int atk;
@@ -20,6 +20,8 @@ class Disciple {
   final bool isOnMission;
   final int? missionEndTimestamp;
   final String imagePath;
+
+  final int? joinedAt; // ✅ 可空！未入宗门时为 null
 
   Disciple({
     required this.id,
@@ -42,6 +44,7 @@ class Disciple {
     this.isOnMission = false,
     this.missionEndTimestamp,
     this.imagePath = '',
+    this.joinedAt, // ✅ 可选
   });
 
   Map<String, dynamic> toMap() {
@@ -66,6 +69,7 @@ class Disciple {
       'isOnMission': isOnMission,
       'missionEndTimestamp': missionEndTimestamp,
       'imagePath': imagePath,
+      'joinedAt': joinedAt, // ✅ 可以为 null
     };
   }
 
@@ -91,6 +95,36 @@ class Disciple {
       isOnMission: map['isOnMission'] ?? false,
       missionEndTimestamp: map['missionEndTimestamp'],
       imagePath: map['imagePath'] ?? '',
+      joinedAt: map['joinedAt'], // ✅ 无需兜底
+    );
+  }
+
+  Disciple copyWith({
+    int? age,
+    int? joinedAt,
+  }) {
+    return Disciple(
+      id: id,
+      name: name,
+      gender: gender,
+      age: age ?? this.age,
+      aptitude: aptitude,
+      hp: hp,
+      atk: atk,
+      def: def,
+      realm: realm,
+      loyalty: loyalty,
+      specialty: specialty,
+      talents: talents,
+      lifespan: lifespan,
+      cultivation: cultivation,
+      breakthroughChance: breakthroughChance,
+      skills: skills,
+      fatigue: fatigue,
+      isOnMission: isOnMission,
+      missionEndTimestamp: missionEndTimestamp,
+      imagePath: imagePath,
+      joinedAt: joinedAt ?? this.joinedAt,
     );
   }
 }

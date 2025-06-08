@@ -48,6 +48,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
     final uuid = Uuid();
     final String playerId = uuid.v4();
     final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
     final character = Character(
       id: playerId,
@@ -79,6 +80,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
       },
       technique: '无',
       resources: Resources(),
+      createdAt: now, // ✅ 记录启灵时间戳
     );
 
     await prefs.setString('playerData', jsonEncode(character.toJson()));

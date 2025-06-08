@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_disciple_detail.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_zhaomu.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/aptitude_color_util.dart';
 
 class DiscipleListPage extends StatefulWidget {
   const DiscipleListPage({super.key});
@@ -12,6 +15,7 @@ class DiscipleListPage extends StatefulWidget {
 
 class _DiscipleListPageState extends State<DiscipleListPage> {
   List<Disciple> disciples = [];
+  int maxDiscipleCount = 0;
 
   @override
   void initState() {
@@ -21,24 +25,71 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
 
   Future<void> _loadDisciples() async {
     final list = await ZongmenStorage.loadDisciples();
-    setState(() => disciples = list);
+    final zongmen = await ZongmenStorage.loadZongmen();
+    final max = zongmen == null ? 0 : 5 * (1 << (zongmen.level - 1));
+    setState(() {
+      disciples = list;
+      maxDiscipleCount = max;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0D0B),
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/zongmen_bg_dizi.webp',
+              fit: BoxFit.cover,
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                const Text(
-                  "弟子管理",
-                  style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    const Text(
+                      "弟子管理",
+                      style: TextStyle(fontSize: 20, color: Colors.white, fontFamily: 'ZcoolCangEr'),
+                    ),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            backgroundColor: const Color(0xFFF9F5E3),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            content: const Text(
+                              "宗门等级越高，容纳的弟子就越多。\n\n"
+                                  "等级对照表：\n"
+                                  "1级：5人\n"
+                                  "2级：10人\n"
+                                  "3级：20人\n"
+                                  "4级：40人\n"
+                                  "5级：80人\n"
+                                  "6级：160人\n"
+                                  "7级：320人\n"
+                                  "8级：640人\n"
+                                  "9级：1280人",
+                              style: TextStyle(fontSize: 14, fontFamily: 'ZcoolCangEr'),
+                            ),
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.info_outline, size: 18, color: Colors.white70),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${disciples.length} / $maxDiscipleCount',
+                      style: const TextStyle(fontSize: 14, color: Colors.white70, fontFamily: 'ZcoolCangEr'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Expanded(
@@ -47,18 +98,40 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text("暂无弟子", style: TextStyle(color: Colors.white70)),
+                        const Text("一个人也没有，宗主你要孤独终老吗？", style: TextStyle(color: Colors.white70)),
                         const SizedBox(height: 12),
                         ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/recruit');
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF9F5E3),
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                          ),
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const ZhaomuPage()),
+                            );
+                            _loadDisciples();
                           },
-                          child: const Text("前往招募"),
+                          child: const Text(
+                            "前往招募",
+                            style: TextStyle(fontSize: 16, fontFamily: 'ZcoolCangEr'),
+                          ),
                         ),
                       ],
                     ),
                   )
-                      : ListView.builder(
+                      : GridView.builder(
+                    padding: const EdgeInsets.only(top: 4),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 3 / 4.5,
+                    ),
                     itemCount: disciples.length,
                     itemBuilder: (context, index) {
                       final d = disciples[index];
@@ -76,43 +149,101 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
   }
 
   Widget _buildDiscipleCard(Disciple d) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: d.gender == "female" ? Colors.pinkAccent : Colors.blueGrey,
-            child: Icon(
-              d.gender == "female" ? Icons.female : Icons.male,
-              color: Colors.white,
-            ),
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DiscipleDetailPage(disciple: d),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(d.name, style: const TextStyle(fontSize: 16, color: Colors.white)),
-                const SizedBox(height: 4),
-                Text("境界：${d.realm} / 资质：${d.aptitude}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                Text("特长：${d.specialty}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
-              ],
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: AptitudeColorUtil.getBackgroundColor(d.aptitude).withOpacity(0.75),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: d.imagePath.isNotEmpty
+                  ? Image.asset(
+                d.imagePath,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+              )
+                  : Container(color: Colors.black26),
             ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, color: Colors.white),
-            onPressed: () {
-              // 预留跳转弟子详情页
-            },
-          )
-        ],
+            Positioned(
+              top: 6,
+              right: 6,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AptitudeColorUtil.getBackgroundColor(d.aptitude),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${d.aptitude}',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 12,
+                    fontFamily: 'ZcoolCangEr',
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      d.name,
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontFamily: 'ZcoolCangEr',
+                      ),
+                    ),
+                    Text(
+                      "${d.realm}",
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontFamily: 'ZcoolCangEr',
+                      ),
+                    ),
+                    Text(
+                      "${d.age}岁",
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 10,
+                        fontFamily: 'ZcoolCangEr',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

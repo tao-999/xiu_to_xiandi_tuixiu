@@ -1,5 +1,4 @@
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
-
 import '../services/global_event_bus.dart';
 
 /// 👤 Character —— 修士角色类
@@ -9,17 +8,15 @@ class Character {
   String name;
   String gender;
   String career;
-  double cultivation; // 当前修为值
-  double cultivationEfficiency; // 修炼效率倍率，默认 1.0
-  int currentMapStage; // ✅ 当前挂机地图阶段（新增）
+  double cultivation;
+  double cultivationEfficiency;
+  int currentMapStage;
 
-  // 核心基础属性
   int hp;
   int atk;
   int def;
   double atkSpeed;
 
-  // 战斗相关属性
   double critRate;
   double critDamage;
   double dodgeRate;
@@ -28,17 +25,17 @@ class Character {
   double luckRate;
   double comboRate;
 
-  // 光环类属性
   double evilAura;
   double weakAura;
   double corrosionAura;
 
-  // 五行属性（代表资质，不参与战力）
   Map<String, int> elements;
 
   String technique;
 
-  Resources resources; // ✅ 加入资源对象（灵石、灵气等）
+  Resources resources;
+
+  final int createdAt; // 新增：创角时间戳（秒）
 
   Character({
     required this.id,
@@ -62,13 +59,13 @@ class Character {
     required this.corrosionAura,
     required this.elements,
     required this.technique,
-    required this.resources, // ✅ 加入资源初始化
+    required this.resources,
+    required this.createdAt,
     this.cultivationEfficiency = 1.0,
-    this.currentMapStage = 1, // ✅ 默认地图为第1阶
+    this.currentMapStage = 1,
   });
 
   int get totalElement => elements.values.fold(0, (a, b) => a + b);
-
   double get growthMultiplier => 1 + totalElement / 100;
 
   void applyBreakthroughBonus() {
@@ -76,8 +73,6 @@ class Character {
     hp = (hp * m).round();
     atk = (atk * m).round();
     def = (def * m).round();
-
-    // 🚀 在突破时发射事件（更骚）
     EventBus.emit('powerUpdated');
   }
 
@@ -88,7 +83,7 @@ class Character {
     'career': career,
     'cultivation': cultivation,
     'cultivationEfficiency': cultivationEfficiency,
-    'currentMapStage': currentMapStage, // ✅ 加入序列化
+    'currentMapStage': currentMapStage,
     'hp': hp,
     'atk': atk,
     'def': def,
@@ -105,7 +100,8 @@ class Character {
     'corrosionAura': corrosionAura,
     'elements': elements,
     'technique': technique,
-    'resources': resources.toMap(), // ✅ 序列化资源
+    'resources': resources.toMap(),
+    'createdAt': createdAt,
   };
 
   factory Character.fromJson(Map<String, dynamic> json) => Character(
@@ -116,12 +112,9 @@ class Character {
     cultivation: (json['cultivation'] ?? 0).toDouble(),
     cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
     currentMapStage: json['currentMapStage'] ?? 1,
-
-    // ✅ 关键：确保类型安全转成 int，防止 prefs 中存了 double
     hp: (json['hp'] as num).toInt(),
     atk: (json['atk'] as num).toInt(),
     def: (json['def'] as num).toInt(),
-
     atkSpeed: (json['atkSpeed'] ?? 1.5).toDouble(),
     critRate: (json['critRate'] ?? 0.0).toDouble(),
     critDamage: (json['critDamage'] ?? 0.0).toDouble(),
@@ -133,16 +126,14 @@ class Character {
     evilAura: (json['evilAura'] ?? 0.0).toDouble(),
     weakAura: (json['weakAura'] ?? 0.0).toDouble(),
     corrosionAura: (json['corrosionAura'] ?? 0.0).toDouble(),
-
-    // ✅ 五行转 int，防止被 double 污染
     elements: Map<String, int>.fromEntries(
       (json['elements'] as Map<String, dynamic>).entries.map(
             (e) => MapEntry(e.key, (e.value as num).toInt()),
       ),
     ),
-
     technique: json['technique'],
     resources: Resources.fromMap(json['resources'] ?? {}),
+    createdAt: json['createdAt'] ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000),
   );
 
   factory Character.empty() => Character(
@@ -152,7 +143,7 @@ class Character {
     career: '散修',
     cultivation: 0.0,
     cultivationEfficiency: 1.0,
-    currentMapStage: 1, // ✅ 空对象默认第1阶地图
+    currentMapStage: 1,
     hp: 100,
     atk: 10,
     def: 5,
@@ -175,6 +166,7 @@ class Character {
       'earth': 0,
     },
     technique: '无名功法',
-    resources: Resources(), // ✅ 空角色初始资源为 0
+    resources: Resources(),
+    createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
   );
 }

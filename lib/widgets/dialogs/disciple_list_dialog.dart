@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/aptitude_color_util.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 
 class DiscipleListDialog extends StatefulWidget {
   final List<Disciple> disciples;
@@ -12,7 +15,7 @@ class DiscipleListDialog extends StatefulWidget {
 }
 
 class _DiscipleListDialogState extends State<DiscipleListDialog> {
-  String _sortOption = 'time_desc'; // 默认按时间：新→旧
+  String _sortOption = 'time_desc';
 
   List<Disciple> get sortedDisciples {
     final list = [...widget.disciples];
@@ -44,7 +47,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ⛳ 标题 + 筛选器
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -69,8 +71,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
               ],
             ),
             const Divider(),
-
-            // 📋 弹窗主体
             SizedBox(
               height: 400,
               child: sortedDisciples.isEmpty
@@ -85,39 +85,77 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                       color: AptitudeColorUtil.getBackgroundColor(d.aptitude),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: ListTile(
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: d.imagePath.isNotEmpty
-                            ? Image.asset(
-                          d.imagePath,
-                          width: 48,
-                          height: 64,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.topCenter,
-                        )
-                            : Container(
-                          width: 48,
-                          height: 64,
-                          color: Colors.grey.shade200,
-                          alignment: Alignment.center,
-                          child: const Icon(Icons.person, size: 20, color: Colors.grey),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: d.imagePath.isNotEmpty
+                                ? Image.asset(
+                              d.imagePath,
+                              width: 48,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.topCenter,
+                            )
+                                : Container(
+                              width: 48,
+                              height: 64,
+                              color: Colors.grey.shade200,
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.person, size: 20, color: Colors.grey),
+                            ),
+                          ),
+                          title: Row(
+                            children: [
+                              Text(d.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              const SizedBox(width: 6),
+                              Text(d.gender == 'female' ? '♀️' : '♂️', style: const TextStyle(fontSize: 14)),
+                            ],
+                          ),
+                          subtitle: Text('资质: ${d.aptitude}｜年龄: ${d.age}'),
+                          trailing: InkWell(
+                            onTap: () async {
+                              final zongmen = await ZongmenStorage.loadZongmen();
+
+                              if (zongmen == null) {
+                                ToastTip.show(context, '你还没有宗门，不能收弟子啊！');
+                                return;
+                              }
+
+                              final current = zongmen.disciples.length;
+                              final max = 5 * (1 << (zongmen.level - 1));
+
+                              if (current >= max) {
+                                ToastTip.show(context, '宗门弟子已满，无法再收人！');
+                                return;
+                              }
+
+                              final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+                              final updated = d.copyWith(joinedAt: now);
+
+                              await ZongmenStorage.addDisciple(updated);
+                              await DiscipleStorage.removeById(d.id);
+
+                              setState(() {
+                                widget.disciples.remove(d);
+                              });
+
+                              ToastTip.show(context, '${d.name} 已加入宗门！');
+                            },
+                            child: const Text(
+                              '加入宗门',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontFamily: 'ZcoolCangEr',
+                                color: Colors.blueAccent,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                      title: Row(
-                        children: [
-                          Text(
-                            d.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            d.gender == 'female' ? '♀️' : '♂️',
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      subtitle: Text('资质: ${d.aptitude}｜年龄: ${d.age}'),
+                      ],
                     ),
                   );
                 },
