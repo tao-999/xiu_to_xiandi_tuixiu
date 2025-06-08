@@ -4,8 +4,35 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class AptitudeUpgradeDialog extends StatefulWidget {
   final Character player;
+  final VoidCallback? onUpdated;
 
-  const AptitudeUpgradeDialog({super.key, required this.player});
+  const AptitudeUpgradeDialog({
+    super.key,
+    required this.player,
+    this.onUpdated,
+  });
+
+  /// ✅ 封装后的“升资质”按钮（自动弹窗+刷新）
+  static Widget buildButton({
+    required BuildContext context,
+    required Character player,
+    VoidCallback? onUpdated,
+  }) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.orange,
+        minimumSize: const Size(40, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      onPressed: () async {
+        await showDialog(
+          context: context,
+          builder: (_) => AptitudeUpgradeDialog(player: player, onUpdated: onUpdated),
+        );
+      },
+      child: const Text("升资质", style: TextStyle(fontSize: 12, color: Colors.white)),
+    );
+  }
 
   @override
   State<AptitudeUpgradeDialog> createState() => _AptitudeUpgradeDialogState();
@@ -105,6 +132,7 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
                   'elements': widget.player.elements,
                 });
                 if (context.mounted) Navigator.of(context).pop();
+                widget.onUpdated?.call(); // ✅ 通知外部刷新
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),

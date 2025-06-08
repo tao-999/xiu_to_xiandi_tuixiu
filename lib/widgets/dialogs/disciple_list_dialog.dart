@@ -10,6 +10,36 @@ class DiscipleListDialog extends StatefulWidget {
 
   const DiscipleListDialog({super.key, required this.disciples});
 
+  /// ✅ 封装好的弟子列表按钮（点了会自动拉取数据 + 弹窗）
+  static Widget showButton(BuildContext context) {
+    return Positioned(
+      right: 20,
+      bottom: 30,
+      child: GestureDetector(
+        onTap: () async {
+          final all = await DiscipleStorage.getAll();
+          if (!context.mounted) return;
+          showDialog(
+            context: context,
+            builder: (_) => DiscipleListDialog(disciples: all),
+          );
+        },
+        child: const Text(
+          '弟子列表',
+          style: TextStyle(
+            color: Colors.amber,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'ZcoolCangEr',
+            shadows: [
+              Shadow(color: Colors.black87, offset: Offset(0.5, 0.5), blurRadius: 2),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   State<DiscipleListDialog> createState() => _DiscipleListDialogState();
 }
@@ -47,6 +77,7 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 📋 标题 + 筛选
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -71,6 +102,8 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
               ],
             ),
             const Divider(),
+
+            // 📄 弟子列表
             SizedBox(
               height: 400,
               child: sortedDisciples.isEmpty

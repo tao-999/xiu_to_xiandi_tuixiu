@@ -1,10 +1,10 @@
-// 📄 lib/widgets/components/map_switcher_overlay.dart
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/map_button_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/map_switch_dialog.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 
 class MapSwitcherOverlay extends StatelessWidget {
   final int currentStage;
@@ -32,8 +32,12 @@ class MapSwitcherOverlay extends StatelessWidget {
           await PlayerStorage.updateField('cultivationEfficiency', efficiency);
           print("✅ 切换地图 $stage 阶, 挂机效率=$efficiency");
 
+          // ✅ 重启修为增长 tick（使用最新玩家数据）
           CultivationTracker.stopTick();
-          CultivationTracker.startTickWithPlayer();
+          final player = await PlayerStorage.getPlayer();
+          if (player != null) {
+            CultivationTracker.startGlobalTick();
+          }
 
           onStageChanged(stage);
         },

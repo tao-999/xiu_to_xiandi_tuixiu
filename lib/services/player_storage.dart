@@ -75,12 +75,12 @@ class PlayerStorage {
     return calculateCultivationLevel(player.cultivation).totalLayer;
   }
 
-  /// 💪 获取当前玩家尺寸倍率（如 2.0、2.2）
   static Future<double> getSizeMultiplier() async {
     final layer = await getCultivationLayer();
     return 2.0 + (layer - 1) * 0.02;
   }
 
+  /// 💪 获取当前玩家尺寸倍率（如 2.0、2.2）
   static Future<void> addCultivationByStones({
     int low = 0,
     int mid = 0,
@@ -105,7 +105,7 @@ class PlayerStorage {
       return;
     }
 
-    // ✅ 扣除资源
+    // ✅ 扣除灵石
     res.spiritStoneLow -= low;
     res.spiritStoneMid -= mid;
     res.spiritStoneHigh -= high;
@@ -113,7 +113,7 @@ class PlayerStorage {
 
     await savePlayer(player);
 
-    // ✅ 用统一方法计算修为
+    // ✅ 计算应加的修为
     final double addedExp = calculateAddedExp(
       low: low,
       mid: mid,
@@ -121,8 +121,8 @@ class PlayerStorage {
       supreme: supreme,
     ).toDouble();
 
-    // ✅ 增加修为
-    await CultivationTracker.applyRewardedExp(addedExp, onUpdate: onUpdate);
+    // ✅ 用新版：停止tick → 加修为 → 存 → 重启tick
+    await CultivationTracker.safeAddExp(addedExp, onUpdate: onUpdate);
   }
 
   /// 根据各级灵石数量，计算预计可增加的修为

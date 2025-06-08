@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
@@ -8,8 +9,19 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 class CultivationTracker {
   static const String _loginTimeKey = 'lastOnlineTimestamp';
   static Timer? _tickTimer;
+  static final List<VoidCallback> _listeners = [];
 
-  /// 初始化时补算登录期间修为（只修改 player.cultivation）
+  static void addListener(VoidCallback callback) {
+    if (!_listeners.contains(callback)) {
+      _listeners.add(callback);
+    }
+  }
+
+  static void removeListener(VoidCallback callback) {
+    _listeners.remove(callback);
+  }
+
+  /// 初始化时补算离线期间修为
   static Future<void> initWithPlayer(Character player) async {
     final prefs = await SharedPreferences.getInstance();
     final lastLogin = prefs.getInt(_loginTimeKey) ?? DateTime.now().millisecondsSinceEpoch;
@@ -25,13 +37,8 @@ class CultivationTracker {
     await _updateCultivationOnly(player.cultivation);
   }
 
-  /// 每秒持续增长修为（增长值 = 秒数 × cultivationEfficiency）
-  static void startTickWithPlayer({void Function()? onUpdate}) {
-    _tickTimer?.cancel();
-
-    int lastTotalLayer = -1;
-    double startExp = 0.0;
-    int startTime = DateTime.now().millisecondsSinceEpoch;
+  static void startGlobalTick() {
+    if (_tickTimer != null && _tickTimer!.isActive) return;
 
     _tickTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
       final prefs = await SharedPreferences.getInstance();
@@ -39,31 +46,29 @@ class CultivationTracker {
       if (jsonStr == null) return;
 
       final player = Character.fromJson(jsonDecode(jsonStr));
-      // 初始化起始修为与境界层数（只执行一次）
-      if (lastTotalLayer == -1) {
-        lastTotalLayer = calculateCultivationLevel(player.cultivation).totalLayer;
-        startExp = player.cultivation;
-        startTime = DateTime.now().millisecondsSinceEpoch;
-      }
 
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final seconds = ((now - startTime) / 1000).floor();
-      final gain = seconds * player.cultivationEfficiency;
-      final newExp = startExp + gain;
+      // ✅ 实时获取当前修为再加
+      final gain = player.cultivationEfficiency * 1;
+      final newExp = player.cultivation + gain;
 
       final maxExp = getMaxExpByAptitude(player.totalElement);
       player.cultivation = newExp.clamp(0, maxExp);
 
       final newTotalLayer = calculateCultivationLevel(player.cultivation).totalLayer;
-      if (newTotalLayer > lastTotalLayer) {
+      final oldTotalLayer = calculateCultivationLevel(
+          (jsonDecode(jsonStr)['cultivation'] ?? 0.0) * 1.0
+      ).totalLayer;
+
+      if (newTotalLayer > oldTotalLayer) {
         player.applyBreakthroughBonus();
-        lastTotalLayer = newTotalLayer;
       }
 
-      // 保存全量数据，确保持续更新
       await prefs.setString('playerData', jsonEncode(player.toJson()));
 
-      onUpdate?.call();
+      // ✅ 通知监听者
+      for (final listener in _listeners) {
+        listener();
+      }
     });
   }
 
@@ -72,7 +77,6 @@ class CultivationTracker {
     _tickTimer = null;
   }
 
-  /// 根据资质，计算修为上限（每一层乘1.5，初始值为100）
   static double getMaxExpByAptitude(int aptitude) {
     final maxLevel = (aptitude * 0.9).floor().clamp(1, 189);
     final before = totalExpToLevel(maxLevel);
@@ -80,13 +84,10 @@ class CultivationTracker {
     return before + current;
   }
 
-  /// 发放额外修为（例如奖励、翻倍等）
   static Future<void> applyRewardedExp(
       double addedExp, {
         void Function()? onUpdate,
       }) async {
-    stopTick();
-
     final player = await PlayerStorage.getPlayer();
     if (player == null) return;
 
@@ -102,36 +103,46 @@ class CultivationTracker {
       bool hasBreakthrough = false;
 
       if (newStage.totalLayer > oldStage.totalLayer) {
-        player.applyBreakthroughBonus(); // 会修改 hp、atk、def
+        player.applyBreakthroughBonus();
         hasBreakthrough = true;
       }
 
-      // ✅ 更新字段，必须加上突破属性！
-      final Map<String, dynamic> updateMap = {
-        'cultivation': player.cultivation,
-      };
-
+      final updateMap = {'cultivation': player.cultivation};
       if (hasBreakthrough) {
         updateMap.addAll({
-          'hp': player.hp,
-          'atk': player.atk,
-          'def': player.def,
+          'hp': player.hp.toDouble(),
+          'atk': player.atk.toDouble(),
+          'def': player.def.toDouble(),
         });
       }
 
       await PlayerStorage.updateFields(updateMap);
+      onUpdate?.call();
     }
-
-    startTickWithPlayer(onUpdate: onUpdate);
   }
 
-  /// ✅ 通用封装：只保存修为字段，不动其他字段
   static Future<void> _updateCultivationOnly(double cultivation) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('playerData') ?? '{}';
     final playerJson = jsonDecode(raw);
-
     playerJson['cultivation'] = cultivation;
     await prefs.setString('playerData', jsonEncode(playerJson));
   }
+
+  static Future<void> safeAddExp(double addedExp, {void Function()? onUpdate}) async {
+    stopTick(); // ✅ 不能 await，因为是 void
+
+    final player = await PlayerStorage.getPlayer();
+    if (player == null) return;
+
+    final maxExp = getMaxExpByAptitude(player.totalElement);
+    player.cultivation = (player.cultivation + addedExp).clamp(0, maxExp);
+
+    await PlayerStorage.savePlayer(player);
+
+    startGlobalTick(); // ✅ 同样别 await
+
+    onUpdate?.call();
+  }
+
 }

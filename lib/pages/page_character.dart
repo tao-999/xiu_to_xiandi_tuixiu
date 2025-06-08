@@ -1,17 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/meditation_widget.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/cultivator_info_card.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/effects/break_through_aura.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/cultivator_info_card.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/resource_bar.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/cultivation_status_panel.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/cultivation_boost_dialog.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/aptitude_upgrade_dialog.dart';
-
-import '../widgets/dialogs/cultivation_boost_dialog.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key});
@@ -25,6 +22,24 @@ class _CharacterPageState extends State<CharacterPage> {
   late CultivationLevelDisplay display;
   bool showAura = false;
 
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startRefreshLoop(); // ✅ 启动每秒刷新
+  }
+
+  void _startRefreshLoop() {
+    _refreshTimer = Timer.periodic(const Duration(seconds: 1), (_) => _reloadData());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel(); // ✅ 页面销毁时关闭刷新
+    super.dispose();
+  }
+
   Future<void> _reloadData() async {
     final updated = await PlayerStorage.getPlayer();
     if (mounted && updated != null) {
@@ -32,16 +47,6 @@ class _CharacterPageState extends State<CharacterPage> {
         player = updated;
       });
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -61,108 +66,56 @@ class _CharacterPageState extends State<CharacterPage> {
 
         player = snapshot.data![0] as Character;
         display = snapshot.data![1] as CultivationLevelDisplay;
-        final realmText = "${display.realm}${display.rank}层";
 
         return Scaffold(
           body: Stack(
             children: [
+              // 🌄 背景图
               Positioned.fill(
                 child: Image.asset(
                   'assets/images/bg_xiuxian_mountain.webp',
                   fit: BoxFit.cover,
                 ),
               ),
+
+              // 💠 顶部资源栏
               ResourceBar(player: player),
+
+              // 🧘‍♂️ 打坐动画 + 修为进度
               Align(
                 alignment: const Alignment(0, 0.4),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        MeditationWidget(
-                          imagePath: player.gender == 'female'
-                              ? 'assets/images/icon_dazuo_female_256.png'
-                              : 'assets/images/icon_dazuo_male_256.png',
-                          ready: true,
-                          offset: const AlwaysStoppedAnimation(Offset.zero),
-                          opacity: const AlwaysStoppedAnimation(1.0),
-                          createdAt: DateTime.now().subtract(const Duration(hours: 3)),
-                        ),
-                        if (showAura)
-                          BreakthroughAura(
-                            onComplete: () => setState(() => showAura = false),
-                          ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
-                      child: Column(
-                        children: [
-                          Text(
-                            realmText,
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "修为：${formatLargeNumber(display.current)} / ${formatLargeNumber(display.max)}",
-                            style: const TextStyle(color: Colors.black45, fontSize: 14),
-                          ),
-                          const SizedBox(height: 4),
-                          LinearProgressIndicator(
-                            value: (display.current / display.max).clamp(0.0, 1.0),
-                            backgroundColor: Colors.white24,
-                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
-                            minHeight: 10,
-                          ),
-                        ],
-                      ),
+                    CultivationStatusPanel(
+                      player: player,
+                      display: display,
+                      showAura: showAura,
+                      onAuraComplete: () => setState(() => showAura = false),
                     ),
                     CultivatorInfoCard(profile: player),
                   ],
                 ),
               ),
+
+              // 🔙 返回
               const BackButtonOverlay(),
+
+              // 📍右上角按钮：升修为 + 升资质
               Positioned(
                 top: 100,
                 right: 30,
                 child: Column(
                   children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        minimumSize: const Size(40, 32),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                      onPressed: () async {
-                        await showDialog(
-                          context: context,
-                          builder: (context) => const CultivationBoostDialog(),
-                        );
-                        await _reloadData();
-                      },
-                      child: const Text("升修为", style: TextStyle(fontSize: 12, color: Colors.white)),
+                    CultivationBoostDialog.buildButton(
+                      context: context,
+                      onUpdated: _reloadData,
                     ),
                     const SizedBox(height: 12),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        minimumSize: const Size(40, 32),
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                      ),
-                      onPressed: () async {
-                        await showDialog(
-                          context: context,
-                          builder: (context) => AptitudeUpgradeDialog(player: player),
-                        );
-                        await _reloadData();
-                      },
-                      child: const Text("升资质", style: TextStyle(fontSize: 12, color: Colors.white)),
+                    AptitudeUpgradeDialog.buildButton(
+                      context: context,
+                      player: player,
+                      onUpdated: _reloadData,
                     ),
                   ],
                 ),

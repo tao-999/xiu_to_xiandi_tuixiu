@@ -6,7 +6,27 @@ import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 
 class CultivationBoostDialog extends StatefulWidget {
-  const CultivationBoostDialog({super.key});
+  final VoidCallback? onUpdated;
+
+  const CultivationBoostDialog({super.key, this.onUpdated});
+
+  /// ✅ 封装一个按钮，一行调用，自动弹窗+刷新
+  static Widget buildButton({required BuildContext context, VoidCallback? onUpdated}) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.orange,
+        minimumSize: const Size(40, 32),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      onPressed: () {
+        showDialog(
+          context: context,
+          builder: (_) => CultivationBoostDialog(onUpdated: onUpdated),
+        );
+      },
+      child: const Text("升修为", style: TextStyle(fontSize: 12, color: Colors.white)),
+    );
+  }
 
   @override
   State<CultivationBoostDialog> createState() => _CultivationBoostDialogState();
@@ -101,9 +121,8 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
               high: high,
               supreme: supreme,
               onUpdate: () {
-                if (mounted) {
-                  Navigator.of(context).pop();
-                }
+                if (mounted) Navigator.of(context).pop();
+                widget.onUpdated?.call();
               },
             );
           },

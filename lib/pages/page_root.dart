@@ -17,7 +17,6 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/root_bottom_menu.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/map_switcher_overlay.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 
 class XiudiRoot extends StatefulWidget {
   const XiudiRoot({super.key});
@@ -71,10 +70,6 @@ class _XiudiRootState extends State<XiudiRoot> {
         currentMapStage: savedStage,
       );
     });
-
-    CultivationTracker.startTickWithPlayer(onUpdate: () {
-      setState(() {});
-    });
   }
 
   void _navigateToPage(int index) {
@@ -116,24 +111,43 @@ class _XiudiRootState extends State<XiudiRoot> {
         children: [
           Positioned.fill(child: GameWidget(game: game!)),
 
-          // 🏷️ 纪元显示
+          // 🏷️ 修仙纪元
           const Positioned(
             left: 20,
             top: 36,
             child: XiuxianEraLabel(),
           ),
 
-          // ⛩️ 地图按钮（含弹窗）
+          // ⛩️ 地图切换按钮（含弹窗）
           MapSwitcherOverlay(
             currentStage: currentStage,
-            onStageChanged: (newStage) {
-              setState(() => currentStage = newStage);
+            onStageChanged: (newStage) async {
+              final prefs = await SharedPreferences.getInstance();
+              final jsonStr = prefs.getString('playerData');
+              if (jsonStr == null) return;
+
+              final latestPlayer = Character.fromJson(jsonDecode(jsonStr));
+
+              // ✅ 示例判断：新地图需要修为达到 500（你可以改成自己的判断逻辑）
+              final requiredExp = 500 * newStage;
+              if (latestPlayer.cultivation < requiredExp) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('修为不足，无法进入第$newStage阶地图（需$requiredExp）')),
+                );
+                return;
+              }
+
+              setState(() {
+                player = latestPlayer;
+                currentStage = newStage;
+              });
+
               game?.switchMap(newStage);
               game?.updateBattleSpeed(newStage);
             },
           ),
 
-          // 📦 底部功能菜单
+          // 📦 底部菜单
           Positioned(
             bottom: 8,
             left: 0,

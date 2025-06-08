@@ -14,6 +14,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/fancy_name_input.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/five_element_slider_group.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
+import '../services/cultivation_tracker.dart';
 import '../widgets/common/toast_tip.dart';
 
 class CreateRolePage extends StatefulWidget {
@@ -44,7 +45,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
     nickname = NameGenerator.generate(isMale: gender == 'male'); // 👈 初始化时生成骚名
   }
 
-  Future<void> _saveRoleData() async {
+  Future<Character> _saveRoleData() async {
     final uuid = Uuid();
     final String playerId = uuid.v4();
     final prefs = await SharedPreferences.getInstance();
@@ -80,12 +81,12 @@ class _CreateRolePageState extends State<CreateRolePage> {
       },
       technique: '无',
       resources: Resources(),
-      createdAt: now, // ✅ 记录启灵时间戳
+      createdAt: now,
     );
 
     await prefs.setString('playerData', jsonEncode(character.toJson()));
 
-    // ✅ 不再调用 CultivationTracker.init()
+    return character; // ✅ 返回这份角色
   }
 
   void _updateValue(String element, int value) {
@@ -193,7 +194,10 @@ class _CreateRolePageState extends State<CreateRolePage> {
                       ),
                       onPressed: () async {
                         if (nickname.trim().isEmpty) return;
-                        await _saveRoleData();
+                        final character = await _saveRoleData(); // ✅ 获取新角色
+                        await CultivationTracker.initWithPlayer(character); // ✅ 启动修为系统
+                        CultivationTracker.startGlobalTick();
+
                         ToastTip.show(context, "角色 $nickname 创建完成！");
                         await Future.delayed(const Duration(seconds: 1));
                         if (!mounted) return;

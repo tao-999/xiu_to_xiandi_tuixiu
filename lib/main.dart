@@ -45,9 +45,10 @@ void main() async {
     }
   }
 
-  // ✅ 启动修为增长 Tracker
+  // ✅ 启动修为增长 Tracker（只在此处注册一次，全局通用）
   if (hasCreatedRole && player != null) {
-    CultivationTracker.startTickWithPlayer();
+    await CultivationTracker.initWithPlayer(player); // 💤 离线修为补算
+    CultivationTracker.startGlobalTick();            // ⏱️ 每秒 tick，更新缓存
   }
 
   runApp(XiudiApp(hasCreatedRole: hasCreatedRole));
@@ -80,7 +81,7 @@ class XiudiApp extends StatelessWidget {
                   top: 0,
                   left: 0,
                   right: 0,
-                  height: 40, // 根据你设备刘海高度可调
+                  height: 40,
                   child: ColoredBox(color: Colors.transparent),
                 ),
               ],

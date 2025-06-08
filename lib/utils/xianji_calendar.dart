@@ -2,7 +2,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class XianjiCalendar {
   static const int SECONDS_PER_DAY_REAL = 86400;
-  static const int SPEED_RATE = 1000;
+  static const int SPEED_RATE = 10000;
   static const int IMMORTAL_SECONDS_PER_DAY = SECONDS_PER_DAY_REAL ~/ SPEED_RATE;
   static const int IMMORTAL_SECONDS_PER_YEAR = IMMORTAL_SECONDS_PER_DAY * 365;
 
