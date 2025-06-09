@@ -33,10 +33,11 @@ class CultivationBoostDialog extends StatefulWidget {
 }
 
 class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
-  int low = 0;
-  int mid = 0;
-  int high = 0;
-  int supreme = 0;
+  // 改为 BigInt 类型，避免后续的转换
+  BigInt low = BigInt.zero;
+  BigInt mid = BigInt.zero;
+  BigInt high = BigInt.zero;
+  BigInt supreme = BigInt.zero;
 
   late Character player;
   bool loading = true;
@@ -56,11 +57,12 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
     }
   }
 
-  int get estimatedExp => PlayerStorage.calculateAddedExp(
-    low: low,
-    mid: mid,
-    high: high,
-    supreme: supreme,
+  // 直接返回 BigInt 类型，避免转换
+  BigInt get estimatedExp => PlayerStorage.calculateAddedExp(
+    low: low,       // 使用 BigInt 类型
+    mid: mid,       // 使用 BigInt 类型
+    high: high,     // 使用 BigInt 类型
+    supreme: supreme, // 使用 BigInt 类型
   );
 
   @override
@@ -73,19 +75,38 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
 
     final res = player.resources;
 
+    // 直接传递 BigInt 类型，不需要转换为 double
+    final estimatedExpFormatted = formatLargeNumber(estimatedExp.toDouble());
+
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
       title: const Text('消耗灵石提升修为', style: TextStyle(fontWeight: FontWeight.bold)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          StoneInputRow(label: '下品灵石', owned: res.spiritStoneLow, onChanged: (v) => setState(() => low = v)),
-          StoneInputRow(label: '中品灵石', owned: res.spiritStoneMid, onChanged: (v) => setState(() => mid = v)),
-          StoneInputRow(label: '上品灵石', owned: res.spiritStoneHigh, onChanged: (v) => setState(() => high = v)),
-          StoneInputRow(label: '极品灵石', owned: res.spiritStoneSupreme, onChanged: (v) => setState(() => supreme = v)),
+          StoneInputRow(
+            label: '下品灵石',
+            owned: res.spiritStoneLow.toDouble(), // Convert BigInt to double for display
+            onChanged: (v) => setState(() => low = BigInt.from(v)),
+          ),
+          StoneInputRow(
+            label: '中品灵石',
+            owned: res.spiritStoneMid.toDouble(), // Convert BigInt to double for display
+            onChanged: (v) => setState(() => mid = BigInt.from(v)),
+          ),
+          StoneInputRow(
+            label: '上品灵石',
+            owned: res.spiritStoneHigh.toDouble(), // Convert BigInt to double for display
+            onChanged: (v) => setState(() => high = BigInt.from(v)),
+          ),
+          StoneInputRow(
+            label: '极品灵石',
+            owned: res.spiritStoneSupreme.toDouble(), // Convert BigInt to double for display
+            onChanged: (v) => setState(() => supreme = BigInt.from(v)),
+          ),
           const SizedBox(height: 12),
           Text(
-            '预估将提升修为：${formatLargeNumber(estimatedExp)}',
+            '预估将提升修为：$estimatedExpFormatted',
             style: const TextStyle(fontSize: 14, color: Colors.brown),
           ),
         ],
@@ -102,7 +123,7 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
             final res = player.resources;
 
             final total = low + mid + high + supreme;
-            if (total == 0) {
+            if (total == BigInt.zero) {
               ToastTip.show(context, '灵石少得我都替你脸红');
               return;
             }
@@ -138,7 +159,7 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
 
 class StoneInputRow extends StatefulWidget {
   final String label;
-  final int owned;
+  final double owned; // Convert to double for display purposes
   final Function(int) onChanged;
 
   const StoneInputRow({
@@ -180,7 +201,7 @@ class _StoneInputRowState extends State<StoneInputRow> {
                 Text(widget.label, style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 2),
                 Text(
-                  formatLargeNumber(remain),
+                  formatLargeNumber(remain), // Remain is now a double
                   style: TextStyle(
                     fontSize: 12,
                     color: (value > widget.owned) ? Colors.red : Colors.grey,
@@ -220,7 +241,7 @@ class _StoneInputRowState extends State<StoneInputRow> {
                       visualDensity: VisualDensity.compact,
                     ),
                     onPressed: () {
-                      _updateValue(widget.owned);
+                      _updateValue(widget.owned.toInt()); // Convert to int before updating
                     },
                     child: const Text("最大", style: TextStyle(fontSize: 12)),
                   ),

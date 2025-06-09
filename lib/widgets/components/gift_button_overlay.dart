@@ -1,14 +1,18 @@
-// 📦 widgets/components/gift_button_overlay.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
-
 import '../common/toast_tip.dart';
 
-/// ⏱️ 调试用：礼包冷却时间 Duration(seconds: 10)
-/// 上线前改回：Duration(hours: 24)
+// 🎁 奖励冷却时间
 const Duration giftCooldown = Duration(hours: 24);
+
+// 🎁 奖励配置（支持 BigInt，但不能 const）
+final BigInt firstTimeSpiritStone = BigInt.from(10000);
+final int firstTimeTicket = 500;
+final int firstTimeFateCharm = 10; // ✅ 新增：首次资质提升券
+
+final BigInt dailySpiritStone = BigInt.from(8640);
 
 class GiftButtonOverlay extends StatefulWidget {
   final VoidCallback onGiftClaimed;
@@ -48,7 +52,6 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
       _remaining = Duration.zero;
       return;
     }
-
     final nextClaim = _lastClaimed!.add(giftCooldown);
     final now = DateTime.now();
     _remaining = nextClaim.isAfter(now) ? nextClaim.difference(now) : Duration.zero;
@@ -83,14 +86,16 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
           if (player == null) return;
 
           if (isFirstTime) {
-            player.resources.add('spiritStoneLow', 10000);
-            player.resources.add('humanRecruitTicket', 100);
+            player.resources.addBigInt('spiritStoneLow', firstTimeSpiritStone);
+            player.resources.add('humanRecruitTicket', firstTimeTicket);
+            player.resources.add('fateRecruitCharm', firstTimeFateCharm); // ✅ 加入资质券
           } else {
-            player.resources.add('spiritStoneLow', 8640);
+            player.resources.addBigInt('spiritStoneLow', dailySpiritStone);
+            player.resources.add('humanRecruitTicket', 1);
+            player.resources.add('fateRecruitCharm', 1);
           }
 
           await PlayerStorage.savePlayer(player);
-
           final prefs = await SharedPreferences.getInstance();
           await prefs.setInt('lastClaimedGiftAt', DateTime.now().millisecondsSinceEpoch);
 
@@ -103,9 +108,11 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
             setState(() {});
           }
 
-          ToastTip.show(context, isFirstTime
-              ? '🎁 首次礼包领取成功！下品灵石 +10000，招募券 +100'
-              : '🪙 每日修仙奖励：下品灵石 +8640',
+          ToastTip.show(
+            context,
+            isFirstTime
+                ? '🎁 首次礼包领取成功！\n下品灵石 +$firstTimeSpiritStone\n招募券 +$firstTimeTicket\n资质提升券 +$firstTimeFateCharm'
+                : '🪙 每日修仙奖励：\n下品灵石 +$dailySpiritStone\n招募券 +1\n资质提升券 +1',
             duration: const Duration(seconds: 3),
           );
         },
@@ -127,9 +134,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
         right: 20,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
           child: Text(
             '下次可领取：${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
             style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -187,8 +192,9 @@ class _GiftPopup extends StatelessWidget {
                 ? '🧙‍♂️ 欢迎修士踏入仙道，来一份开光大礼包：'
                 : '🌅 修炼辛苦，赠你每日修仙资源：'),
             const SizedBox(height: 12),
-            Text('💰 下品灵石 ×${isFirstTime ? 10000 : 8640}'),
-            if (isFirstTime) const Text('📜 人界招募券 ×100'),
+            Text('💰 下品灵石 ×${isFirstTime ? firstTimeSpiritStone : dailySpiritStone}'),
+            if (isFirstTime) Text('📜 人界招募券 ×$firstTimeTicket'),
+            if (isFirstTime) Text('🧬 资质提升券 ×$firstTimeFateCharm'), // ✅ 加入新奖励
             const SizedBox(height: 16),
             const Text('请点击下方领取，方可继续修行！', style: TextStyle(color: Colors.red)),
             const SizedBox(height: 24),

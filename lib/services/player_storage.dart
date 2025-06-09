@@ -1,5 +1,3 @@
-// lib/services/player_storage.dart
-
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -51,6 +49,15 @@ class PlayerStorage {
     return (json[key] ?? 0) as int;
   }
 
+  /// 新增：读取 BigInt 类型字段（默认 BigInt.zero）
+  static Future<BigInt> getBigIntField(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_playerKey) ?? '{}';
+    final json = jsonDecode(raw);
+    final value = json[key];
+    return value != null ? BigInt.parse(value.toString()) : BigInt.zero;
+  }
+
   /// 泛型读取任意字段（可选）
   static Future<T?> getField<T>(String key) async {
     final prefs = await SharedPreferences.getInstance();
@@ -75,19 +82,25 @@ class PlayerStorage {
     return calculateCultivationLevel(player.cultivation).totalLayer;
   }
 
+  /// 💪 获取当前玩家尺寸倍率（如 2.0、2.2）
   static Future<double> getSizeMultiplier() async {
     final layer = await getCultivationLayer();
     return 2.0 + (layer - 1) * 0.02;
   }
 
-  /// 💪 获取当前玩家尺寸倍率（如 2.0、2.2）
+  /// 💰 使用灵石提升修为（全面支持 BigInt）
   static Future<void> addCultivationByStones({
-    int low = 0,
-    int mid = 0,
-    int high = 0,
-    int supreme = 0,
+    BigInt? low,
+    BigInt? mid,
+    BigInt? high,
+    BigInt? supreme,
     void Function()? onUpdate,
   }) async {
+    final l = low ?? BigInt.zero;
+    final m = mid ?? BigInt.zero;
+    final h = high ?? BigInt.zero;
+    final s = supreme ?? BigInt.zero;
+
     final player = await getPlayer();
     if (player == null) {
       onUpdate?.call();
@@ -96,45 +109,47 @@ class PlayerStorage {
 
     final res = player.resources;
 
-    if (res.spiritStoneLow < low ||
-        res.spiritStoneMid < mid ||
-        res.spiritStoneHigh < high ||
-        res.spiritStoneSupreme < supreme) {
+    if (res.spiritStoneLow < l ||
+        res.spiritStoneMid < m ||
+        res.spiritStoneHigh < h ||
+        res.spiritStoneSupreme < s) {
       debugPrint('灵石不足');
       onUpdate?.call();
       return;
     }
 
-    // ✅ 扣除灵石
-    res.spiritStoneLow -= low;
-    res.spiritStoneMid -= mid;
-    res.spiritStoneHigh -= high;
-    res.spiritStoneSupreme -= supreme;
+    res.spiritStoneLow -= l;
+    res.spiritStoneMid -= m;
+    res.spiritStoneHigh -= h;
+    res.spiritStoneSupreme -= s;
 
     await savePlayer(player);
 
-    // ✅ 计算应加的修为
     final double addedExp = calculateAddedExp(
-      low: low,
-      mid: mid,
-      high: high,
-      supreme: supreme,
+      low: l,
+      mid: m,
+      high: h,
+      supreme: s,
     ).toDouble();
 
-    // ✅ 用新版：停止tick → 加修为 → 存 → 重启tick
     await CultivationTracker.safeAddExp(addedExp, onUpdate: onUpdate);
   }
 
-  /// 根据各级灵石数量，计算预计可增加的修为
-  static int calculateAddedExp({
-    int low = 0,
-    int mid = 0,
-    int high = 0,
-    int supreme = 0,
+  /// 根据各级灵石数量，计算预计可增加的修为（支持 BigInt）
+  static BigInt calculateAddedExp({
+    BigInt? low,
+    BigInt? mid,
+    BigInt? high,
+    BigInt? supreme,
   }) {
-    return low * 10 +
-        mid * 100000 +
-        high * 1000000000 +
-        supreme * 10000000000000;
+    final l = low ?? BigInt.zero;
+    final m = mid ?? BigInt.zero;
+    final h = high ?? BigInt.zero;
+    final s = supreme ?? BigInt.zero;
+
+    return (l * BigInt.from(10) +
+        m * BigInt.from(100000) +
+        h * BigInt.from(1000000000) +
+        s * BigInt.from(10000000000000));
   }
 }

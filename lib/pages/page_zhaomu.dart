@@ -19,7 +19,7 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
   bool get wantKeepAlive => true;
 
   String currentPool = 'human';
-  int ticketCount = 0;
+  int ticketCount = 0; // ✅ 改为 int 类型
 
   @override
   void initState() {
@@ -29,7 +29,7 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
 
   Future<void> _loadTicketCount() async {
     final player = await PlayerStorage.getPlayer();
-    final count = player?.resources.humanRecruitTicket ?? 0;
+    final count = player?.resources.humanRecruitTicket ?? 0; // ✅ 使用 int 类型的默认值
     setState(() {
       ticketCount = count;
     });
@@ -70,6 +70,8 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
             child: RecruitActionPanel(
               currentPool: currentPool,
               onRecruitFinished: _loadTicketCount,
+              // 如果 RecruitActionPanel 里需要 ticketCount，可以把 ticketCount.toString() 传过去
+              // ticketCount: ticketCount.toString(),
             ),
           ),
 

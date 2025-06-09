@@ -78,7 +78,8 @@ class CultivationTracker {
   }
 
   static double getMaxExpByAptitude(int aptitude) {
-    final maxLevel = (aptitude * 0.9).floor().clamp(1, 189);
+    final maxPossibleLevel = CultivationConfig.realms.length * CultivationConfig.levelsPerRealm;
+    final maxLevel = (aptitude * 0.9).floor().clamp(1, maxPossibleLevel);
     final before = totalExpToLevel(maxLevel);
     final current = expNeededForLevel(maxLevel);
     return before + current;

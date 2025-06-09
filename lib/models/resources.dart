@@ -1,110 +1,146 @@
-/// 📦 Resources —— 修士角色身上的资源系统
-/// 管理各种灵石、灵气、贡献、因果、招募券等资源，用于修炼、招募、兑换、剧情等功能
-
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class Resources {
   // 💰 灵石系列（修炼提升专用）
-  int spiritStoneLow;      // 下品灵石
-  int spiritStoneMid;      // 中品灵石
-  int spiritStoneHigh;     // 上品灵石
-  int spiritStoneSupreme;  // 极品灵石
+  BigInt spiritStoneLow;      // 下品灵石
+  BigInt spiritStoneMid;      // 中品灵石
+  BigInt spiritStoneHigh;     // 上品灵石
+  BigInt spiritStoneSupreme;  // 极品灵石
 
-  // 🪪 招募资源（仅用于招募）
-  int humanRecruitTicket;  // 人界招募券（人界弟子招募）
-  int immortalSummonOrder; // 仙界召唤令（仙界高阶弟子）
-  int fateRecruitCharm;    // 资质提升券（
+  // 🪪 招募资源（仅用于招募，数量可控）
+  int humanRecruitTicket;     // 人界招募券
+  int immortalSummonOrder;    // 仙界召唤令
+  int fateRecruitCharm;       // 资质提升券
 
-  // 🏯 宗门资源（兑换、宗门建筑升级等）
-  int contribution;        // 宗门贡献
-  int reputation;          // 声望值（拜访其他宗门、开启隐藏事件）
+  // 🏯 宗门资源
+  BigInt contribution;        // 宗门贡献
+  BigInt reputation;          // 声望值
 
-  // 🌬️ 修炼资源（挂机获取、突破使用）
-  int aura;                // 灵气（挂机积累）
-  int insight;             // 悟性（突破/参悟用）
-  int karma;               // 因果点（剧情相关、特定弟子招募）
-  int wishPower;           // 愿力（保命/特殊召唤）
+  // 🌬️ 修炼资源
+  BigInt aura;                // 灵气
+  BigInt insight;             // 悟性
+  BigInt karma;               // 因果点
+  BigInt wishPower;           // 愿力
 
-  // ⚔️ 战斗资源（战斗释放技能用）
-  int refinedQi;           // 真元（法术/法宝驱动）
-  int mindEnergy;          // 神识（御剑、控制）
-  int battleWill;          // 战意（连续战斗提升，触发爆发技能）
+  // ⚔️ 战斗资源
+  BigInt refinedQi;           // 真元
+  BigInt mindEnergy;          // 神识
+  BigInt battleWill;          // 战意
 
   Resources({
-    this.spiritStoneLow = 0,
-    this.spiritStoneMid = 0,
-    this.spiritStoneHigh = 0,
-    this.spiritStoneSupreme = 0,
-    this.humanRecruitTicket = 0,
-    this.immortalSummonOrder = 0,
-    this.fateRecruitCharm = 0,
-    this.contribution = 0,
-    this.reputation = 0,
-    this.aura = 0,
-    this.insight = 0,
-    this.karma = 0,
-    this.wishPower = 0,
-    this.refinedQi = 0,
-    this.mindEnergy = 0,
-    this.battleWill = 0,
-  });
+    BigInt? spiritStoneLow,
+    BigInt? spiritStoneMid,
+    BigInt? spiritStoneHigh,
+    BigInt? spiritStoneSupreme,
+    int? humanRecruitTicket,
+    int? immortalSummonOrder,
+    int? fateRecruitCharm,
+    BigInt? contribution,
+    BigInt? reputation,
+    BigInt? aura,
+    BigInt? insight,
+    BigInt? karma,
+    BigInt? wishPower,
+    BigInt? refinedQi,
+    BigInt? mindEnergy,
+    BigInt? battleWill,
+  })  : spiritStoneLow = spiritStoneLow ?? BigInt.zero,
+        spiritStoneMid = spiritStoneMid ?? BigInt.zero,
+        spiritStoneHigh = spiritStoneHigh ?? BigInt.zero,
+        spiritStoneSupreme = spiritStoneSupreme ?? BigInt.zero,
+        humanRecruitTicket = humanRecruitTicket ?? 0,
+        immortalSummonOrder = immortalSummonOrder ?? 0,
+        fateRecruitCharm = fateRecruitCharm ?? 0,
+        contribution = contribution ?? BigInt.zero,
+        reputation = reputation ?? BigInt.zero,
+        aura = aura ?? BigInt.zero,
+        insight = insight ?? BigInt.zero,
+        karma = karma ?? BigInt.zero,
+        wishPower = wishPower ?? BigInt.zero,
+        refinedQi = refinedQi ?? BigInt.zero,
+        mindEnergy = mindEnergy ?? BigInt.zero,
+        battleWill = battleWill ?? BigInt.zero;
 
-  /// ✅ 从 Map 构造资源对象
   factory Resources.fromMap(Map<String, dynamic> map) {
+    BigInt parseBig(dynamic v) => BigInt.tryParse(v?.toString() ?? '0') ?? BigInt.zero;
+    int parseInt(dynamic v) => int.tryParse(v?.toString() ?? '0') ?? 0;
+
     return Resources(
-      spiritStoneLow: map['spiritStoneLow'] ?? 0,
-      spiritStoneMid: map['spiritStoneMid'] ?? 0,
-      spiritStoneHigh: map['spiritStoneHigh'] ?? 0,
-      spiritStoneSupreme: map['spiritStoneSupreme'] ?? 0,
-      humanRecruitTicket: map['humanRecruitTicket'] ?? 0,
-      immortalSummonOrder: map['immortalSummonOrder'] ?? 0,
-      fateRecruitCharm: map['fateRecruitCharm'] ?? 0,
-      contribution: map['contribution'] ?? 0,
-      reputation: map['reputation'] ?? 0,
-      aura: map['aura'] ?? 0,
-      insight: map['insight'] ?? 0,
-      karma: map['karma'] ?? 0,
-      wishPower: map['wishPower'] ?? 0,
-      refinedQi: map['refinedQi'] ?? 0,
-      mindEnergy: map['mindEnergy'] ?? 0,
-      battleWill: map['battleWill'] ?? 0,
+      spiritStoneLow: parseBig(map['spiritStoneLow']),
+      spiritStoneMid: parseBig(map['spiritStoneMid']),
+      spiritStoneHigh: parseBig(map['spiritStoneHigh']),
+      spiritStoneSupreme: parseBig(map['spiritStoneSupreme']),
+      humanRecruitTicket: parseInt(map['humanRecruitTicket']),
+      immortalSummonOrder: parseInt(map['immortalSummonOrder']),
+      fateRecruitCharm: parseInt(map['fateRecruitCharm']),
+      contribution: parseBig(map['contribution']),
+      reputation: parseBig(map['reputation']),
+      aura: parseBig(map['aura']),
+      insight: parseBig(map['insight']),
+      karma: parseBig(map['karma']),
+      wishPower: parseBig(map['wishPower']),
+      refinedQi: parseBig(map['refinedQi']),
+      mindEnergy: parseBig(map['mindEnergy']),
+      battleWill: parseBig(map['battleWill']),
     );
   }
 
-  /// ✅ 转为 Map（用于存储）
   Map<String, dynamic> toMap() => {
-    'spiritStoneLow': spiritStoneLow,
-    'spiritStoneMid': spiritStoneMid,
-    'spiritStoneHigh': spiritStoneHigh,
-    'spiritStoneSupreme': spiritStoneSupreme,
+    'spiritStoneLow': spiritStoneLow.toString(),
+    'spiritStoneMid': spiritStoneMid.toString(),
+    'spiritStoneHigh': spiritStoneHigh.toString(),
+    'spiritStoneSupreme': spiritStoneSupreme.toString(),
     'humanRecruitTicket': humanRecruitTicket,
     'immortalSummonOrder': immortalSummonOrder,
     'fateRecruitCharm': fateRecruitCharm,
-    'contribution': contribution,
-    'reputation': reputation,
-    'aura': aura,
-    'insight': insight,
-    'karma': karma,
-    'wishPower': wishPower,
-    'refinedQi': refinedQi,
-    'mindEnergy': mindEnergy,
-    'battleWill': battleWill,
+    'contribution': contribution.toString(),
+    'reputation': reputation.toString(),
+    'aura': aura.toString(),
+    'insight': insight.toString(),
+    'karma': karma.toString(),
+    'wishPower': wishPower.toString(),
+    'refinedQi': refinedQi.toString(),
+    'mindEnergy': mindEnergy.toString(),
+    'battleWill': battleWill.toString(),
   };
 
-  /// ✅ 增加指定资源（支持负数，等同于消耗）
-  void add(String type, int value) {
-    final newValue = getValue(type) + value;
-    _set(type, newValue);
+  void add(String type, int value) => addBigInt(type, BigInt.from(value));
+
+  void addBigInt(String type, BigInt value) {
+    if (_isIntField(type)) {
+      final newValue = getIntValue(type) + value.toInt();
+      _setInt(type, newValue);
+    } else {
+      final newValue = getValue(type) + value;
+      _set(type, newValue);
+    }
   }
 
-  /// ✅ 减少指定资源（语义 sugar）
   void subtract(String type, int value) => add(type, -value);
 
-  /// ✅ 获取资源值
-  int getValue(String type) => toMap()[type] ?? 0;
+  BigInt getValue(String type) {
+    if (_isIntField(type)) {
+      return BigInt.from(getIntValue(type));
+    }
+    return BigInt.tryParse(toMap()[type]?.toString() ?? '0') ?? BigInt.zero;
+  }
 
-  /// ✅ 设置某个资源的值（内部私用）
-  void _set(String type, int value) {
+  int getIntValue(String type) {
+    switch (type) {
+      case 'humanRecruitTicket':
+        return humanRecruitTicket;
+      case 'immortalSummonOrder':
+        return immortalSummonOrder;
+      case 'fateRecruitCharm':
+        return fateRecruitCharm;
+      default:
+        return 0;
+    }
+  }
+
+  bool _isIntField(String type) => type == 'humanRecruitTicket' || type == 'immortalSummonOrder' || type == 'fateRecruitCharm';
+
+  void _set(String type, BigInt value) {
     switch (type) {
       case 'spiritStoneLow':
         spiritStoneLow = value;
@@ -117,15 +153,6 @@ class Resources {
         break;
       case 'spiritStoneSupreme':
         spiritStoneSupreme = value;
-        break;
-      case 'humanRecruitTicket':
-        humanRecruitTicket = value;
-        break;
-      case 'immortalSummonOrder':
-        immortalSummonOrder = value;
-        break;
-      case 'fateRecruitCharm':
-        fateRecruitCharm = value;
         break;
       case 'contribution':
         contribution = value;
@@ -157,7 +184,20 @@ class Resources {
     }
   }
 
-  /// ✅ 从另一个资源对象复制值
+  void _setInt(String type, int value) {
+    switch (type) {
+      case 'humanRecruitTicket':
+        humanRecruitTicket = value;
+        break;
+      case 'immortalSummonOrder':
+        immortalSummonOrder = value;
+        break;
+      case 'fateRecruitCharm':
+        fateRecruitCharm = value;
+        break;
+    }
+  }
+
   void _copyFrom(Resources other) {
     spiritStoneLow = other.spiritStoneLow;
     spiritStoneMid = other.spiritStoneMid;
@@ -177,7 +217,6 @@ class Resources {
     battleWill = other.battleWill;
   }
 
-  /// ✅ 保存当前资源到 SharedPreferences
   Future<void> saveToStorage() async {
     await PlayerStorage.updateField('resources', toMap());
   }

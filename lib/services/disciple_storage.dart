@@ -4,6 +4,8 @@ import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 
 class DiscipleStorage {
   static const _key = 'recruited_disciples';
+  static const _totalDrawsKey = 'total_draws'; // 记录总抽卡次数
+  static const _drawsUntilSSRKey = 'draws_until_ssr'; // 保底抽卡次数
 
   /// 获取所有已招募弟子
   static Future<List<Disciple>> getAll() async {
@@ -45,5 +47,45 @@ class DiscipleStorage {
   static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
+  }
+
+  /// 获取当前总抽卡次数
+  static Future<int> getTotalDraws() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_totalDrawsKey) ?? 0;
+  }
+
+  /// 增加抽卡次数
+  static Future<void> incrementTotalDraws(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    int total = prefs.getInt(_totalDrawsKey) ?? 0;
+    total += count;
+    await prefs.setInt(_totalDrawsKey, total);
+  }
+
+  /// 获取当前保底剩余次数
+  static Future<int> getDrawsUntilSSR() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_drawsUntilSSRKey) ?? 80;
+  }
+
+  /// 直接设置保底剩余抽数（骚哥用的精准保底更新）
+  static Future<void> setDrawsUntilSSR(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_drawsUntilSSRKey, value.clamp(0, 80)); // 限制范围避免负数或超出
+  }
+
+  /// 抽卡后更新保底剩余抽数（仅用于没中SSR时）
+  static Future<void> incrementDrawsUntilSSR(int count, {bool hitSSR = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    int current = prefs.getInt(_drawsUntilSSRKey) ?? 80;
+
+    if (!hitSSR) {
+      current -= count;
+      if (current <= 0) current = 80; // 到0保底自动触发，重置
+      await prefs.setInt(_drawsUntilSSRKey, current);
+    }
+
+    // 如果 hitSSR 为 true，则不处理（你应该用 setDrawsUntilSSR 外部控制）
   }
 }

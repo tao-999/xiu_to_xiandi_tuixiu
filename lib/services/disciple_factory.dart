@@ -3,73 +3,56 @@ import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/name_generator.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/ssr_disciple_pool.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/initial_disciple_pool.dart';
 
 final _rng = Random();
 
-/// 🎯 保底计数器键名
-const String _drawsKey = 'draws_since_ssr';
+const String _drawsKey = 'draws_since_beauty_card';
+const String _currentRangeKey = 'current_card_range';
+const String _usedUniqueAptitudesKey = 'used_unique_aptitudes';
 
-/// 🧠 获取并更新持久化计数
+/// 🎲 主抽卡逻辑（支持卡池解锁 + 保底）
 Future<int> generateHumanAptitude() async {
   final prefs = await SharedPreferences.getInstance();
   int count = prefs.getInt(_drawsKey) ?? 0;
-  count++;
+  int maxRange = prefs.getInt(_currentRangeKey) ?? 40;
+  final used = prefs.getStringList(_usedUniqueAptitudesKey)?.map(int.parse).toSet() ?? {};
 
-  // 🎯 达到保底
-  if (count >= 100) {
+  // 检查当前区间是否已抽完
+  final remaining = initialDiscipleRawPool
+      .where((d) => !used.contains(d['aptitude']) && d['aptitude'] <= maxRange)
+      .toList();
+
+  if (remaining.isEmpty && maxRange < 90) {
+    maxRange += 10;
+    count = 0;
+    await prefs.setInt(_currentRangeKey, maxRange);
     await prefs.setInt(_drawsKey, 0);
-    return 81 + _rng.nextInt(10); // 强制出 SSR
   }
 
-  int a = _generateAptitude(_humanAptitudeTable);
+  // 更新可抽卡池
+  final currentPool = initialDiscipleRawPool
+      .where((d) => !used.contains(d['aptitude']) && d['aptitude'] <= maxRange)
+      .toList();
 
-  if (a >= 81) {
-    await prefs.setInt(_drawsKey, 0); // 出 SSR 自动重置
-  } else {
-    await prefs.setInt(_drawsKey, count); // 更新抽数
-  }
+  if (currentPool.isNotEmpty) {
+    count++;
+    final roll = _rng.nextInt(80);
 
-  return a;
-}
-
-/// 📦 权重结构
-class _AptitudeEntry {
-  final int min;
-  final int max;
-  final int weight;
-  const _AptitudeEntry(this.min, this.max, this.weight);
-}
-
-/// 🎲 人界权重表
-const List<_AptitudeEntry> _humanAptitudeTable = [
-  _AptitudeEntry(81, 90, 1),
-  _AptitudeEntry(71, 80, 10),
-  _AptitudeEntry(61, 70, 30),
-  _AptitudeEntry(51, 60, 60),
-  _AptitudeEntry(41, 50, 100),
-  _AptitudeEntry(31, 40, 200),
-  _AptitudeEntry(21, 30, 250),
-  _AptitudeEntry(11, 20, 200),
-  _AptitudeEntry(1, 10, 149),
-];
-
-/// 🎲 根据权重随机生成资质
-int _generateAptitude(List<_AptitudeEntry> table) {
-  int totalWeight = table.fold(0, (sum, e) => sum + e.weight);
-  int roll = _rng.nextInt(totalWeight);
-
-  for (final entry in table) {
-    if (roll < entry.weight) {
-      return entry.min + _rng.nextInt(entry.max - entry.min + 1);
+    if (count >= 80 || roll == 0) {
+      await prefs.setInt(_drawsKey, 0);
+      final chosen = currentPool[_rng.nextInt(currentPool.length)];
+      return chosen['aptitude'];
+    } else {
+      await prefs.setInt(_drawsKey, count);
     }
-    roll -= entry.weight;
   }
-  final last = table.last;
-  return last.min + _rng.nextInt(last.max - last.min + 1);
+
+  // 🧟 没抽到角色卡，返回 1~30 炮灰
+  return 1 + _rng.nextInt(30);
 }
 
-/// 🖼️ 资质区间映射通用图片
+/// 🖼️ 炮灰通用贴图
 String getImageForAptitude(int apt) {
   if (apt <= 10) return 'assets/images/lianqi.png';
   if (apt <= 20) return 'assets/images/zhuji.png';
@@ -81,7 +64,7 @@ String getImageForAptitude(int apt) {
   return 'assets/images/dacheng.png';
 }
 
-/// ✅ 主入口：人界招募（支持 SSR Map 池子结构）
+/// 🧙‍♀️ 弟子工厂（整合所有招募逻辑）
 class DiscipleFactory {
   static Future<Disciple> generateRandom({String pool = 'human'}) async {
     final uuid = const Uuid();
@@ -89,30 +72,40 @@ class DiscipleFactory {
     final isFemale = _rng.nextBool();
     final gender = isFemale ? 'female' : 'male';
     final name = NameGenerator.generate(isMale: !isFemale);
-    final age = 12 + _rng.nextInt(7); // 12~18岁
+    final age = 12 + _rng.nextInt(7);
 
-    if (aptitude >= 81) {
-      // 🎯 SSR 从 raw pool 中找一位
-      final matchMap = ssrDiscipleRawPool.firstWhere(
-            (d) => d['aptitude'] == aptitude,
-        orElse: () => ssrDiscipleRawPool[_rng.nextInt(ssrDiscipleRawPool.length)],
-      );
+    if (aptitude >= 31 && aptitude <= 90) {
+      final prefs = await SharedPreferences.getInstance();
+      final used = prefs.getStringList(_usedUniqueAptitudesKey)?.map(int.parse).toSet() ?? {};
 
-      return Disciple(
-        id: uuid.v4(),
-        name: matchMap['name'],
-        gender: matchMap['gender'],
-        age: matchMap['age'],
-        aptitude: matchMap['aptitude'],
-        hp: matchMap['hp'],
-        atk: matchMap['atk'],
-        def: matchMap['def'],
-        realm: '凡人',
-        imagePath: matchMap['imagePath'],
-      );
+      final available = initialDiscipleRawPool
+          .where((d) => !used.contains(d['aptitude']) && d['aptitude'] == aptitude)
+          .toList();
+
+      if (available.isNotEmpty) {
+        final selected = available[_rng.nextInt(available.length)];
+        final selectedApt = selected['aptitude'] as int;
+
+        used.add(selectedApt);
+        await prefs.setStringList(
+            _usedUniqueAptitudesKey, used.map((e) => e.toString()).toList());
+
+        return Disciple(
+          id: uuid.v4(),
+          name: selected['name'],
+          gender: selected['gender'],
+          age: age,
+          aptitude: selectedApt,
+          hp: selected['hp'],
+          atk: selected['atk'],
+          def: selected['def'],
+          realm: '凡人',
+          imagePath: selected['imagePath'],
+        );
+      }
     }
 
-    // 🎲 非 SSR 自由生成
+    // 🧟 没抽到专属卡，生成随机炮灰
     return Disciple(
       id: uuid.v4(),
       name: name,
@@ -126,4 +119,12 @@ class DiscipleFactory {
       imagePath: getImageForAptitude(aptitude),
     );
   }
+}
+
+/// 🔄 重置抽卡记录（调试用）
+Future<void> resetInitialDiscipleDraws() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove(_drawsKey);
+  await prefs.remove(_currentRangeKey);
+  await prefs.remove(_usedUniqueAptitudesKey);
 }

@@ -6,7 +6,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 class Item {
   final String name;
   final String icon;
-  final int quantity;
+  final dynamic quantity;
 
   const Item(this.name, this.icon, this.quantity);
 }
@@ -129,7 +129,7 @@ class _BeibaoPageState extends State<BeibaoPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '数量：${item.quantity}',
+                        '数量：${item.quantity.toString()}',
                         style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                       const SizedBox(height: 4),
