@@ -147,9 +147,9 @@ class PlayerStorage {
     final h = high ?? BigInt.zero;
     final s = supreme ?? BigInt.zero;
 
-    return (l * BigInt.from(10) +
-        m * BigInt.from(100000) +
-        h * BigInt.from(1000000000) +
-        s * BigInt.from(10000000000000));
+    return (l * BigInt.from(5) +
+        m * BigInt.from(50000) +
+        h * BigInt.from(500000000) +
+        s * BigInt.from(5000000000000));
   }
 }

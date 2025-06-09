@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 import '../services/global_event_bus.dart';
 
@@ -68,12 +69,23 @@ class Character {
   int get totalElement => elements.values.fold(0, (a, b) => a + b);
   double get growthMultiplier => 1 + totalElement / 100;
 
-  void applyBreakthroughBonus() {
-    final m = growthMultiplier;
-    hp = (hp * m).round();
-    atk = (atk * m).round();
-    def = (def * m).round();
-    EventBus.emit('powerUpdated');
+  void applyBreakthroughBonus({required int layer}) {
+    // 每层固定成长
+    const int baseHp = 50;
+    const int baseAtk = 10;
+    const int baseDef = 5;
+
+    final double factor = 1 + totalElement / 200.0;
+
+    final int hpGain = (baseHp * factor).round();
+    final int atkGain = (baseAtk * factor).round();
+    final int defGain = (baseDef * factor).round();
+
+    hp += hpGain;
+    atk += atkGain;
+    def += defGain;
+
+    debugPrint("💥 层数 $layer 突破成功：hp+$hpGain, atk+$atkGain, def+$defGain");
   }
 
   Map<String, dynamic> toJson() => {

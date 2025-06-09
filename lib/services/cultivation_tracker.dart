@@ -54,18 +54,18 @@ class CultivationTracker {
       final maxExp = getMaxExpByAptitude(player.totalElement);
       player.cultivation = newExp.clamp(0, maxExp);
 
+      final oldExp = (jsonDecode(jsonStr)['cultivation'] ?? 0.0) * 1.0;
+      final oldTotalLayer = calculateCultivationLevel(oldExp).totalLayer;
       final newTotalLayer = calculateCultivationLevel(player.cultivation).totalLayer;
-      final oldTotalLayer = calculateCultivationLevel(
-          (jsonDecode(jsonStr)['cultivation'] ?? 0.0) * 1.0
-      ).totalLayer;
 
       if (newTotalLayer > oldTotalLayer) {
-        player.applyBreakthroughBonus();
+        // ✅ 必须传入 newTotalLayer 才能正确加属性
+        player.applyBreakthroughBonus(layer: newTotalLayer);
       }
 
       await prefs.setString('playerData', jsonEncode(player.toJson()));
 
-      // ✅ 通知监听者
+      // ✅ 通知监听者刷新 UI
       for (final listener in _listeners) {
         listener();
       }
@@ -97,29 +97,30 @@ class CultivationTracker {
 
     if (player.cultivation >= maxExp) {
       print('【溢出被禁止】无法增加修为');
-    } else {
-      player.cultivation = (player.cultivation + addedExp).clamp(0, maxExp);
-
-      final newStage = calculateCultivationLevel(player.cultivation);
-      bool hasBreakthrough = false;
-
-      if (newStage.totalLayer > oldStage.totalLayer) {
-        player.applyBreakthroughBonus();
-        hasBreakthrough = true;
-      }
-
-      final updateMap = {'cultivation': player.cultivation};
-      if (hasBreakthrough) {
-        updateMap.addAll({
-          'hp': player.hp.toDouble(),
-          'atk': player.atk.toDouble(),
-          'def': player.def.toDouble(),
-        });
-      }
-
-      await PlayerStorage.updateFields(updateMap);
-      onUpdate?.call();
+      return;
     }
+
+    player.cultivation = (player.cultivation + addedExp).clamp(0, maxExp);
+    final newStage = calculateCultivationLevel(player.cultivation);
+
+    bool hasBreakthrough = false;
+    if (newStage.totalLayer > oldStage.totalLayer) {
+      // ✅ 传入新层数，确保 applyBreakthroughBonus 逻辑正确
+      player.applyBreakthroughBonus(layer: newStage.totalLayer);
+      hasBreakthrough = true;
+    }
+
+    final updateMap = {'cultivation': player.cultivation};
+    if (hasBreakthrough) {
+      updateMap.addAll({
+        'hp': player.hp.toDouble(),
+        'atk': player.atk.toDouble(),
+        'def': player.def.toDouble(),
+      });
+    }
+
+    await PlayerStorage.updateFields(updateMap);
+    onUpdate?.call();
   }
 
   static Future<void> _updateCultivationOnly(double cultivation) async {
@@ -131,18 +132,24 @@ class CultivationTracker {
   }
 
   static Future<void> safeAddExp(double addedExp, {void Function()? onUpdate}) async {
-    stopTick(); // ✅ 不能 await，因为是 void
+    stopTick(); // ✅ 不要 await
 
     final player = await PlayerStorage.getPlayer();
     if (player == null) return;
 
     final maxExp = getMaxExpByAptitude(player.totalElement);
+    final oldLayer = calculateCultivationLevel(player.cultivation).totalLayer;
+
     player.cultivation = (player.cultivation + addedExp).clamp(0, maxExp);
+    final newLayer = calculateCultivationLevel(player.cultivation).totalLayer;
+
+    // ✅ 每层都加属性，不漏一层
+    for (int layer = oldLayer + 1; layer <= newLayer; layer++) {
+      player.applyBreakthroughBonus(layer: layer);
+    }
 
     await PlayerStorage.savePlayer(player);
-
-    startGlobalTick(); // ✅ 同样别 await
-
+    startGlobalTick();
     onUpdate?.call();
   }
 
