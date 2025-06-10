@@ -1,3 +1,5 @@
+// lib/widgets/dialogs/disciple_list_dialog.dart
+
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
@@ -86,13 +88,11 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // 标题及排序
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '📜 已招募修士',
-                  style: TextStyle(fontSize: 18),
-                ),
+                const Text('📜 已招募修士', style: TextStyle(fontSize: 18)),
                 DropdownButton<String>(
                   value: _sortOption,
                   items: const [
@@ -101,10 +101,10 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                     DropdownMenuItem(value: 'apt_desc', child: Text('资质：高 → 低')),
                     DropdownMenuItem(value: 'apt_asc', child: Text('资质：低 → 高')),
                   ],
-                  onChanged: (value) async {
-                    if (value != null) {
-                      await DiscipleStorage.saveSortOption(value);
-                      setState(() => _sortOption = value);
+                  onChanged: (v) async {
+                    if (v != null) {
+                      await DiscipleStorage.saveSortOption(v);
+                      setState(() => _sortOption = v);
                     }
                   },
                   style: const TextStyle(fontSize: 14, color: Colors.black),
@@ -113,7 +113,7 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
               ],
             ),
             const Divider(),
-
+            // 列表区域
             SizedBox(
               height: 400,
               child: sortedDisciples.isEmpty
@@ -166,8 +166,11 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                                 return;
                               }
 
+                              // 用 sectExp 动态算等级，不访问模型 level
+                              final level = ZongmenStorage.calcSectLevel(zongmen.sectExp);
                               final current = zongmen.disciples.length;
-                              final max = 5 * (1 << (zongmen.level - 1));
+                              final max = 5 * (1 << (level - 1));
+
                               if (current >= max) {
                                 ToastTip.show(context, '宗门弟子已满，无法再收人！');
                                 return;
@@ -178,10 +181,7 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                               await ZongmenStorage.addDisciple(updated);
                               await DiscipleStorage.removeById(d.id);
 
-                              setState(() {
-                                widget.disciples.remove(d);
-                              });
-
+                              setState(() => widget.disciples.remove(d));
                               ToastTip.show(context, '${d.name} 已加入宗门！');
                             },
                             child: const Text(

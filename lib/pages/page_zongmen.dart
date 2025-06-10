@@ -1,3 +1,5 @@
+// lib/pages/page_zongmen.dart
+
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
@@ -5,6 +7,8 @@ import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/create_zongmen_card.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_quick_menu.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_header_widget.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_resource_bar.dart';
 
 class ZongmenPage extends StatefulWidget {
   const ZongmenPage({super.key});
@@ -55,6 +59,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
       backgroundColor: const Color(0xFF0F0D0B),
       body: Stack(
         children: [
+          // 背景图及遮罩
           Positioned.fill(
             child: Image.asset(
               'assets/images/bg_zongmen_shiwaitaoyuan.webp',
@@ -64,6 +69,8 @@ class _ZongmenPageState extends State<ZongmenPage> {
           Positioned.fill(
             child: Container(color: Colors.black.withOpacity(0.35)),
           ),
+
+          // 宗门内容
           if (zongmen != null)
             Padding(
               padding: const EdgeInsets.all(16),
@@ -71,31 +78,22 @@ class _ZongmenPageState extends State<ZongmenPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Icon(Icons.auto_awesome, color: Colors.orangeAccent),
-                      const SizedBox(width: 8),
-                      Text(
-                        "${zongmen!.name}",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          color: Colors.white,
-                          fontFamily: 'ZcoolCangEr',
-                        ),
-                      ),
-                    ],
-                  ),
+                  // 宗门名 + 等级 + 经验进度
+                  ZongmenHeaderWidget(zongmen: zongmen!),
                   const SizedBox(height: 24),
+                  // 弟子数量卡片
                   _buildZongmenInfoCard(),
                   const SizedBox(height: 16),
-                  _buildResourceBar(),
+                  // 资源条
+                  ZongmenResourceBar(zongmen: zongmen!),
                   const SizedBox(height: 16),
+                  // 快捷菜单
                   const ZongmenQuickMenu(),
                 ],
               ),
             ),
 
-          // ✅ 创建宗门卡片层（首次进入无宗门时）
+          // 首次创建弹窗
           if (_showCreateCard)
             Positioned.fill(
               child: Container(
@@ -121,6 +119,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
               ),
             ),
 
+          // 返回按钮
           const BackButtonOverlay(),
         ],
       ),
@@ -135,55 +134,18 @@ class _ZongmenPageState extends State<ZongmenPage> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("宗门等级：${zongmen!.level}", style: _infoStyle()),
-          const SizedBox(height: 8),
-          Text("弟子数量：${disciples.length}", style: _infoStyle()),
-        ],
+      child: Text(
+        "弟子数量：${disciples.length}",
+        style: _infoStyle(),
       ),
-    );
-  }
-
-  Widget _buildResourceBar() {
-    final z = zongmen!;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _resItem("下品灵石", z.spiritStoneLow),
-          _resItem("中品灵石", z.spiritStoneMid),
-          _resItem("上品灵石", z.spiritStoneHigh),
-          _resItem("极品灵石", z.spiritStoneSupreme),
-        ],
-      ),
-    );
-  }
-
-  Widget _resItem(String name, int value) {
-    return Column(
-      children: [
-        Text(name, style: const TextStyle(color: Colors.white70, fontFamily: 'ZcoolCangEr')),
-        const SizedBox(height: 4),
-        Text(
-          "$value",
-          style: const TextStyle(
-            fontSize: 18,
-            color: Colors.white,
-            fontFamily: 'ZcoolCangEr',
-          ),
-        ),
-      ],
     );
   }
 
   TextStyle _infoStyle() {
-    return const TextStyle(fontSize: 16, color: Colors.white70, fontFamily: 'ZcoolCangEr');
+    return const TextStyle(
+      fontSize: 16,
+      color: Colors.white70,
+      fontFamily: 'ZcoolCangEr',
+    );
   }
 }

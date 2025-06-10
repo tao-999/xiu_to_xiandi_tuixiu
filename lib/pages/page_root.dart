@@ -50,10 +50,10 @@ class _XiudiRootState extends State<XiudiRoot> {
     final loadedPlayer = await PlayerStorage.getPlayer();
     if (loadedPlayer == null) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    final savedStage = prefs.getInt('currentMapStage') ?? 1;
-    final newGender = loadedPlayer.gender;
+    // 直接从 player 拿关卡阶数
+    final savedStage = loadedPlayer.currentMapStage ?? 1;
 
+    final newGender = loadedPlayer.gender;
     setState(() {
       player = loadedPlayer;
       gender = newGender;
