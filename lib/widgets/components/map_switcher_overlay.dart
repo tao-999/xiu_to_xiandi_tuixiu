@@ -4,7 +4,6 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/map_button_component.dar
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/map_switch_dialog.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 
 class MapSwitcherOverlay extends StatelessWidget {
   final int currentStage;

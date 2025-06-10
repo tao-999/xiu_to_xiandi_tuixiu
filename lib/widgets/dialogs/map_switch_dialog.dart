@@ -32,7 +32,11 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
 
     final exp = player.cultivation;
     final level = calculateCultivationLevel(exp);
-    final unlockedStage = ((level.totalLayer - 1) ~/ 9 + 1).clamp(1, 9);
+
+    final unlockedStage = ((level.totalLayer - 1) ~/ CultivationConfig.levelsPerRealm + 1)
+        .clamp(1, 9); // ✅ 用配置，别硬写 9！
+
+    print('📍 当前层数: ${level.totalLayer}（${level.realm} 第${level.rank}重） → 解锁到第 $unlockedStage 阶地图');
 
     setState(() {
       maxStage = unlockedStage;

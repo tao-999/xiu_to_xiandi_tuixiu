@@ -16,6 +16,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/root_bottom_menu.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/map_switcher_overlay.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart'; // ✅ 引入修为逻辑
 
 class XiudiRoot extends StatefulWidget {
   const XiudiRoot({super.key});
@@ -126,16 +127,23 @@ class _XiudiRootState extends State<XiudiRoot> {
               if (jsonStr == null) return;
 
               final latestPlayer = Character.fromJson(jsonDecode(jsonStr));
+              final levelInfo = calculateCultivationLevel(latestPlayer.cultivation);
+              final totalLayer = levelInfo.totalLayer;
 
-              // ✅ 示例判断：新地图需要修为达到 500（你可以改成自己的判断逻辑）
-              final requiredExp = 500 * newStage;
-              if (latestPlayer.cultivation < requiredExp) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('修为不足，无法进入第$newStage阶地图（需$requiredExp）')),
-                );
+              final requiredMinLayer = (newStage - 1) * CultivationConfig.levelsPerRealm + 1;
+
+              // ✅ 打印调试信息
+              print('🧮 当前修为: ${latestPlayer.cultivation}');
+              print('🪜 当前层数: $totalLayer（${levelInfo.realm} 第${levelInfo.rank}重）');
+              print('🗺️ 目标地图: 第 $newStage 阶（需要层数 ≥ $requiredMinLayer）');
+
+              if (totalLayer < requiredMinLayer) {
+                print('❌ 地图未解锁，切换失败');
                 return;
               }
 
+              // ✅ 地图切换成功
+              print('✅ 地图解锁通过，切换到第 $newStage 阶');
               setState(() {
                 player = latestPlayer;
                 currentStage = newStage;
