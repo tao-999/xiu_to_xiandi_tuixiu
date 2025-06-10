@@ -38,7 +38,6 @@ class _DanfangPageState extends State<DanfangPage> {
                 Text('🔥 炼丹房',
                     style: const TextStyle(
                       fontSize: 20,
-                      fontWeight: FontWeight.bold,
                       color: Colors.orangeAccent,
                       fontFamily: 'ZcoolCangEr',
                     )),
@@ -74,7 +73,7 @@ class _DanfangPageState extends State<DanfangPage> {
       child: Row(
         children: [
           Text("$label：", style: const TextStyle(color: Colors.white70, fontFamily: 'ZcoolCangEr')),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'ZcoolCangEr')),
+          Text(value, style: const TextStyle(color: Colors.white, fontFamily: 'ZcoolCangEr')),
           if (trailing != null) ...[
             const SizedBox(width: 8),
             trailing,
@@ -86,7 +85,6 @@ class _DanfangPageState extends State<DanfangPage> {
 
   TextStyle _titleStyle() => const TextStyle(
     fontSize: 16,
-    fontWeight: FontWeight.bold,
     color: Colors.orangeAccent,
     fontFamily: 'ZcoolCangEr',
   );

@@ -55,7 +55,7 @@ class ResourceBar extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           formatted,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: const TextStyle(fontSize: 14),
         ),
         const SizedBox(width: 4),
         Text(

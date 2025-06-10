@@ -9,16 +9,14 @@ class RecruitProbabilityDialog {
         : '仙界招募资质概率';
 
     final data = type == RecruitPoolType.human
-        ? [
-      {'资质范围': '1-10', '概率': '14.9%', '最高可修炼境界': '练气期'},
-      {'资质范围': '11-20', '概率': '20%', '最高可修炼境界': '筑基期'},
-      {'资质范围': '21-30', '概率': '25%', '最高可修炼境界': '金丹期'},
-      {'资质范围': '31-40', '概率': '20%', '最高可修炼境界': '元婴期'},
-      {'资质范围': '41-50', '概率': '10%', '最高可修炼境界': '化神期'},
-      {'资质范围': '51-60', '概率': '6%', '最高可修炼境界': '炼虚期'},
-      {'资质范围': '61-70', '概率': '3%', '最高可修炼境界': '合体期'},
-      {'资质范围': '71-80', '概率': '1%', '最高可修炼境界': '大乘期'},
-      {'资质范围': '81-90', '概率': '0.1%', '最高可修炼境界': '渡劫期'},
+        ?  [
+      {'资质范围': '1-30', '概率': '92.5%', '最高可修炼境界': '炮灰'},
+      {'资质范围': '31-40', '概率': '1.25%', '最高可修炼境界': '元婴期'},
+      {'资质范围': '41-50', '概率': '1.25%', '最高可修炼境界': '化神期'},
+      {'资质范围': '51-60', '概率': '1.25%', '最高可修炼境界': '炼虚期'},
+      {'资质范围': '61-70', '概率': '1.25%', '最高可修炼境界': '合体期'},
+      {'资质范围': '71-80', '概率': '1.25%', '最高可修炼境界': '大乘期'},
+      {'资质范围': '81-90', '概率': '1.25%', '最高可修炼境界': '渡劫期'},
     ]
         : [
       {'资质范围': '101-110', '概率': '35.1%', '最高可修炼境界': '地仙'},
@@ -42,15 +40,22 @@ class RecruitProbabilityDialog {
         return AlertDialog(
           backgroundColor: const Color(0xFFF9F5E3),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(title, style: const TextStyle(color: Colors.black87)),
+          title: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16, // ✅ 改这里就行！
+              color: Colors.black87,
+              fontFamily: 'ZcoolCangEr',
+            ),
+          ),
           content: SingleChildScrollView(
             child: Column(
               children: [
                 Table(
                   border: TableBorder.all(color: Colors.black54),
                   columnWidths: const {
-                    0: FlexColumnWidth(2),
-                    1: FlexColumnWidth(1),
+                    0: FlexColumnWidth(1.5),
+                    1: FlexColumnWidth(1.5),
                     2: FlexColumnWidth(2),
                   },
                   children: [
@@ -76,13 +81,16 @@ class RecruitProbabilityDialog {
                 const SizedBox(height: 12),
                 Text(
                   type == RecruitPoolType.human
-                      ? '💡 每100次人界招募，必出一名资质81+弟子！'
+                      ? '📜 人界立绘弟子按资质段位分批解锁（31~90）。\n'
+                      '每位立绘弟子只能抽中一次，不可重复获取。\n'
+                      '当前段位集齐后，下一段位自动开放。\n'
+                      '非立绘弟子（资质1~30）为普通弟子。\n'
+                      '⚠️ 系统设有保底机制，最多80抽必得一张立绘弟子卡牌。'
                       : '🧙‍♂️ 仙界弟子出生即高能，抽到仙帝之资，直接封神！',
-                  textAlign: TextAlign.center,
+                  textAlign: TextAlign.left, // ✅ 左对齐！
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
                     color: Colors.black87,
-                    fontSize: 14,
+                    fontSize: 12,
                     fontFamily: 'ZcoolCangEr',
                   ),
                 ),
@@ -100,10 +108,9 @@ class RecruitProbabilityDialog {
       child: Text(
         text,
         style: TextStyle(
-          fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
           color: Colors.black87,
           fontFamily: 'ZcoolCangEr',
-          fontSize: 14,
+          fontSize: 12,
         ),
       ),
     );

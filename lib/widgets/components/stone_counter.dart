@@ -32,7 +32,6 @@ class StoneCounter extends StatelessWidget {
             style: TextStyle(
               color: color, // ✅ 同棋子颜色
               fontSize: 14,
-              fontWeight: FontWeight.bold,
               decoration: TextDecoration.none,
             ),
           ),

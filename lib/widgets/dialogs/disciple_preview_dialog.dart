@@ -46,7 +46,6 @@ Widget _buildSection(String title, Set<int> ownedAptitudes, int start, int end) 
         style: const TextStyle(
           fontSize: 16,
           color: Colors.white,
-          fontWeight: FontWeight.bold,
         ),
       ),
       const SizedBox(height: 8),

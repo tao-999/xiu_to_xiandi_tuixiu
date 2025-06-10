@@ -80,7 +80,7 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
 
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
-      title: const Text('消耗灵石提升修为', style: TextStyle(fontWeight: FontWeight.bold)),
+      title: const Text('消耗灵石提升修为'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -149,7 +149,7 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
           },
           child: const Text(
             '提升修为',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            style: TextStyle(fontSize: 14),
           ),
         ),
       ],

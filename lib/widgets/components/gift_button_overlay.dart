@@ -136,8 +136,8 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
           child: Text(
-            '下次可领取：${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
-            style: const TextStyle(color: Colors.white, fontSize: 14),
+            '下次领取：${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
+            style: const TextStyle(color: Colors.white, fontSize: 12),
           ),
         ),
       );
@@ -209,7 +209,7 @@ class _GiftPopup extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('立即领取', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: const Text('立即领取', style: TextStyle(fontSize: 16)),
               ),
             ),
           ],

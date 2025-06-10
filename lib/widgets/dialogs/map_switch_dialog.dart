@@ -47,7 +47,6 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
         "选择挂机地图",
         style: TextStyle(
           fontSize: 16,         // 👈 字号你想多大都行
-          fontWeight: FontWeight.bold, // 可选：加粗一点更有气势
         ),
       ),
       content: SizedBox(

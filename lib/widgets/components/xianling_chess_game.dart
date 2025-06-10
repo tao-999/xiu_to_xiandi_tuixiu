@@ -228,7 +228,7 @@ class XianlingChessGame extends FlameGame {
                 children: [
                   const Text(
                     '🎉 胜利！',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -275,7 +275,7 @@ class XianlingChessGame extends FlameGame {
                 children: const [
                   Text(
                     '平局',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16),
                   ),
                   SizedBox(height: 12),
                   Text('棋盘已下满，未分胜负！'),

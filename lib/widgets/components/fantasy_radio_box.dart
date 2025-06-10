@@ -35,7 +35,7 @@ class FantasyRadioGroup extends StatelessWidget {
           width: 88,
           child: Text(
             groupLabel,
-            style: const TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 16, color: Colors.black87),
             textAlign: TextAlign.right,
           ),
         ),
@@ -61,7 +61,6 @@ class FantasyRadioGroup extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.black87,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                   const SizedBox(width: 20),

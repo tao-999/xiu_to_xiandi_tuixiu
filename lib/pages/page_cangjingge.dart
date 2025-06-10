@@ -33,7 +33,6 @@ class _CangjinggePageState extends State<CangjinggePage> {
                 Text('📚 藏经阁',
                     style: const TextStyle(
                       fontSize: 20,
-                      fontWeight: FontWeight.bold,
                       color: Colors.lightBlueAccent,
                       fontFamily: 'ZcoolCangEr',
                     )),
@@ -78,7 +77,7 @@ class _CangjinggePageState extends State<CangjinggePage> {
       child: Row(
         children: [
           Text("$label：", style: const TextStyle(color: Colors.white70, fontFamily: 'ZcoolCangEr')),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'ZcoolCangEr')),
+          Text(value, style: const TextStyle(color: Colors.white, fontFamily: 'ZcoolCangEr')),
         ],
       ),
     );
@@ -86,7 +85,6 @@ class _CangjinggePageState extends State<CangjinggePage> {
 
   TextStyle _titleStyle() => const TextStyle(
     fontSize: 16,
-    fontWeight: FontWeight.bold,
     color: Colors.lightBlueAccent,
     fontFamily: 'ZcoolCangEr',
   );

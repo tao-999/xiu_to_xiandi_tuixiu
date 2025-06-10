@@ -31,7 +31,6 @@ class RecruitHeaderWidget extends StatelessWidget {
               color: disabled
                   ? Colors.white38
                   : (isSelected ? Colors.black87 : Colors.white),
-              fontWeight: FontWeight.bold,
               fontSize: 16,
               fontFamily: 'ZcoolCangEr',
             ),
@@ -57,7 +56,6 @@ class RecruitHeaderWidget extends StatelessWidget {
                   '灵缘客栈',
                   style: TextStyle(
                     fontSize: 22,
-                    fontWeight: FontWeight.bold,
                     color: Colors.white,
                     fontFamily: 'ZcoolCangEr',
                   ),

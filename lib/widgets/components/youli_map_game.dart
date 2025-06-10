@@ -8,6 +8,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_chiyangu.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_xianling_qizhen.dart';
 
+import '../../pages/page_naihe_bridge.dart';
+
 class YouliMapGame extends FlameGame {
   final BuildContext context;
   late final SpriteComponent bg;
@@ -28,7 +30,7 @@ class YouliMapGame extends FlameGame {
     add(bg);
 
     await _addEntry('youli_fanchenshiji.png', Vector2(500, 1900));
-    await _addEntry('youli_huanyueshan.png', Vector2(700, 1350), onTap: () {
+    await _addEntry('youli_huanyueshan.png', Vector2(550, 1300), onTap: () {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const HuanyueExplorePage()),
       );
@@ -44,6 +46,11 @@ class YouliMapGame extends FlameGame {
     await _addEntry('youli_xianlingqizhen.png', Vector2(1350, 2200), onTap: () {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const XianlingQizhenPage()),
+      );
+    });
+    await _addEntry('youli_naiheqiao.png', Vector2(1000, 910), onTap: () {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const NaiheBridgePage()),
       );
     });
 
@@ -72,6 +79,7 @@ class YouliMapGame extends FlameGame {
     if (imageName.contains('dengtianti')) return '登天梯';
     if (imageName.contains('youmingguiku')) return '幽冥鬼窟';
     if (imageName.contains('xianlingqizhen')) return '仙灵棋阵';
+    if (imageName.contains('naiheqiao')) return '奈何桥';
     return '未知区域';
   }
 
@@ -151,7 +159,6 @@ class _EntryIcon extends PositionComponent {
         style: const TextStyle(
           fontSize: 36,
           color: Colors.white,
-          fontWeight: FontWeight.bold,
           fontFamily: 'ZcoolCangEr',
           shadows: [
             Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 2),

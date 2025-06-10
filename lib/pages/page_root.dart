@@ -10,7 +10,6 @@ import 'page_zhaomu.dart';
 import 'page_beibao.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/auto_battle_game.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/reset_player_button.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/gift_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/xiuxian_era_label.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/root_bottom_menu.dart';
@@ -169,7 +168,6 @@ class _XiudiRootState extends State<XiudiRoot> {
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: const ResetPlayerButton(),
     );
   }
 }

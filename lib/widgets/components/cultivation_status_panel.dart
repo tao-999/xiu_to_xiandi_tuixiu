@@ -53,7 +53,6 @@ class CultivationStatusPanel extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.black54,
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 4),

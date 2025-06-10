@@ -79,7 +79,6 @@ class _ZongmenPageState extends State<ZongmenPage> {
                         "${zongmen!.name}",
                         style: const TextStyle(
                           fontSize: 20,
-                          fontWeight: FontWeight.bold,
                           color: Colors.white,
                           fontFamily: 'ZcoolCangEr',
                         ),
@@ -176,7 +175,6 @@ class _ZongmenPageState extends State<ZongmenPage> {
           "$value",
           style: const TextStyle(
             fontSize: 18,
-            fontWeight: FontWeight.bold,
             color: Colors.white,
             fontFamily: 'ZcoolCangEr',
           ),

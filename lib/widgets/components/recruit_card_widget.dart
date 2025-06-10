@@ -169,7 +169,6 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
                       '${d.aptitude}',
                       style: const TextStyle(
                         fontSize: 12,
-                        fontWeight: FontWeight.bold,
                         color: Colors.black, // 黑色字体更清晰
                       ),
                     ),
@@ -192,7 +191,6 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 10,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),

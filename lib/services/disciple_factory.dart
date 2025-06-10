@@ -54,14 +54,14 @@ Future<int> generateHumanAptitude() async {
 
 /// 🖼️ 炮灰通用贴图
 String getImageForAptitude(int apt) {
-  if (apt <= 10) return 'assets/images/lianqi.png';
-  if (apt <= 20) return 'assets/images/zhuji.png';
-  if (apt <= 30) return 'assets/images/jindan.png';
-  if (apt <= 40) return 'assets/images/yuanying.png';
-  if (apt <= 50) return 'assets/images/huashen.png';
-  if (apt <= 60) return 'assets/images/lianxu.png';
-  if (apt <= 70) return 'assets/images/heti.png';
-  return 'assets/images/dacheng.png';
+  if (apt <= 4) return 'assets/images/lianqi.png';
+  if (apt <= 8) return 'assets/images/zhuji.png';
+  if (apt <= 12) return 'assets/images/jindan.png';
+  if (apt <= 16) return 'assets/images/yuanying.png';
+  if (apt <= 20) return 'assets/images/huashen.png';
+  if (apt <= 24) return 'assets/images/lianxu.png';
+  if (apt <= 27) return 'assets/images/heti.png';
+  return 'assets/images/dacheng.png'; // 28~30 默认封顶贴图
 }
 
 /// 🧙‍♀️ 弟子工厂（整合所有招募逻辑）
@@ -72,7 +72,7 @@ class DiscipleFactory {
     final isFemale = _rng.nextBool();
     final gender = isFemale ? 'female' : 'male';
     final name = NameGenerator.generate(isMale: !isFemale);
-    final age = 12 + _rng.nextInt(7);
+    final age = 0;
 
     if (aptitude >= 31 && aptitude <= 90) {
       final prefs = await SharedPreferences.getInstance();
@@ -106,15 +106,16 @@ class DiscipleFactory {
     }
 
     // 🧟 没抽到专属卡，生成随机炮灰
+    // 🧟 没抽到专属卡，生成随机炮灰
     return Disciple(
       id: uuid.v4(),
       name: name,
-      gender: gender,
+      gender: aptitude < 31 ? 'male' : gender, // 🧠 炮灰强制男，其他保持原性别
       age: age,
       aptitude: aptitude,
-      hp: 100,
-      atk: 20,
-      def: 10,
+      hp: 10,
+      atk: 2,
+      def: 1,
       realm: '凡人',
       imagePath: getImageForAptitude(aptitude),
     );

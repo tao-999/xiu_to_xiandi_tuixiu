@@ -66,7 +66,6 @@ class HuanyuePlayerComponent extends SpriteComponent
       textRenderer: TextPaint(
         style: const TextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.bold,
           color: Colors.cyanAccent,
         ),
       ),
@@ -241,7 +240,6 @@ class HuanyuePlayerComponent extends SpriteComponent
         style: const TextStyle(
           color: Colors.amber,
           fontSize: 14,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -270,7 +268,6 @@ class HuanyuePlayerComponent extends SpriteComponent
         style: const TextStyle(
           color: Colors.white,
           fontSize: 14,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );

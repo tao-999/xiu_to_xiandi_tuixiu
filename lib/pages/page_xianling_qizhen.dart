@@ -50,7 +50,7 @@ class _XianlingQizhenPageState extends State<XianlingQizhenPage> {
             children: [
               const Text(
                 '选择你的棋子颜色',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18),
               ),
               const SizedBox(height: 8),
               const Text(

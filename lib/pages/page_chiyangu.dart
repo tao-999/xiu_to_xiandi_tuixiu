@@ -83,7 +83,6 @@ class _ChiyanguPageState extends State<ChiyanguPage> {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
                       shadows: [
                         Shadow(
                           blurRadius: 4,

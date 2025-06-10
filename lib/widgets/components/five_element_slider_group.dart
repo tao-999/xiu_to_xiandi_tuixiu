@@ -51,7 +51,6 @@ class WuxingAllocationPanel extends StatelessWidget {
                 text: '${maxTotal - currentTotal}',
                 style: TextStyle(
                   color: Colors.black54,
-                  fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
               ),

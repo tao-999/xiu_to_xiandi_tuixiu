@@ -70,7 +70,7 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('✨ 资质：$totalAptitude',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 4),
           Text('剩余资质券：$remaining',
               style: const TextStyle(color: Colors.orange, fontSize: 14)),

@@ -62,7 +62,6 @@ class FloorInfoOverlay extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.amberAccent,
                     fontSize: 14,
-                    fontWeight: FontWeight.bold,
                     shadows: [
                       Shadow(
                         color: Colors.black87,

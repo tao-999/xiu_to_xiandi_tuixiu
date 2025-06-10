@@ -88,4 +88,18 @@ class DiscipleStorage {
 
     // 如果 hitSSR 为 true，则不处理（你应该用 setDrawsUntilSSR 外部控制）
   }
+
+  static const _sortOptionKey = 'disciple_sort_option';
+
+  // ✅ 保存排序选项
+  static Future<void> saveSortOption(String option) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_sortOptionKey, option);
+  }
+
+  // ✅ 读取排序选项，默认返回 'time_desc'
+  static Future<String> loadSortOption() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_sortOptionKey) ?? 'time_desc';
+  }
 }

@@ -146,7 +146,6 @@ class _HuanyueChestComponent extends SpriteComponent with CollisionCallbacks {
           style: const TextStyle(
             color: Colors.amber,
             fontSize: 14,
-            fontWeight: FontWeight.bold,
           ),
         ),
       );

@@ -125,7 +125,7 @@ class _BeibaoPageState extends State<BeibaoPage> {
                     children: [
                       Text(
                         item.name,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -193,7 +193,7 @@ class _BeibaoPageState extends State<BeibaoPage> {
                               style: const TextStyle(
                                   fontSize: 10,
                                   color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
+                                  )),
                         ),
                       ],
                     ),

@@ -12,17 +12,14 @@ class MapButtonComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFF9F5E3),
-        foregroundColor: Colors.black,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      ),
+    return GestureDetector(
+      onTap: onPressed,
       child: Text(
         text,
         style: const TextStyle(
-          fontSize: 13, // 👈 你想要多大就改这个值
+          fontSize: 14,
+          color: Colors.white,
+          fontFamily: 'ZcoolCangEr',
         ),
       ),
     );

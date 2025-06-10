@@ -39,7 +39,6 @@ class _CreateZongmenCardState extends State<CreateZongmenCard> {
               '创建你的宗门',
               style: TextStyle(
                 fontSize: 20,
-                fontWeight: FontWeight.bold,
                 fontFamily: 'ZcoolCangEr',
               ),
             ),

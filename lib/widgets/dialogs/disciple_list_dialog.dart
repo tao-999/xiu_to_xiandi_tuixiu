@@ -10,7 +10,6 @@ class DiscipleListDialog extends StatefulWidget {
 
   const DiscipleListDialog({super.key, required this.disciples});
 
-  /// ✅ 封装好的弟子列表按钮（点了会自动拉取数据 + 弹窗）
   static Widget showButton(BuildContext context) {
     return Positioned(
       right: 20,
@@ -29,7 +28,6 @@ class DiscipleListDialog extends StatefulWidget {
           style: TextStyle(
             color: Colors.amber,
             fontSize: 16,
-            fontWeight: FontWeight.bold,
             fontFamily: 'ZcoolCangEr',
             shadows: [
               Shadow(color: Colors.black87, offset: Offset(0.5, 0.5), blurRadius: 2),
@@ -46,6 +44,17 @@ class DiscipleListDialog extends StatefulWidget {
 
 class _DiscipleListDialogState extends State<DiscipleListDialog> {
   String _sortOption = 'time_desc';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSortOption();
+  }
+
+  Future<void> _loadSortOption() async {
+    final saved = await DiscipleStorage.loadSortOption();
+    if (mounted) setState(() => _sortOption = saved);
+  }
 
   List<Disciple> get sortedDisciples {
     final list = [...widget.disciples];
@@ -77,13 +86,12 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 📋 标题 + 筛选
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   '📜 已招募修士',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18),
                 ),
                 DropdownButton<String>(
                   value: _sortOption,
@@ -93,8 +101,11 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                     DropdownMenuItem(value: 'apt_desc', child: Text('资质：高 → 低')),
                     DropdownMenuItem(value: 'apt_asc', child: Text('资质：低 → 高')),
                   ],
-                  onChanged: (value) {
-                    if (value != null) setState(() => _sortOption = value);
+                  onChanged: (value) async {
+                    if (value != null) {
+                      await DiscipleStorage.saveSortOption(value);
+                      setState(() => _sortOption = value);
+                    }
                   },
                   style: const TextStyle(fontSize: 14, color: Colors.black),
                   underline: const SizedBox(),
@@ -103,7 +114,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
             ),
             const Divider(),
 
-            // 📄 弟子列表
             SizedBox(
               height: 400,
               child: sortedDisciples.isEmpty
@@ -151,7 +161,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                           trailing: InkWell(
                             onTap: () async {
                               final zongmen = await ZongmenStorage.loadZongmen();
-
                               if (zongmen == null) {
                                 ToastTip.show(context, '你还没有宗门，不能收弟子啊！');
                                 return;
@@ -159,7 +168,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
 
                               final current = zongmen.disciples.length;
                               final max = 5 * (1 << (zongmen.level - 1));
-
                               if (current >= max) {
                                 ToastTip.show(context, '宗门弟子已满，无法再收人！');
                                 return;
@@ -167,7 +175,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
 
                               final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
                               final updated = d.copyWith(joinedAt: now);
-
                               await ZongmenStorage.addDisciple(updated);
                               await DiscipleStorage.removeById(d.id);
 
