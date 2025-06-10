@@ -11,7 +11,6 @@ class ZongmenDiscipleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = disciple;
-
     return InkWell(
       onTap: () {
         Navigator.push(

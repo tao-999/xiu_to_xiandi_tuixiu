@@ -59,7 +59,7 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
     final scale = (0.6 + ((_offsetY - collapsedOffset) / maxRange) * 0.6).clamp(0.6, 1.0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1D1A17),
+      backgroundColor: const Color(0xFF000000),
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
@@ -70,27 +70,44 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
         },
         child: Stack(
           children: [
-            // 背景立绘 + 缩放
+            // 背景立绘 + 缩放 + 避开刘海
             Positioned(
               top: 0,
               left: 0,
               right: 0,
               height: screenHeight,
-              child: Transform.scale(
-                scale: scale,
-                alignment: Alignment.topCenter,
-                child: Container(
-                  decoration: BoxDecoration(
-                    image: disciple.imagePath.isNotEmpty
-                        ? DecorationImage(
-                      image: AssetImage(disciple.imagePath),
-                      fit: BoxFit.contain,
+              child: Stack(
+                children: [
+                  // 🛏️ 全屏背景图（不需要 SafeArea）
+                  Positioned.fill(
+                    child: Image.asset(
+                      'assets/images/bg_dizi_detail.webp',
+                      fit: BoxFit.cover,
                       alignment: Alignment.topCenter,
-                    )
-                        : null,
-                    color: Colors.black26,
+                    ),
                   ),
-                ),
+
+                  // 🧍 立绘（需要避开刘海，用 SafeArea）
+                  SafeArea(
+                    top: true,
+                    bottom: false,
+                    child: Transform.scale(
+                      scale: scale,
+                      alignment: Alignment.topCenter,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          image: disciple.imagePath.isNotEmpty
+                              ? DecorationImage(
+                            image: AssetImage(disciple.imagePath),
+                            fit: BoxFit.contain,
+                            alignment: Alignment.topCenter,
+                          )
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 

@@ -7,6 +7,8 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/xianling_chess_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 
+import '../widgets/dialogs/chess_poem_dialog.dart';
+
 class XianlingQizhenPage extends StatefulWidget {
   const XianlingQizhenPage({super.key});
 
@@ -163,7 +165,7 @@ class _XianlingQizhenPageState extends State<XianlingQizhenPage> {
       '大乘期': '棋尊',
       '渡劫期': '棋圣',
     };
-    return map[realm] ?? '？？？';
+    return map[realm] ?? '棋帝';
   }
 
   int _getAILevelByRealm(String realm) {
@@ -258,6 +260,7 @@ class _XianlingQizhenPageState extends State<XianlingQizhenPage> {
                 },
               ),
             ),
+            const ChessPoemDialog(),
             const BackButtonOverlay(),
           ],
         );

@@ -1,8 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/player_storage.dart';
 import 'page_character.dart';
 import 'page_youli.dart';
 import 'page_zongmen.dart';
@@ -47,13 +47,10 @@ class _XiudiRootState extends State<XiudiRoot> {
   }
 
   Future<void> _loadPlayerData() async {
+    final loadedPlayer = await PlayerStorage.getPlayer();
+    if (loadedPlayer == null) return;
+
     final prefs = await SharedPreferences.getInstance();
-    final playerStr = prefs.getString('playerData');
-    if (playerStr == null) return;
-
-    final data = jsonDecode(playerStr);
-    final loadedPlayer = Character.fromJson(data);
-
     final savedStage = prefs.getInt('currentMapStage') ?? 1;
     final newGender = loadedPlayer.gender;
 
@@ -122,28 +119,17 @@ class _XiudiRootState extends State<XiudiRoot> {
           MapSwitcherOverlay(
             currentStage: currentStage,
             onStageChanged: (newStage) async {
-              final prefs = await SharedPreferences.getInstance();
-              final jsonStr = prefs.getString('playerData');
-              if (jsonStr == null) return;
+              final latestPlayer = await PlayerStorage.getPlayer();
+              if (latestPlayer == null) return;
 
-              final latestPlayer = Character.fromJson(jsonDecode(jsonStr));
               final levelInfo = calculateCultivationLevel(latestPlayer.cultivation);
               final totalLayer = levelInfo.totalLayer;
-
               final requiredMinLayer = (newStage - 1) * CultivationConfig.levelsPerRealm + 1;
 
-              // ✅ 打印调试信息
-              print('🧮 当前修为: ${latestPlayer.cultivation}');
-              print('🪜 当前层数: $totalLayer（${levelInfo.realm} 第${levelInfo.rank}重）');
-              print('🗺️ 目标地图: 第 $newStage 阶（需要层数 ≥ $requiredMinLayer）');
-
               if (totalLayer < requiredMinLayer) {
-                print('❌ 地图未解锁，切换失败');
-                return;
+                return; // 🚫 地图未解锁，退出
               }
 
-              // ✅ 地图切换成功
-              print('✅ 地图解锁通过，切换到第 $newStage 阶');
               setState(() {
                 player = latestPlayer;
                 currentStage = newStage;

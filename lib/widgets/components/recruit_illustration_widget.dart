@@ -1,7 +1,7 @@
-// 📄 lib/widgets/components/recruit_illustration_widget.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 
-class RecruitIllustrationWidget extends StatelessWidget {
+class RecruitIllustrationWidget extends StatefulWidget {
   final String pool;
 
   const RecruitIllustrationWidget({
@@ -10,10 +10,45 @@ class RecruitIllustrationWidget extends StatelessWidget {
   });
 
   @override
+  State<RecruitIllustrationWidget> createState() => _RecruitIllustrationWidgetState();
+}
+
+class _RecruitIllustrationWidgetState extends State<RecruitIllustrationWidget>
+    with SingleTickerProviderStateMixin {
+  late Timer _timer;
+  int _currentIndex = 0;
+  final Duration _interval = const Duration(seconds: 15);
+  final Duration _fadeDuration = const Duration(seconds: 1);
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.pool == 'human') {
+      _timer = Timer.periodic(_interval, (timer) {
+        setState(() {
+          _currentIndex = (_currentIndex + 1) % 2;
+        });
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final imagePath = pool == 'human'
-        ? 'assets/images/human_recruitment_background.png'
-        : 'assets/images/immortal_recruitment_background.png';
+    final imagePaths = widget.pool == 'human'
+        ? [
+      'assets/images/human_recruitment_background.png',
+      'assets/images/human_recruitment_background2.png',
+    ]
+        : [
+      'assets/images/immortal_recruitment_background.png',
+    ];
 
     return Transform.translate(
       offset: const Offset(0, -60),
@@ -43,10 +78,18 @@ class RecruitIllustrationWidget extends StatelessWidget {
                   ),
                 ),
               ),
-              Image.asset(
-                imagePath,
-                fit: BoxFit.contain,
-              ),
+              // 淡入淡出图层
+              ...List.generate(imagePaths.length, (index) {
+                return AnimatedOpacity(
+                  duration: _fadeDuration,
+                  opacity: _currentIndex == index ? 1.0 : 0.0,
+                  curve: Curves.easeInOut,
+                  child: Image.asset(
+                    imagePaths[index],
+                    fit: BoxFit.contain,
+                  ),
+                );
+              }),
             ],
           ),
         ),

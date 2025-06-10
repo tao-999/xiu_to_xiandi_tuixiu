@@ -66,8 +66,8 @@ class ZongmenStorage {
 
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    // ⚡ 游戏时间加速：100 倍
-    const timeRate = 100;
+    // ⚡ 游戏时间加速：10000 倍
+    const timeRate = 10000;
     final gameTimePassed = (now - d.joinedAt!) * timeRate;
 
     // 🧮 秒 → 年，取整

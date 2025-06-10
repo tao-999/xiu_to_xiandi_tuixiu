@@ -26,6 +26,7 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
     final list = await ZongmenStorage.loadDisciples();
     final zongmen = await ZongmenStorage.loadZongmen();
     final max = zongmen == null ? 0 : 5 * (1 << (zongmen.level - 1));
+
     setState(() {
       disciples = list;
       maxDiscipleCount = max;
