@@ -76,8 +76,11 @@ class RecruitProbabilityDialog {
                 const Divider(color: Colors.black38),
                 const SizedBox(height: 12),
                 const Text(
-                  '''📜 弹窗中已展示所有资质段位概率。
-每位立绘弟子只能抽中一次；系统设有保底机制，最多80抽必得一张立绘弟子卡牌。''',
+                  '''📜 卡牌按资质段位分批解锁。
+每个卡牌只能抽中一次，不可重复获取。
+当前段位集齐后，下一段位自动开放。
+资质1~30为普通弟子。
+⚠️ 系统设有保底机制，最多80抽必得一张立绘弟子卡牌。''',
                   textAlign: TextAlign.left,
                   style: TextStyle(
                     color: Colors.black87,

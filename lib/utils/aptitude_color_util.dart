@@ -9,16 +9,15 @@ class AptitudeColorUtil {
       10: BoxDecoration(color: Colors.grey.shade300), // 凡人灰
       20: BoxDecoration(color: Colors.grey.shade300), // 凡人灰
       30: BoxDecoration(color: Colors.grey.shade300), // 凡人灰
-      40: BoxDecoration(color: Colors.grey.shade300), // 凡人灰
-      50: BoxDecoration(color: Colors.green.shade100), // 灵根初显
-      60: BoxDecoration(color: Colors.blue.shade100), // 蓝瘦香菇
-      70: BoxDecoration(color: Colors.purple.shade100), // 紫气东来
-      80: BoxDecoration(color: Colors.amber.shade100), // 金色传说
-      90: BoxDecoration(color: Colors.red.shade200),   // 赤焰红莲
-      100: BoxDecoration(
+      40: BoxDecoration(color: Colors.green.shade100), // 灵根初显
+      50: BoxDecoration(color: Colors.blue.shade100), // 蓝瘦香菇
+      60: BoxDecoration(color: Colors.purple.shade100), // 紫气东来
+      70: BoxDecoration(color: Colors.amber.shade100), // 金色传说
+      80: BoxDecoration(color: Colors.red.shade200),   // 赤焰红莲
+      90: BoxDecoration(
         gradient: LinearGradient(colors: [Colors.pink.shade100, Colors.white]),
       ), // 神圣之体
-      110: BoxDecoration(
+      100: BoxDecoration(
         gradient: LinearGradient(colors: [Colors.cyan.shade100, Colors.white, Colors.indigo.shade100]),
       ), // 混元道胎
       999999: BoxDecoration(

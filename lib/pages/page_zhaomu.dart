@@ -65,7 +65,6 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
           Align(
             alignment: Alignment.center,
             child: RecruitActionPanel(
-              currentPool: currentPool,
               onRecruitFinished: _loadTicketCount,
               // 如果 RecruitActionPanel 里需要 ticketCount，可以把 ticketCount.toString() 传过去
               // ticketCount: ticketCount.toString(),
@@ -73,7 +72,7 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
           ),
 
           // 🧍‍♀️立绘图
-          RecruitIllustrationWidget(pool: currentPool),
+          RecruitIllustrationWidget(),
 
           // 🔙 返回按钮
           const BackButtonOverlay(),

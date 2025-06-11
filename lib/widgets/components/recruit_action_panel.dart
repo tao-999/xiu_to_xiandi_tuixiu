@@ -1,3 +1,4 @@
+// lib/widgets/components/recruit_action_panel.dart
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
@@ -9,12 +10,10 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/disciple_preview_dialog.dart';
 
 class RecruitActionPanel extends StatefulWidget {
-  final String currentPool;
   final VoidCallback? onRecruitFinished;
 
   const RecruitActionPanel({
     super.key,
-    required this.currentPool,
     this.onRecruitFinished,
   });
 
@@ -52,30 +51,28 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
     final player = await PlayerStorage.getPlayer();
     if (player == null) return;
 
-    // 🔘 扣除招募券
-    if (widget.currentPool == 'human') {
-      if (player.resources.humanRecruitTicket < count) {
-        ToastTip.show(context, '招募券不足，无法招募');
-        return;
-      }
-      player.resources.humanRecruitTicket -= count;
-      await PlayerStorage.savePlayer(player);
+    // 扣除招募券
+    if (player.resources.humanRecruitTicket < count) {
+      ToastTip.show(context, '招募券不足，无法招募');
+      return;
     }
+    player.resources.humanRecruitTicket -= count;
+    await PlayerStorage.savePlayer(player);
 
-    // 📊 更新总抽卡次数
+    // 更新总抽卡次数
     await DiscipleStorage.incrementTotalDraws(count);
 
-    // 🎴 开始抽卡
+    // 开始抽卡
     final List<Disciple> newList = [];
     for (int i = 0; i < count; i++) {
-      final d = await DiscipleFactory.generateRandom(pool: widget.currentPool);
+      final d = await DiscipleFactory.generateRandom();
       await DiscipleRegistry.markOwned(d.aptitude);
       newList.add(d);
     }
 
     await DiscipleStorage.addAll(newList);
 
-    // 🔍 倒序查找最后一张 SSR 出现的位置
+    // 保底处理
     int? lastSSRIndex;
     for (int i = count - 1; i >= 0; i--) {
       final d = newList[i];
@@ -84,10 +81,8 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
         break;
       }
     }
-
-    // ✅ 保底处理
     if (lastSSRIndex != null) {
-      final afterSSR = count - lastSSRIndex - 1; // 出现后还有几抽
+      final afterSSR = count - lastSSRIndex - 1;
       final resetValue = 80 - afterSSR;
       await DiscipleStorage.setDrawsUntilSSR(resetValue);
       drawsUntilSSR = resetValue;
@@ -96,21 +91,15 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
       drawsUntilSSR -= count;
     }
 
-    // 📦 本地状态更新
     totalDraws += count;
     ticketCount = player.resources.humanRecruitTicket;
+    if (mounted) setState(() {});
 
-    if (mounted) {
-      setState(() {}); // 刷新显示
-    }
-
-    // 🎊 弹出抽卡展示面板
+    // 弹出抽卡展示
     showDialog(
       context: context,
       builder: (_) => RecruitCardWidget(disciples: newList),
     );
-
-    // 🔔 外部回调
     widget.onRecruitFinished?.call();
   }
 
@@ -120,50 +109,45 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
       padding: const EdgeInsets.fromLTRB(24, 100, 24, 140),
       child: Column(
         children: [
-          // 🔘 招募按钮
+          // 招募按钮
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ElevatedButton.icon(
                 onPressed: () => _doRecruit(1),
                 icon: const Icon(Icons.star),
-                label: const Text("招募一次"),
+                label: const Text('招募一次'),
               ),
               const SizedBox(width: 16),
               ElevatedButton.icon(
                 onPressed: () => _doRecruit(10),
                 icon: const Icon(Icons.auto_awesome),
-                label: const Text("招募十次"),
+                label: const Text('招募十次'),
               ),
             ],
           ),
-
           const SizedBox(height: 8),
-
-          // 🔘 招募券显示 + 预览按钮
-          if (widget.currentPool == 'human')
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '人界招募券：$ticketCount',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                    fontFamily: 'ZcoolCangEr',
-                  ),
+          // 招募券和预览
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '招募券：$ticketCount',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                  fontFamily: 'ZcoolCangEr',
                 ),
-                IconButton(
-                  icon: const Icon(Icons.visibility, color: Colors.white70, size: 20),
-                  onPressed: () => showDisciplePreviewDialog(context),
-                  tooltip: '预览资质角色',
-                ),
-              ],
-            ),
-
+              ),
+              IconButton(
+                icon: const Icon(Icons.visibility, color: Colors.white70, size: 20),
+                onPressed: () => showDisciplePreviewDialog(context),
+                tooltip: '预览资质角色',
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
-
-          // 🔘 抽卡次数与保底剩余
+          // 抽卡次数与保底剩余
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -177,7 +161,7 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
               ),
               const SizedBox(width: 16),
               Text(
-                '$drawsUntilSSR抽必出美少女立绘',
+                '$drawsUntilSSR 抽必出美少女立绘',
                 style: const TextStyle(
                   fontSize: 14,
                   color: Colors.white70,
