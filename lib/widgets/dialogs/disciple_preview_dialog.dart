@@ -82,6 +82,7 @@ Future<void> showDisciplePreviewDialog(BuildContext context) async {
               _buildSection('合体天赋', ownedAptitudes, 61, 70),
               _buildSection('大乘天赋', ownedAptitudes, 71, 80),
               _buildSection('渡劫天赋', ownedAptitudes, 81, 90),
+              _buildSection('飞升天赋', ownedAptitudes, 91, 100),
             ],
           ),
         ),

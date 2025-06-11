@@ -59,6 +59,16 @@ final List<Map<String, dynamic>> initialDiscipleRawPool = [
   {'name': '月凝', 'aptitude': 88},
   {'name': '依雪', 'aptitude': 89},
   {'name': '蓝澜', 'aptitude': 90},
+  {'name': '璇玑', 'aptitude': 91},
+  {'name': '落凝', 'aptitude': 92},
+  {'name': '妍雪', 'aptitude': 93},
+  {'name': '星澜', 'aptitude': 94},
+  {'name': '若音', 'aptitude': 95},
+  {'name': '幽璃', 'aptitude': 96},
+  {'name': '玄音', 'aptitude': 97},
+  {'name': '兰芷', 'aptitude': 98},
+  {'name': '冰岚', 'aptitude': 99},
+  {'name': '瑾瑜', 'aptitude': 100},
 ].map((entry) {
   final int aptitude = entry['aptitude'] as int;
   return {

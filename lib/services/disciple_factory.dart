@@ -18,19 +18,24 @@ Future<int> generateHumanAptitude() async {
   int maxRange = prefs.getInt(_currentRangeKey) ?? 40;
   final used = prefs.getStringList(_usedUniqueAptitudesKey)?.map(int.parse).toSet() ?? {};
 
-  // 检查当前区间是否已抽完
+  // ✅ 计算当前所有未使用角色的最大资质
+  final maxAvailableAptitude = initialDiscipleRawPool
+      .map((e) => e['aptitude'] as int)
+      .reduce(max);
+
+  // ✅ 若当前区间抽完，并且还有更高区间，就解锁下一段
   final remaining = initialDiscipleRawPool
       .where((d) => !used.contains(d['aptitude']) && d['aptitude'] <= maxRange)
       .toList();
 
-  if (remaining.isEmpty && maxRange < 90) {
+  if (remaining.isEmpty && maxRange < maxAvailableAptitude) {
     maxRange += 10;
     count = 0;
     await prefs.setInt(_currentRangeKey, maxRange);
     await prefs.setInt(_drawsKey, 0);
   }
 
-  // 更新可抽卡池
+  // ✅ 再次获取当前卡池
   final currentPool = initialDiscipleRawPool
       .where((d) => !used.contains(d['aptitude']) && d['aptitude'] <= maxRange)
       .toList();
@@ -66,7 +71,7 @@ String getImageForAptitude(int apt) {
 
 /// 🧙‍♀️ 弟子工厂（整合所有招募逻辑）
 class DiscipleFactory {
-  static Future<Disciple> generateRandom({String pool = 'human'}) async {
+  static Future<Disciple> generateRandom() async {
     final uuid = const Uuid();
     final aptitude = await generateHumanAptitude();
     final isFemale = _rng.nextBool();
@@ -106,11 +111,10 @@ class DiscipleFactory {
     }
 
     // 🧟 没抽到专属卡，生成随机炮灰
-    // 🧟 没抽到专属卡，生成随机炮灰
     return Disciple(
       id: uuid.v4(),
       name: name,
-      gender: aptitude < 31 ? 'male' : gender, // 🧠 炮灰强制男，其他保持原性别
+      gender: aptitude < 31 ? 'male' : gender,
       age: age,
       aptitude: aptitude,
       hp: 10,
