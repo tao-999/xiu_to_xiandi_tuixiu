@@ -18,12 +18,12 @@ Future<int> generateHumanAptitude() async {
   int maxRange = prefs.getInt(_currentRangeKey) ?? 40;
   final used = prefs.getStringList(_usedUniqueAptitudesKey)?.map(int.parse).toSet() ?? {};
 
-  // ✅ 计算当前所有未使用角色的最大资质
+  // ✅ 当前池中最大资质（如100）
   final maxAvailableAptitude = initialDiscipleRawPool
       .map((e) => e['aptitude'] as int)
       .reduce(max);
 
-  // ✅ 若当前区间抽完，并且还有更高区间，就解锁下一段
+  // ✅ 当前区间是否抽完，如果是，往上扩展
   final remaining = initialDiscipleRawPool
       .where((d) => !used.contains(d['aptitude']) && d['aptitude'] <= maxRange)
       .toList();
@@ -35,12 +35,14 @@ Future<int> generateHumanAptitude() async {
     await prefs.setInt(_drawsKey, 0);
   }
 
-  // ✅ 再次获取当前卡池
+  // ✅ 重新获取卡池（含扩展后）
   final currentPool = initialDiscipleRawPool
       .where((d) => !used.contains(d['aptitude']) && d['aptitude'] <= maxRange)
       .toList();
 
-  if (currentPool.isNotEmpty) {
+  final isPoolEmpty = currentPool.isEmpty;
+
+  if (!isPoolEmpty) {
     count++;
     final roll = _rng.nextInt(80);
 
@@ -53,7 +55,7 @@ Future<int> generateHumanAptitude() async {
     }
   }
 
-  // 🧟 没抽到角色卡，返回 1~30 炮灰
+  // 🧟 SSR 全部抽光 or 没抽中 → 进入炮灰池
   return 1 + _rng.nextInt(30);
 }
 
@@ -79,7 +81,7 @@ class DiscipleFactory {
     final name = NameGenerator.generate(isMale: !isFemale);
     final age = 0;
 
-    if (aptitude >= 31 && aptitude <= 90) {
+    if (aptitude >= 31) {
       final prefs = await SharedPreferences.getInstance();
       final used = prefs.getStringList(_usedUniqueAptitudesKey)?.map(int.parse).toSet() ?? {};
 
@@ -132,4 +134,13 @@ Future<void> resetInitialDiscipleDraws() async {
   await prefs.remove(_drawsKey);
   await prefs.remove(_currentRangeKey);
   await prefs.remove(_usedUniqueAptitudesKey);
+}
+
+/// 🔍 判断 SSR 是否已全部抽完（可用于隐藏保底提示）
+Future<bool> isSsrPoolEmpty() async {
+  final prefs = await SharedPreferences.getInstance();
+  final used = prefs.getStringList(_usedUniqueAptitudesKey)?.map(int.parse).toSet() ?? {};
+  final all = initialDiscipleRawPool.map((e) => e['aptitude'] as int).toSet();
+
+  return used.containsAll(all);
 }

@@ -25,6 +25,7 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
   int ticketCount = 0;
   int totalDraws = 0;
   int drawsUntilSSR = 80;
+  bool poolEmpty  = false; // ✅ 新增：是否已抽光美少女
 
   @override
   void initState() {
@@ -38,11 +39,15 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
     final draws = await DiscipleStorage.getTotalDraws();
     final untilSSR = await DiscipleStorage.getDrawsUntilSSR();
 
+    // ✅ 调用你封装好的函数
+    final empty = await isSsrPoolEmpty();
+
     if (mounted) {
       setState(() {
         ticketCount = count;
         totalDraws = draws;
         drawsUntilSSR = untilSSR;
+        poolEmpty  = empty;
       });
     }
   }
@@ -51,18 +56,15 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
     final player = await PlayerStorage.getPlayer();
     if (player == null) return;
 
-    // 扣除招募券
     if (player.resources.humanRecruitTicket < count) {
       ToastTip.show(context, '招募券不足，无法招募');
       return;
     }
+
     player.resources.humanRecruitTicket -= count;
     await PlayerStorage.savePlayer(player);
-
-    // 更新总抽卡次数
     await DiscipleStorage.incrementTotalDraws(count);
 
-    // 开始抽卡
     final List<Disciple> newList = [];
     for (int i = 0; i < count; i++) {
       final d = await DiscipleFactory.generateRandom();
@@ -72,15 +74,15 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
 
     await DiscipleStorage.addAll(newList);
 
-    // 保底处理
     int? lastSSRIndex;
     for (int i = count - 1; i >= 0; i--) {
       final d = newList[i];
-      if (d.aptitude >= 31 && d.aptitude <= 90) {
+      if (d.aptitude >= 31) {
         lastSSRIndex = i;
         break;
       }
     }
+
     if (lastSSRIndex != null) {
       final afterSSR = count - lastSSRIndex - 1;
       final resetValue = 80 - afterSSR;
@@ -93,9 +95,9 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
 
     totalDraws += count;
     ticketCount = player.resources.humanRecruitTicket;
+    poolEmpty  = await isSsrPoolEmpty(); // ✅ 刷新状态
     if (mounted) setState(() {});
 
-    // 弹出抽卡展示
     showDialog(
       context: context,
       builder: (_) => RecruitCardWidget(disciples: newList),
@@ -109,7 +111,6 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
       padding: const EdgeInsets.fromLTRB(24, 100, 24, 140),
       child: Column(
         children: [
-          // 招募按钮
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -127,7 +128,6 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
             ],
           ),
           const SizedBox(height: 8),
-          // 招募券和预览
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -147,7 +147,6 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
             ],
           ),
           const SizedBox(height: 8),
-          // 抽卡次数与保底剩余
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -160,14 +159,15 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
                 ),
               ),
               const SizedBox(width: 16),
-              Text(
-                '$drawsUntilSSR 抽必出美少女立绘',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
-                  fontFamily: 'ZcoolCangEr',
+              if (!poolEmpty)
+                Text(
+                  '$drawsUntilSSR 抽必出美少女立绘',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                    fontFamily: 'ZcoolCangEr',
+                  ),
                 ),
-              ),
             ],
           ),
         ],
@@ -175,3 +175,4 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
     );
   }
 }
+
