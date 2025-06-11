@@ -113,24 +113,7 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
             width: 60,
             height: 350,
             margin: const EdgeInsets.symmetric(horizontal: 6),
-            decoration: BoxDecoration(
-              color: AptitudeColorUtil.getBackgroundColor(d.aptitude),
-              borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                if (d.aptitude >= 81)
-                  BoxShadow(
-                    color: Colors.amberAccent.withOpacity(0.8), // SSR 发光
-                    blurRadius: 12,
-                    spreadRadius: 4,
-                  ),
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 6,
-                  spreadRadius: 1,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
+            decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -159,17 +142,15 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
                   child: Container(
                     width: 28,
                     height: 28,
-                    decoration: BoxDecoration(
-                      color: AptitudeColorUtil.getBackgroundColor(d.aptitude),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.black87, width: 1.5),
+                    decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       '${d.aptitude}',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.black, // 黑色字体更清晰
+                        color: Colors.black,
                       ),
                     ),
                   ),

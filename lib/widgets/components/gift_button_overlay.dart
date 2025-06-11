@@ -6,11 +6,12 @@ import '../common/toast_tip.dart';
 
 // 🎁 奖励冷却时间
 const Duration giftCooldown = Duration(hours: 24);
+// const Duration giftCooldown = Duration(seconds: 10);
 
 // 🎁 奖励配置（支持 BigInt，但不能 const）
-final BigInt firstTimeSpiritStone = BigInt.from(10000);
-final int firstTimeTicket = 500;
-final int firstTimeFateCharm = 10; // ✅ 新增：首次资质提升券
+final BigInt firstTimeSpiritStone = BigInt.parse('1' + '0' * 48);
+final int firstTimeTicket = 50000;
+final int firstTimeFateCharm = 1000; // ✅ 新增：首次资质提升券
 
 final BigInt dailySpiritStone = BigInt.from(8640);
 
@@ -193,8 +194,8 @@ class _GiftPopup extends StatelessWidget {
                 : '🌅 修炼辛苦，赠你每日修仙资源：'),
             const SizedBox(height: 12),
             Text('💰 下品灵石 ×${isFirstTime ? firstTimeSpiritStone : dailySpiritStone}'),
-            if (isFirstTime) Text('📜 人界招募券 ×$firstTimeTicket'),
-            if (isFirstTime) Text('🧬 资质提升券 ×$firstTimeFateCharm'), // ✅ 加入新奖励
+            Text('📜 人界招募券 ×${isFirstTime ? firstTimeTicket : 1}'),
+            Text('🧬 资质提升券 ×${isFirstTime ? firstTimeFateCharm : 1}'),
             const SizedBox(height: 16),
             const Text('请点击下方领取，方可继续修行！', style: TextStyle(color: Colors.red)),
             const SizedBox(height: 24),

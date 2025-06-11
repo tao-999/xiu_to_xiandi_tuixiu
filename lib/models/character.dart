@@ -1,9 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
-import '../services/global_event_bus.dart';
 
-/// 👤 Character —— 修士角色类
-/// 记录角色基本信息、属性、资质、修为、地图阶段与资源信息等
+/// 👤 Character —— 修士角色类（纯数据，不含任何逻辑）
 class Character {
   final String id;
   String name;
@@ -13,9 +11,16 @@ class Character {
   double cultivationEfficiency;
   int currentMapStage;
 
-  int hp;
-  int atk;
-  int def;
+  // 拆分基础属性 + 附加属性
+  int baseHp;
+  int extraHp;
+
+  int baseAtk;
+  int extraAtk;
+
+  int baseDef;
+  int extraDef;
+
   double atkSpeed;
 
   double critRate;
@@ -31,12 +36,10 @@ class Character {
   double corrosionAura;
 
   Map<String, int> elements;
-
   String technique;
 
   Resources resources;
-
-  final int createdAt; // 新增：创角时间戳（秒）
+  final int createdAt; // 创建时间戳（秒）
 
   Character({
     required this.id,
@@ -44,9 +47,12 @@ class Character {
     required this.gender,
     required this.career,
     required this.cultivation,
-    required this.hp,
-    required this.atk,
-    required this.def,
+    required this.baseHp,
+    required this.extraHp,
+    required this.baseAtk,
+    required this.extraAtk,
+    required this.baseDef,
+    required this.extraDef,
     required this.atkSpeed,
     required this.critRate,
     required this.critDamage,
@@ -66,28 +72,6 @@ class Character {
     this.currentMapStage = 1,
   });
 
-  int get totalElement => elements.values.fold(0, (a, b) => a + b);
-  double get growthMultiplier => 1 + totalElement / 100;
-
-  void applyBreakthroughBonus({required int layer}) {
-    // 每层固定成长
-    const int baseHp = 50;
-    const int baseAtk = 10;
-    const int baseDef = 5;
-
-    final double factor = 1 + totalElement / 200.0;
-
-    final int hpGain = (baseHp * factor).round();
-    final int atkGain = (baseAtk * factor).round();
-    final int defGain = (baseDef * factor).round();
-
-    hp += hpGain;
-    atk += atkGain;
-    def += defGain;
-
-    debugPrint("💥 层数 $layer 突破成功：hp+$hpGain, atk+$atkGain, def+$defGain");
-  }
-
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -96,9 +80,12 @@ class Character {
     'cultivation': cultivation,
     'cultivationEfficiency': cultivationEfficiency,
     'currentMapStage': currentMapStage,
-    'hp': hp,
-    'atk': atk,
-    'def': def,
+    'baseHp': baseHp,
+    'extraHp': extraHp,
+    'baseAtk': baseAtk,
+    'extraAtk': extraAtk,
+    'baseDef': baseDef,
+    'extraDef': extraDef,
     'atkSpeed': atkSpeed,
     'critRate': critRate,
     'critDamage': critDamage,
@@ -124,9 +111,12 @@ class Character {
     cultivation: (json['cultivation'] ?? 0).toDouble(),
     cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
     currentMapStage: json['currentMapStage'] ?? 1,
-    hp: (json['hp'] as num).toInt(),
-    atk: (json['atk'] as num).toInt(),
-    def: (json['def'] as num).toInt(),
+    baseHp: (json['baseHp'] ?? 100) as int,
+    extraHp: (json['extraHp'] ?? 0) as int,
+    baseAtk: (json['baseAtk'] ?? 10) as int,
+    extraAtk: (json['extraAtk'] ?? 0) as int,
+    baseDef: (json['baseDef'] ?? 5) as int,
+    extraDef: (json['extraDef'] ?? 0) as int,
     atkSpeed: (json['atkSpeed'] ?? 1.5).toDouble(),
     critRate: (json['critRate'] ?? 0.0).toDouble(),
     critDamage: (json['critDamage'] ?? 0.0).toDouble(),
@@ -139,11 +129,11 @@ class Character {
     weakAura: (json['weakAura'] ?? 0.0).toDouble(),
     corrosionAura: (json['corrosionAura'] ?? 0.0).toDouble(),
     elements: Map<String, int>.fromEntries(
-      (json['elements'] as Map<String, dynamic>).entries.map(
+      (json['elements'] as Map<String, dynamic>? ?? {}).entries.map(
             (e) => MapEntry(e.key, (e.value as num).toInt()),
       ),
     ),
-    technique: json['technique'],
+    technique: json['technique'] ?? '无名功法',
     resources: Resources.fromMap(json['resources'] ?? {}),
     createdAt: json['createdAt'] ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000),
   );
@@ -156,9 +146,12 @@ class Character {
     cultivation: 0.0,
     cultivationEfficiency: 1.0,
     currentMapStage: 1,
-    hp: 100,
-    atk: 10,
-    def: 5,
+    baseHp: 100,
+    extraHp: 0,
+    baseAtk: 10,
+    extraAtk: 0,
+    baseDef: 5,
+    extraDef: 0,
     atkSpeed: 1.5,
     critRate: 0.0,
     critDamage: 0.0,

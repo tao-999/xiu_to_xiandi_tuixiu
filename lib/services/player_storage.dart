@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-
 import '../utils/cultivation_level.dart';
 import 'cultivation_tracker.dart';
 
@@ -132,7 +131,12 @@ class PlayerStorage {
       supreme: s,
     ).toDouble();
 
-    await CultivationTracker.safeAddExp(addedExp, onUpdate: onUpdate);
+    final beforeLayer = calculateCultivationLevel(player.cultivation).totalLayer;
+
+    await CultivationTracker.safeAddExp(addedExp);
+
+    await applyBreakthroughIfNeeded(player, beforeLayer);
+    onUpdate?.call();
   }
 
   /// 根据各级灵石数量，计算预计可增加的修为（支持 BigInt）
@@ -152,4 +156,67 @@ class PlayerStorage {
         h * BigInt.from(500000000) +
         s * BigInt.from(5000000000000));
   }
+
+  /// 🎯 检查是否突破并更新属性
+  static Future<void> applyBreakthroughIfNeeded(Character player, int beforeLayer) async {
+    final afterLayer = calculateCultivationLevel(player.cultivation).totalLayer;
+    if (afterLayer > beforeLayer) {
+      for (int i = beforeLayer + 1; i <= afterLayer; i++) {
+        applyBreakthroughBonus(player, i);
+      }
+      debugPrint('🎉 玩家突破成功！层数 $beforeLayer → $afterLayer');
+      await savePlayer(player);
+    }
+  }
+
+  /// 💥 每层突破属性增长逻辑
+  static void applyBreakthroughBonus(Character player, int layer) {
+    // 每10层为一阶，翻倍增长
+    final stageIndex = (layer - 1) ~/ 10;
+
+    final baseHp = 50 * (1 << stageIndex);   // 等于 50 × 2^stageIndex
+    final baseAtk = 10 * (1 << stageIndex);
+    final baseDef = 5 * (1 << stageIndex);
+
+    final factor = calculateGrowthMultiplier(player.elements);
+
+    final hpGain = (baseHp * factor).round();
+    final atkGain = (baseAtk * factor).round();
+    final defGain = (baseDef * factor).round();
+
+    player.baseHp += hpGain;
+    player.baseAtk += atkGain;
+    player.baseDef += defGain;
+
+    debugPrint('💥 层 $layer 突破加成: baseHp+$hpGain baseAtk+$atkGain baseDef+$defGain');
+  }
+  /// 🔢 获取当前玩家的五行资质总和
+  static int calculateTotalElement(Map<String, int> elements) {
+    return elements.values.fold(0, (a, b) => a + b);
+  }
+
+  /// 📈 获取属性成长倍率（用于突破加成等）
+  static double calculateGrowthMultiplier(Map<String, int> elements) {
+    final total = calculateTotalElement(elements);
+    return 1 + total / 100;
+  }
+
+  /// 🔰 获取玩家当前总气血
+  static int getHp(Character player) => player.baseHp + player.extraHp;
+
+  /// 🔰 获取玩家当前总攻击
+  static int getAtk(Character player) => player.baseAtk + player.extraAtk;
+
+  /// 🔰 获取玩家当前总防御
+  static int getDef(Character player) => player.baseDef + player.extraDef;
+
+  /// 🔰 获取战力（统一从这里算）
+  static int getPower(Character player) {
+    return calculatePower(
+      hp: getHp(player),
+      atk: getAtk(player),
+      def: getDef(player),
+    );
+  }
+
 }

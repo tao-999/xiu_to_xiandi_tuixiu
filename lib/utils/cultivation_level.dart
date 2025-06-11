@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 
 /// 🌌 修仙设定常量
 class CultivationConfig {

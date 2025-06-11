@@ -124,8 +124,7 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                   final d = sortedDisciples[index];
                   return Container(
                     margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AptitudeColorUtil.getBackgroundColor(d.aptitude),
+                    decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(

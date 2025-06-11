@@ -82,6 +82,12 @@ class CultivatorInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final totalElement = PlayerStorage.calculateTotalElement(profile.elements);
+    final power = PlayerStorage.getPower(profile);
+    final hp = PlayerStorage.getHp(profile);
+    final atk = PlayerStorage.getAtk(profile);
+    final def = PlayerStorage.getDef(profile);
+
     return Column(
       children: [
         // 上层卡片：基础信息
@@ -101,7 +107,7 @@ class CultivatorInfoCard extends StatelessWidget {
                   style: const TextStyle(color: Colors.black, fontSize: 16)),
               const SizedBox(height: 4),
               Text(
-                '战力：${formatLargeNumber(PlayerStorage.calculatePower(hp: profile.hp, atk: profile.atk, def: profile.def))}',
+                '战力：${formatLargeNumber(power)}',
                 style: const TextStyle(color: Colors.black, fontSize: 16),
               ),
               const SizedBox(height: 4),
@@ -115,7 +121,7 @@ class CultivatorInfoCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '资质：${profile.totalElement}（${_getAptitudeLabel(profile.totalElement)}）',
+                '资质：$totalElement（${_getAptitudeLabel(totalElement)}）',
                 style: const TextStyle(color: Colors.black, fontSize: 16),
               ),
             ],
@@ -135,8 +141,8 @@ class CultivatorInfoCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAttributeRow('气血：${formatLargeNumber(profile.hp)}', '攻击：${formatLargeNumber(profile.atk)}'),
-              _buildAttributeRow('防御：${formatLargeNumber(profile.def)}', '攻速：${profile.atkSpeed.toStringAsFixed(2)}秒'),
+              _buildAttributeRow('气血：${formatLargeNumber(hp)}', '攻击：${formatLargeNumber(atk)}'),
+              _buildAttributeRow('防御：${formatLargeNumber(def)}', '攻速：${profile.atkSpeed.toStringAsFixed(2)}秒'),
               _buildAttributeRow('暴击率：${formatPercent(profile.critRate)}', '暴击伤害：${formatPercent(profile.critDamage)}'),
               _buildAttributeRow('闪避率：${formatPercent(profile.dodgeRate)}', '吸血：${formatPercent(profile.lifeSteal)}'),
               _buildAttributeRow('破甲：${formatPercent(profile.breakArmorRate)}', '幸运：${formatPercent(profile.luckRate)}'),

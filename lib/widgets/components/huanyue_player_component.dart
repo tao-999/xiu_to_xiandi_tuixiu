@@ -74,13 +74,9 @@ class HuanyuePlayerComponent extends SpriteComponent
 
     _onPowerUpdate = () async {
       final player = await PlayerStorage.getPlayer();
-      if (player == null || player.hp == 0) return;
+      if (player == null || PlayerStorage.getHp(player) == 0) return;
 
-      final newPower = PlayerStorage.calculatePower(
-        hp: player.hp,
-        atk: player.atk,
-        def: player.def,
-      );
+      final newPower = PlayerStorage.getPower(player);
       playerPower = newPower;
       powerText.text = formatLargeNumber(playerPower);
 

@@ -30,7 +30,8 @@ class CultivationTracker {
     final seconds = ((now - lastLogin) / 1000).floor();
 
     final added = seconds * player.cultivationEfficiency;
-    final maxExp = getMaxExpByAptitude(player.totalElement);
+    final aptitude = PlayerStorage.calculateTotalElement(player.elements);
+    final maxExp = getMaxExpByAptitude(aptitude);
     player.cultivation = (player.cultivation + added).clamp(0, maxExp);
 
     await prefs.setInt(_loginTimeKey, now);
@@ -47,11 +48,11 @@ class CultivationTracker {
 
       final player = Character.fromJson(jsonDecode(jsonStr));
 
-      // ✅ 实时获取当前修为再加
       final gain = player.cultivationEfficiency * 1;
       final newExp = player.cultivation + gain;
 
-      final maxExp = getMaxExpByAptitude(player.totalElement);
+      final aptitude = PlayerStorage.calculateTotalElement(player.elements);
+      final maxExp = getMaxExpByAptitude(aptitude);
       player.cultivation = newExp.clamp(0, maxExp);
 
       final oldExp = (jsonDecode(jsonStr)['cultivation'] ?? 0.0) * 1.0;
@@ -59,13 +60,13 @@ class CultivationTracker {
       final newTotalLayer = calculateCultivationLevel(player.cultivation).totalLayer;
 
       if (newTotalLayer > oldTotalLayer) {
-        // ✅ 必须传入 newTotalLayer 才能正确加属性
-        player.applyBreakthroughBonus(layer: newTotalLayer);
+        for (int layer = oldTotalLayer + 1; layer <= newTotalLayer; layer++) {
+          PlayerStorage.applyBreakthroughBonus(player, layer);
+        }
       }
 
       await prefs.setString('playerData', jsonEncode(player.toJson()));
 
-      // ✅ 通知监听者刷新 UI
       for (final listener in _listeners) {
         listener();
       }
@@ -92,7 +93,8 @@ class CultivationTracker {
     final player = await PlayerStorage.getPlayer();
     if (player == null) return;
 
-    final maxExp = getMaxExpByAptitude(player.totalElement);
+    final aptitude = PlayerStorage.calculateTotalElement(player.elements);
+    final maxExp = getMaxExpByAptitude(aptitude);
     final oldStage = calculateCultivationLevel(player.cultivation);
 
     if (player.cultivation >= maxExp) {
@@ -105,17 +107,18 @@ class CultivationTracker {
 
     bool hasBreakthrough = false;
     if (newStage.totalLayer > oldStage.totalLayer) {
-      // ✅ 传入新层数，确保 applyBreakthroughBonus 逻辑正确
-      player.applyBreakthroughBonus(layer: newStage.totalLayer);
+      for (int layer = oldStage.totalLayer + 1; layer <= newStage.totalLayer; layer++) {
+        PlayerStorage.applyBreakthroughBonus(player, layer);
+      }
       hasBreakthrough = true;
     }
 
     final updateMap = {'cultivation': player.cultivation};
     if (hasBreakthrough) {
       updateMap.addAll({
-        'hp': player.hp.toDouble(),
-        'atk': player.atk.toDouble(),
-        'def': player.def.toDouble(),
+        'baseHp': player.baseHp.toDouble(),
+        'baseAtk': player.baseAtk.toDouble(),
+        'baseDef': player.baseDef.toDouble(),
       });
     }
 
@@ -132,25 +135,24 @@ class CultivationTracker {
   }
 
   static Future<void> safeAddExp(double addedExp, {void Function()? onUpdate}) async {
-    stopTick(); // ✅ 不要 await
+    stopTick();
 
     final player = await PlayerStorage.getPlayer();
     if (player == null) return;
 
-    final maxExp = getMaxExpByAptitude(player.totalElement);
+    final aptitude = PlayerStorage.calculateTotalElement(player.elements);
+    final maxExp = getMaxExpByAptitude(aptitude);
     final oldLayer = calculateCultivationLevel(player.cultivation).totalLayer;
 
     player.cultivation = (player.cultivation + addedExp).clamp(0, maxExp);
     final newLayer = calculateCultivationLevel(player.cultivation).totalLayer;
 
-    // ✅ 每层都加属性，不漏一层
     for (int layer = oldLayer + 1; layer <= newLayer; layer++) {
-      player.applyBreakthroughBonus(layer: layer);
+      PlayerStorage.applyBreakthroughBonus(player, layer);
     }
 
     await PlayerStorage.savePlayer(player);
     startGlobalTick();
     onUpdate?.call();
   }
-
 }

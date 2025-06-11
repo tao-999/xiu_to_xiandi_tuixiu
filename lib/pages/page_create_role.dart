@@ -57,9 +57,12 @@ class _CreateRolePageState extends State<CreateRolePage> {
       gender: gender,
       career: '散修',
       cultivation: 0.0,
-      hp: 100,
-      atk: 20,
-      def: 10,
+      baseHp: 100,
+      extraHp: 0,
+      baseAtk: 20,
+      extraAtk: 0,
+      baseDef: 10,
+      extraDef: 0,
       atkSpeed: 1.0,
       critRate: 0.05,
       critDamage: 0.5,
@@ -83,6 +86,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
       resources: Resources(),
       createdAt: now,
     );
+
 
     await prefs.setString('playerData', jsonEncode(character.toJson()));
 
