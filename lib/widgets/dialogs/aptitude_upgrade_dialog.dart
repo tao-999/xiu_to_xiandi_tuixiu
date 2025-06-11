@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
+
+import '../constants/aptitude_table.dart'; // 引入Toast组件
 
 class AptitudeUpgradeDialog extends StatefulWidget {
   final Character player;
@@ -12,7 +15,6 @@ class AptitudeUpgradeDialog extends StatefulWidget {
     this.onUpdated,
   });
 
-  /// ✅ 封装后的“升资质”按钮（自动弹窗+刷新）
   static Widget buildButton({
     required BuildContext context,
     required Character player,
@@ -50,6 +52,10 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
     'earth': '土',
   };
 
+  int getMaxAptitudeLimit() {
+    return aptitudeTable.last.minAptitude;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +66,7 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
   Widget build(BuildContext context) {
     final remaining = widget.player.resources.fateRecruitCharm - tempUsed;
     final totalAptitude = tempElements.values.fold<int>(0, (sum, v) => sum + v);
+    final maxAptitudeLimit = getMaxAptitudeLimit();
 
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
@@ -69,12 +76,13 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('✨ 资质：$totalAptitude',
+          Text('✨ 资质：$totalAptitude / $maxAptitudeLimit',
               style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 4),
           Text('剩余资质券：$remaining',
               style: const TextStyle(color: Colors.orange, fontSize: 14)),
-          const SizedBox(height: 8),
+          // 红色提示彻底去掉了，toast提示代替
+
           ...tempElements.keys.map((key) {
             final label = elementLabels[key] ?? key;
             final baseValue = widget.player.elements[key] ?? 0;
@@ -106,19 +114,27 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.add_circle, size: 20, color: Colors.green),
-                    onPressed: remaining > 0
-                        ? () {
+                    onPressed: () {
+                      final newTotal = totalAptitude + 1;
+
+                      if (remaining <= 0) return;
+
+                      if (newTotal > maxAptitudeLimit) {
+                        ToastTip.show(context, '⚠️ 已达到资质上限，无法继续提升！');
+                        return;
+                      }
+
                       setState(() {
                         tempElements[key] = currentValue + 1;
                         tempUsed++;
                       });
-                    }
-                        : null,
+                    },
                   ),
                 ],
               ),
             );
           }).toList(),
+
           const SizedBox(height: 8),
           Center(
             child: GestureDetector(
@@ -132,7 +148,7 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
                   'elements': widget.player.elements,
                 });
                 if (context.mounted) Navigator.of(context).pop();
-                widget.onUpdated?.call(); // ✅ 通知外部刷新
+                widget.onUpdated?.call();
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),

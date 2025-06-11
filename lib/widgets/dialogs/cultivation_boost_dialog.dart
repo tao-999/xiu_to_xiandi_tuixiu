@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart'; // 你的原函数
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 
 class CultivationBoostDialog extends StatefulWidget {
@@ -10,8 +10,10 @@ class CultivationBoostDialog extends StatefulWidget {
 
   const CultivationBoostDialog({super.key, this.onUpdated});
 
-  /// ✅ 封装一个按钮，一行调用，自动弹窗+刷新
-  static Widget buildButton({required BuildContext context, VoidCallback? onUpdated}) {
+  static Widget buildButton({
+    required BuildContext context,
+    VoidCallback? onUpdated,
+  }) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.orange,
@@ -33,11 +35,10 @@ class CultivationBoostDialog extends StatefulWidget {
 }
 
 class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
-  // 改为 BigInt 类型，避免后续的转换
-  BigInt low = BigInt.zero;
-  BigInt mid = BigInt.zero;
-  BigInt high = BigInt.zero;
-  BigInt supreme = BigInt.zero;
+  String lowStr = '0';
+  String midStr = '0';
+  String highStr = '0';
+  String supremeStr = '0';
 
   late Character player;
   bool loading = true;
@@ -50,32 +51,30 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
 
   Future<void> _loadPlayer() async {
     player = (await PlayerStorage.getPlayer())!;
-    if (mounted) {
-      setState(() {
-        loading = false;
-      });
-    }
+    if (mounted) setState(() => loading = false);
   }
 
-  // 直接返回 BigInt 类型，避免转换
+  BigInt _parse(String s) => BigInt.tryParse(s) ?? BigInt.zero;
+
   BigInt get estimatedExp => PlayerStorage.calculateAddedExp(
-    low: low,       // 使用 BigInt 类型
-    mid: mid,       // 使用 BigInt 类型
-    high: high,     // 使用 BigInt 类型
-    supreme: supreme, // 使用 BigInt 类型
+    low: _parse(lowStr),
+    mid: _parse(midStr),
+    high: _parse(highStr),
+    supreme: _parse(supremeStr),
   );
 
   @override
   Widget build(BuildContext context) {
     if (loading) {
       return const AlertDialog(
-        content: SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+        content: SizedBox(
+          height: 100,
+          child: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
     final res = player.resources;
-
-    // 直接传递 BigInt 类型，不需要转换为 double
     final estimatedExpFormatted = formatLargeNumber(estimatedExp.toDouble());
 
     return AlertDialog(
@@ -86,23 +85,27 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
         children: [
           StoneInputRow(
             label: '下品灵石',
-            owned: res.spiritStoneLow.toDouble(), // Convert BigInt to double for display
-            onChanged: (v) => setState(() => low = BigInt.from(v)),
+            owned: res.spiritStoneLow.toString(),
+            value: lowStr,
+            onChanged: (v) => setState(() => lowStr = v),
           ),
           StoneInputRow(
             label: '中品灵石',
-            owned: res.spiritStoneMid.toDouble(), // Convert BigInt to double for display
-            onChanged: (v) => setState(() => mid = BigInt.from(v)),
+            owned: res.spiritStoneMid.toString(),
+            value: midStr,
+            onChanged: (v) => setState(() => midStr = v),
           ),
           StoneInputRow(
             label: '上品灵石',
-            owned: res.spiritStoneHigh.toDouble(), // Convert BigInt to double for display
-            onChanged: (v) => setState(() => high = BigInt.from(v)),
+            owned: res.spiritStoneHigh.toString(),
+            value: highStr,
+            onChanged: (v) => setState(() => highStr = v),
           ),
           StoneInputRow(
             label: '极品灵石',
-            owned: res.spiritStoneSupreme.toDouble(), // Convert BigInt to double for display
-            onChanged: (v) => setState(() => supreme = BigInt.from(v)),
+            owned: res.spiritStoneSupreme.toString(),
+            value: supremeStr,
+            onChanged: (v) => setState(() => supremeStr = v),
           ),
           const SizedBox(height: 12),
           Text(
@@ -120,37 +123,36 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           ),
           onPressed: () async {
-            final res = player.resources;
+            final lowBI = _parse(lowStr);
+            final midBI = _parse(midStr);
+            final highBI = _parse(highStr);
+            final supremeBI = _parse(supremeStr);
+            final totalBI = lowBI + midBI + highBI + supremeBI;
 
-            final total = low + mid + high + supreme;
-            if (total == BigInt.zero) {
+            if (totalBI == BigInt.zero) {
               ToastTip.show(context, '灵石少得我都替你脸红');
               return;
             }
-
-            if (low > res.spiritStoneLow ||
-                mid > res.spiritStoneMid ||
-                high > res.spiritStoneHigh ||
-                supreme > res.spiritStoneSupreme) {
+            if (lowBI > player.resources.spiritStoneLow ||
+                midBI > player.resources.spiritStoneMid ||
+                highBI > player.resources.spiritStoneHigh ||
+                supremeBI > player.resources.spiritStoneSupreme) {
               ToastTip.show(context, '灵石不足，无法提升修为');
               return;
             }
 
             await PlayerStorage.addCultivationByStones(
-              low: low,
-              mid: mid,
-              high: high,
-              supreme: supreme,
+              low: lowBI,
+              mid: midBI,
+              high: highBI,
+              supreme: supremeBI,
               onUpdate: () {
                 if (mounted) Navigator.of(context).pop();
                 widget.onUpdated?.call();
               },
             );
           },
-          child: const Text(
-            '提升修为',
-            style: TextStyle(fontSize: 14),
-          ),
+          child: const Text('提升修为', style: TextStyle(fontSize: 14)),
         ),
       ],
     );
@@ -159,12 +161,14 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
 
 class StoneInputRow extends StatefulWidget {
   final String label;
-  final double owned; // Convert to double for display purposes
-  final Function(int) onChanged;
+  final String owned;
+  final String value;
+  final ValueChanged<String> onChanged;
 
   const StoneInputRow({
     required this.label,
     required this.owned,
+    required this.value,
     required this.onChanged,
     super.key,
   });
@@ -174,20 +178,35 @@ class StoneInputRow extends StatefulWidget {
 }
 
 class _StoneInputRowState extends State<StoneInputRow> {
-  final TextEditingController controller = TextEditingController();
-  int value = 0;
+  late TextEditingController controller;
 
-  void _updateValue(int newValue) {
-    value = newValue;
-    controller.text = value.toString();
-    controller.selection = TextSelection.collapsed(offset: controller.text.length);
-    widget.onChanged(value);
-    setState(() {});
+  @override
+  void initState() {
+    super.initState();
+    controller = TextEditingController(text: widget.value);
+  }
+
+  @override
+  void didUpdateWidget(covariant StoneInputRow old) {
+    super.didUpdateWidget(old);
+    if (old.value != widget.value) {
+      controller.text = widget.value;
+      controller.selection = TextSelection.collapsed(offset: controller.text.length);
+    }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final remain = (widget.owned - value).clamp(0, widget.owned);
+    final ownedBI = BigInt.tryParse(widget.owned) ?? BigInt.zero;
+    final enteredBI = BigInt.tryParse(controller.text) ?? BigInt.zero;
+    final remainBI = ownedBI - enteredBI < BigInt.zero ? BigInt.zero : ownedBI - enteredBI;
+    final remainStr = formatLargeNumber(remainBI.toDouble());
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -201,10 +220,10 @@ class _StoneInputRowState extends State<StoneInputRow> {
                 Text(widget.label, style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 2),
                 Text(
-                  formatLargeNumber(remain), // Remain is now a double
+                  '剩余：$remainStr',
                   style: TextStyle(
                     fontSize: 12,
-                    color: (value > widget.owned) ? Colors.red : Colors.grey,
+                    color: enteredBI > ownedBI ? Colors.red : Colors.grey,
                   ),
                 ),
               ],
@@ -225,9 +244,7 @@ class _StoneInputRowState extends State<StoneInputRow> {
                   ),
                   keyboardType: TextInputType.number,
                   onChanged: (v) {
-                    final parsed = int.tryParse(v) ?? 0;
-                    value = parsed;
-                    widget.onChanged(value);
+                    widget.onChanged(v);
                     setState(() {});
                   },
                 ),
@@ -241,7 +258,10 @@ class _StoneInputRowState extends State<StoneInputRow> {
                       visualDensity: VisualDensity.compact,
                     ),
                     onPressed: () {
-                      _updateValue(widget.owned.toInt()); // Convert to int before updating
+                      controller.text = widget.owned;
+                      controller.selection = TextSelection.collapsed(offset: controller.text.length);
+                      widget.onChanged(widget.owned);
+                      setState(() {});
                     },
                     child: const Text("最大", style: TextStyle(fontSize: 12)),
                   ),

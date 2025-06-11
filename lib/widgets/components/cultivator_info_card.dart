@@ -3,6 +3,8 @@ import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
+import '../constants/aptitude_table.dart';
+
 class CultivatorInfoCard extends StatelessWidget {
   final Character profile;
 
@@ -156,25 +158,10 @@ class CultivatorInfoCard extends StatelessWidget {
   }
 
   String _getAptitudeLabel(int total) {
-    if (total >= 191) return '仙帝之资';
-    if (total >= 181) return '太乙仙之资';
-    if (total >= 171) return '混元仙之资';
-    if (total >= 161) return '圣仙之资';
-    if (total >= 151) return '虚仙之资';
-    if (total >= 141) return '灵仙之资';
-    if (total >= 131) return '玄仙之资';
-    if (total >= 121) return '真仙之资';
-    if (total >= 111) return '天仙之资';
-    if (total >= 101) return '地仙之资';
-    if (total >= 91) return '飞升之资';
-    if (total >= 81) return '渡劫之资';
-    if (total >= 71) return '大乘之资';
-    if (total >= 61) return '合体之资';
-    if (total >= 51) return '炼虚之资';
-    if (total >= 41) return '化神之资';
-    if (total >= 31) return '元婴之资';
-    if (total >= 21) return '金丹之资';
-    if (total >= 11) return '筑基之资';
-    return '练气之资';
+    final gate = aptitudeTable
+        .lastWhere((g) => total >= g.minAptitude, orElse: () => aptitudeTable.first);
+    final name = gate.realmName;
+
+    return '$name之资';
   }
 }

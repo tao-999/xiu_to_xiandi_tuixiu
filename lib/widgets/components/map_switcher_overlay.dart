@@ -5,6 +5,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/map_switch_dialog.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 
+import '../constants/aptitude_table.dart';
+
 class MapSwitcherOverlay extends StatelessWidget {
   final int currentStage;
   final void Function(int newStage) onStageChanged;
@@ -15,9 +17,12 @@ class MapSwitcherOverlay extends StatelessWidget {
     required this.onStageChanged,
   });
 
+  /// 动态读取独立文件中的 aptitudeTable，获取境界名称
   String _getStageName(int stage) {
-    const names = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
-    return stage >= 1 && stage <= 9 ? names[stage - 1] : '$stage';
+    final realmNames = aptitudeTable.map((e) => e.realmName).toList();
+    return (stage >= 1 && stage <= realmNames.length)
+        ? realmNames[stage - 1]
+        : '$stage';
   }
 
   void _handleMapSwitch(BuildContext context) {
@@ -31,7 +36,6 @@ class MapSwitcherOverlay extends StatelessWidget {
           await PlayerStorage.updateField('cultivationEfficiency', efficiency);
           print("✅ 切换地图 $stage 阶, 挂机效率=$efficiency");
 
-          // ✅ 重启修为增长 tick（使用最新玩家数据）
           CultivationTracker.stopTick();
           final player = await PlayerStorage.getPlayer();
           if (player != null) {
@@ -50,7 +54,7 @@ class MapSwitcherOverlay extends StatelessWidget {
       left: 20,
       bottom: 120,
       child: MapButtonComponent(
-        text: '${_getStageName(currentStage)}阶地图',
+        text: '${_getStageName(currentStage)}地图',
         onPressed: () => _handleMapSwitch(context),
       ),
     );

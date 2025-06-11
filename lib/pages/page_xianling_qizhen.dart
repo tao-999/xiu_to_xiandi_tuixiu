@@ -155,25 +155,25 @@ class _XianlingQizhenPageState extends State<XianlingQizhenPage> {
 
   String _getTitleByRealm(String realm) {
     const map = {
-      '练气期': '棋童',
-      '筑基期': '棋徒',
-      '金丹期': '棋士',
-      '元婴期': '棋客',
-      '化神期': '棋修',
-      '炼虚期': '棋灵',
-      '合体期': '棋狂',
-      '大乘期': '棋尊',
-      '渡劫期': '棋圣',
+      '练气': '棋童',
+      '筑基': '棋徒',
+      '金丹': '棋士',
+      '元婴': '棋客',
+      '化神': '棋修',
+      '炼虚': '棋灵',
+      '合体': '棋狂',
+      '大乘': '棋尊',
+      '渡劫': '棋圣',
     };
     return map[realm] ?? '棋帝';
   }
 
   int _getAILevelByRealm(String realm) {
-    if (realm == '练气期' || realm == '筑基期') return 0;
-    if (realm == '金丹期' || realm == '元婴期') return 1;
-    if (realm == '化神期' || realm == '炼虚期' || realm == '合体期') return 2;
-    if (realm == '大乘期' || realm == '渡劫期') return 3;
-    return 0;
+    if (realm == '练气' || realm == '筑基') return 0;
+    if (realm == '金丹' || realm == '元婴') return 1;
+    if (realm == '化神' || realm == '炼虚' || realm == '合体') return 2;
+    // 其他情况都归为高级 AI
+    return 3;
   }
 
   @override

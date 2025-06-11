@@ -33,6 +33,7 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
     final exp = player.cultivation;
     final level = calculateCultivationLevel(exp);
 
+    // 计算已解锁的最大地图阶数
     final unlockedStage = ((level.totalLayer - 1) ~/ CultivationConfig.levelsPerRealm + 1)
         .clamp(1, CultivationConfig.realms.length);
 
@@ -45,24 +46,25 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final realmNames = CultivationConfig.realms;
+    final itemCount = realmNames.length;
+
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
       title: const Text(
         "选择挂机地图",
-        style: TextStyle(
-          fontSize: 16,         // 👈 字号你想多大都行
-        ),
+        style: TextStyle(fontSize: 16),
       ),
       content: SizedBox(
         width: 300,
         height: 400,
         child: ListView.builder(
-          itemCount: 9,
+          itemCount: itemCount,
           itemBuilder: (context, index) {
             final stage = index + 1;
             final isSelected = stage == widget.currentStage;
             final isDisabled = stage > maxStage;
-            final name = ['一','二','三','四','五','六','七','八','九'][index];
+            final name = realmNames[index];
             final efficiency = pow(2, stage - 1).toInt();
 
             return GestureDetector(
@@ -90,7 +92,7 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
                             color: isDisabled ? Colors.grey : Colors.black,
                           ),
                           children: [
-                            TextSpan(text: '$name阶地图'),
+                            TextSpan(text: '$name地图'),
                             TextSpan(
                               text: '（挂机效率 ×$efficiency）',
                               style: TextStyle(

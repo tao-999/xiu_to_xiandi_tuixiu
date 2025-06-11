@@ -80,50 +80,10 @@ class CultivationTracker {
 
   static double getMaxExpByAptitude(int aptitude) {
     final maxPossibleLevel = CultivationConfig.realms.length * CultivationConfig.levelsPerRealm;
-    final maxLevel = (aptitude * 0.9).floor().clamp(1, maxPossibleLevel);
+    final maxLevel = aptitude.clamp(1, maxPossibleLevel); // ✨ 砍掉 0.9
     final before = totalExpToLevel(maxLevel);
     final current = expNeededForLevel(maxLevel);
     return before + current;
-  }
-
-  static Future<void> applyRewardedExp(
-      double addedExp, {
-        void Function()? onUpdate,
-      }) async {
-    final player = await PlayerStorage.getPlayer();
-    if (player == null) return;
-
-    final aptitude = PlayerStorage.calculateTotalElement(player.elements);
-    final maxExp = getMaxExpByAptitude(aptitude);
-    final oldStage = calculateCultivationLevel(player.cultivation);
-
-    if (player.cultivation >= maxExp) {
-      print('【溢出被禁止】无法增加修为');
-      return;
-    }
-
-    player.cultivation = (player.cultivation + addedExp).clamp(0, maxExp);
-    final newStage = calculateCultivationLevel(player.cultivation);
-
-    bool hasBreakthrough = false;
-    if (newStage.totalLayer > oldStage.totalLayer) {
-      for (int layer = oldStage.totalLayer + 1; layer <= newStage.totalLayer; layer++) {
-        PlayerStorage.applyBreakthroughBonus(player, layer);
-      }
-      hasBreakthrough = true;
-    }
-
-    final updateMap = {'cultivation': player.cultivation};
-    if (hasBreakthrough) {
-      updateMap.addAll({
-        'baseHp': player.baseHp.toDouble(),
-        'baseAtk': player.baseAtk.toDouble(),
-        'baseDef': player.baseDef.toDouble(),
-      });
-    }
-
-    await PlayerStorage.updateFields(updateMap);
-    onUpdate?.call();
   }
 
   static Future<void> _updateCultivationOnly(double cultivation) async {

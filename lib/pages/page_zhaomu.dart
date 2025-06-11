@@ -59,10 +59,7 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
           ),
 
           // 📍顶部标题 + 池切换
-          RecruitHeaderWidget(
-            currentPool: currentPool,
-            onPoolChanged: _changePool,
-          ),
+          RecruitHeaderWidget(),
 
           // 🎯 中部按钮 + 招募券
           Align(
