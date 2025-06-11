@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart'; // 你的原函数
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
+
+import '../../utils/number_format.dart';
 
 class CultivationBoostDialog extends StatefulWidget {
   final VoidCallback? onUpdated;
@@ -75,7 +76,7 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
     }
 
     final res = player.resources;
-    final estimatedExpFormatted = formatLargeNumber(estimatedExp.toDouble());
+    final estimatedExpFormatted = formatAnyNumber(estimatedExp.toDouble());
 
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
@@ -206,7 +207,7 @@ class _StoneInputRowState extends State<StoneInputRow> {
     final ownedBI = BigInt.tryParse(widget.owned) ?? BigInt.zero;
     final enteredBI = BigInt.tryParse(controller.text) ?? BigInt.zero;
     final remainBI = ownedBI - enteredBI < BigInt.zero ? BigInt.zero : ownedBI - enteredBI;
-    final remainStr = formatLargeNumber(remainBI.toDouble());
+    final remainStr = formatAnyNumber(remainBI.toDouble());
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),

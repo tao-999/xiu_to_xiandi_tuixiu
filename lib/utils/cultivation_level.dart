@@ -1,26 +1,17 @@
-import 'dart:math';
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../services/player_storage.dart';
 import '../widgets/constants/aptitude_table.dart';
 
 /// 🌌 修仙设定常量
 class CultivationConfig {
-  static const double baseExp = 100.0;
-  static const double expMultiplier = 1.3;
   static const int levelsPerRealm = 10;
 
-  /// ✅ 改为动态读取，不再写死
+  /// ✅ 由 aptitudeTable 生成境界名列表
   static List<String> get realms => aptitudeTable.map((e) => e.realmName).toList();
 
   static int get maxLevel => realms.length * levelsPerRealm;
-
-  /// 根据资质返回最大修炼层数
-  static int getMaxLevelByAptitude(int aptitude) {
-    final index = aptitudeTable.lastIndexWhere((e) => aptitude >= e.minAptitude);
-    return (index + 1) * levelsPerRealm;
-  }
 
   /// 根据资质返回当前最高境界名
   static String getRealmNameByAptitude(int aptitude) {
@@ -33,88 +24,101 @@ class CultivationConfig {
   }
 }
 
-/// 🧮 当前修为对应的境界状态（逻辑用）
-class CultivationLevel {
-  final String realm;
-  final int rank;        // 当前大境界内的层数（第几重）
-  final double progress; // 当前层内进度 0~1
-  final double totalExp; // 当前层所需修为
-
-  CultivationLevel(this.realm, this.rank, this.progress, this.totalExp);
-
-  int get totalLayer => CultivationConfig.realms.indexOf(realm) * CultivationConfig.levelsPerRealm + rank;
-
-  @override
-  String toString() {
-    return '$realm 第 $rank 重（${(progress * 100).toStringAsFixed(1)}%）';
-  }
-}
-
 /// 🎨 用于 UI 显示的修为进度
 class CultivationLevelDisplay {
   final String realm;
   final int rank;
-  final double current;
-  final double max;
+  final BigInt current;
+  final BigInt max;
 
   CultivationLevelDisplay(this.realm, this.rank, this.current, this.max);
 }
 
-/// 🔢 单层所需修为（指数增长）
-double expNeededForLevel(int level) {
-  return CultivationConfig.baseExp * pow(CultivationConfig.expMultiplier, level - 1);
+/// 🧮 当前修为对应的境界状态（逻辑用）
+class CultivationLevel {
+  final String realm;
+  final int rank;
+  final double progress;     // 当前层内进度百分比（用于 UI）
+  final BigInt totalExp;     // 当前层所需经验
+  final int totalLayer;      // 第几层（全局）
+  final BigInt levelStart;   // 当前层起点经验（用于计算 current）
+
+  CultivationLevel(
+      this.realm,
+      this.rank,
+      this.progress,
+      this.totalExp,
+      this.totalLayer,
+      this.levelStart,
+      );
 }
 
-/// 📈 累计修为总值（1 ~ 当前level前一层）
-double totalExpToLevel(int level) {
-  double total = 0;
+/// 🔢 单层所需修为（线性增长）
+BigInt expNeededForLevel(int level) {
+  if (level <= 1) return BigInt.from(1000);
+
+  BigInt base = BigInt.from(1000);
+  int segment = (level - 1) ~/ 10;
+  int offset = (level - 1) % 10;
+
+  for (int i = 0; i < segment; i++) {
+    final BigInt delta = base ~/ BigInt.two;
+    final BigInt lastLayer = base + delta * BigInt.from(9); // 第10层
+    base = lastLayer * BigInt.two; // 下一段的base
+  }
+
+  final BigInt delta = base ~/ BigInt.two;
+  return base + delta * BigInt.from(offset);
+}
+
+/// 📈 累计修为总值（起点经验）
+BigInt totalExpToLevel(int level) {
+  BigInt total = BigInt.zero;
   for (int i = 1; i < level; i++) {
     total += expNeededForLevel(i);
   }
   return total;
 }
 
-/// 🔐 浮点容差判断，避免卡在刚好升级边缘
-bool isLessWithEpsilon(double a, double b, [double epsilon = 0.0001]) {
-  return a < b && (b - a).abs() > epsilon;
-}
+/// 🧠 根据当前修为，计算所属境界层数 + 进度（BigInt版）
+CultivationLevel calculateCultivationLevel(BigInt cultivationExp) {
+  final int totalLevels = CultivationConfig.maxLevel;
 
-/// 🧠 根据当前修为，计算所属境界层数 + 进度（无限制版本）
-CultivationLevel calculateCultivationLevel(double cultivationExp) {
-  // 直接把 ε 写在这儿，别再单独封装了
-  const double epsilon = 1e-8;
+  for (int level = 1; level <= totalLevels; level++) {
+    final BigInt start = totalExpToLevel(level);
+    final BigInt amount = expNeededForLevel(level);
+    final BigInt end = start + amount;
 
-  int level = 1;
-  double accumulatedExp = 0;
+    if (cultivationExp <= end) {
+      final int realmIndex = (level - 1) ~/ CultivationConfig.levelsPerRealm;
+      final int rank = (level - 1) % CultivationConfig.levelsPerRealm + 1;
+      final realm = CultivationConfig.realms[realmIndex];
+      final progress = (cultivationExp - start).toDouble() / amount.toDouble();
 
-  while (true) {
-    final needExp = expNeededForLevel(level);
-    final threshold = accumulatedExp + needExp;
-
-    // 如果经验 < 阈值 + ε，就认定到这一层，停
-    if (cultivationExp < threshold + epsilon) {
-      break;
+      return CultivationLevel(
+        realm,
+        rank,
+        progress,
+        amount,
+        level,
+        start,
+      );
     }
-
-    accumulatedExp = threshold;
-    level++;
   }
 
-  final currentLevelExp = expNeededForLevel(level);
-
-  // 如果经验 ≥ 阈值 + ε，就满进度；否则正常计算进度
-  final double progress = (cultivationExp >= accumulatedExp + currentLevelExp - epsilon)
-      ? 1.0
-      : ((cultivationExp - accumulatedExp) / currentLevelExp).clamp(0.0, 1.0);
-
-  final int realmIndex = (level - 1) ~/ CultivationConfig.levelsPerRealm;
-  final int rank = (level - 1) % CultivationConfig.levelsPerRealm + 1;
+  // ✅ 修为已达最大层（等于或超过 maxLevel 的终点）
+  final int maxLevel = totalLevels;
+  final BigInt start = totalExpToLevel(maxLevel);
+  final BigInt amount = expNeededForLevel(maxLevel);
+  final realm = CultivationConfig.realms.last;
 
   return CultivationLevel(
-    CultivationConfig.realms[realmIndex],
-    rank,
-    progress,
-    currentLevelExp,
+    realm,
+    10,
+    1.0,
+    amount,
+    maxLevel,
+    start,
   );
 }
 
@@ -124,34 +128,35 @@ Future<CultivationLevelDisplay> getDisplayLevelFromPrefs() async {
   final raw = prefs.getString('playerData') ?? '{}';
   final json = jsonDecode(raw);
 
-  final double cultivationExp = (json['cultivation'] ?? 0.0).toDouble();
+  final BigInt cultivationExp = BigInt.tryParse(json['cultivation'].toString()) ?? BigInt.zero;
   final Map<String, dynamic> rawElements = json['elements'] ?? {};
-  final Map<String, int> elements = rawElements.map((k, v) => MapEntry(k, (v as num).toInt())); // ✅ 转换为 Map<String, int>
+  final Map<String, int> elements = rawElements.map((k, v) => MapEntry(k, (v as num).toInt()));
 
+  // 🧠 当前资质
   final int aptitude = PlayerStorage.calculateTotalElement(elements);
 
-  final int maxLevel = CultivationConfig.getMaxLevelByAptitude(aptitude);
-  final levelExpCap = totalExpToLevel(maxLevel + 1);
+  // 🌌 资质对应的最大修炼层数
+  final int maxLevel = aptitude;
 
-  if (cultivationExp > levelExpCap) {
-    final realmIndex = (maxLevel) ~/ CultivationConfig.levelsPerRealm;
-    final rank = (maxLevel) % CultivationConfig.levelsPerRealm + 1;
-    final levelExp = expNeededForLevel(maxLevel);
-    return CultivationLevelDisplay(
-      CultivationConfig.realms[realmIndex],
-      rank,
-      levelExp,
-      levelExp,
-    );
-  }
+  // ⛳ 允许的最大修为值（到 maxLevel 层结束为止）
+  final BigInt maxAllowedExp = totalExpToLevel(maxLevel + 1);
 
-  final level = calculateCultivationLevel(cultivationExp);
-  final justBreakthrough = level.progress == 0.0;
+  // ✅ 封顶逻辑：允许修满当前层，但不能进入下一层
+  final BigInt cappedExp = cultivationExp > maxAllowedExp
+      ? maxAllowedExp
+      : cultivationExp;
+
+  // 🧮 计算当前所属层级信息
+  final info = calculateCultivationLevel(cappedExp);
+  final BigInt current = cappedExp - info.levelStart;
+  final bool isFull = current >= info.totalExp;
 
   return CultivationLevelDisplay(
-    level.realm,
-    level.rank,
-    justBreakthrough ? 0.0 : level.progress * level.totalExp,
-    level.totalExp,
+    info.realm,
+    info.rank,
+    isFull ? info.totalExp : current,
+    info.totalExp,
   );
 }
+
+

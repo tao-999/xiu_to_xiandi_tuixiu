@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
+
+import '../../utils/number_format.dart';
 
 class ZongmenDiscipleInfoPanel extends StatelessWidget {
   final Disciple disciple;
@@ -20,8 +21,8 @@ class ZongmenDiscipleInfoPanel extends StatelessWidget {
         _buildInfoRow('寿元', '${d.lifespan} 岁'),
         _buildInfoRow('忠诚', '${d.loyalty}%'),
         _buildInfoRow('特长', d.specialty.isNotEmpty ? d.specialty : '暂无'),
-        _buildInfoRow('战力', '攻 ${d.atk} / 防 ${d.def} / 血 ${formatLargeNumber(d.hp)}'),
-        _buildInfoRow('修为', formatLargeNumber(d.cultivation)),
+        _buildInfoRow('战力', '攻 ${d.atk} / 防 ${d.def} / 血 ${formatAnyNumber(d.hp)}'),
+        _buildInfoRow('修为', formatAnyNumber(d.cultivation)),
         _buildInfoRow('突破几率', '${d.breakthroughChance}%'),
         _buildInfoRow('疲劳值', '${d.fatigue}'),
         _buildInfoRow('任务状态', d.isOnMission ? '执行中' : '待命'),

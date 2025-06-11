@@ -56,7 +56,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
       name: nickname,
       gender: gender,
       career: '散修',
-      cultivation: 0.0,
+      cultivation: BigInt.zero,
       baseHp: 100,
       extraHp: 0,
       baseAtk: 20,

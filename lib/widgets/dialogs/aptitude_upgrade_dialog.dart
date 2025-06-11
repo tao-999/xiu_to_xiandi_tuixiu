@@ -3,7 +3,7 @@ import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 
-import '../constants/aptitude_table.dart'; // 引入Toast组件
+import '../constants/aptitude_table.dart';
 
 class AptitudeUpgradeDialog extends StatefulWidget {
   final Character player;
@@ -29,7 +29,10 @@ class AptitudeUpgradeDialog extends StatefulWidget {
       onPressed: () async {
         await showDialog(
           context: context,
-          builder: (_) => AptitudeUpgradeDialog(player: player, onUpdated: onUpdated),
+          builder: (_) => AptitudeUpgradeDialog(
+            player: player,
+            onUpdated: onUpdated,
+          ),
         );
       },
       child: const Text("升资质", style: TextStyle(fontSize: 12, color: Colors.white)),
@@ -76,17 +79,15 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('✨ 资质：$totalAptitude / $maxAptitudeLimit',
-              style: const TextStyle(fontSize: 16)),
+          Text('✨ 资质：$totalAptitude / $maxAptitudeLimit', style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 4),
-          Text('剩余资质券：$remaining',
-              style: const TextStyle(color: Colors.orange, fontSize: 14)),
-          // 红色提示彻底去掉了，toast提示代替
+          Text('剩余资质券：$remaining', style: const TextStyle(color: Colors.orange, fontSize: 14)),
 
           ...tempElements.keys.map((key) {
             final label = elementLabels[key] ?? key;
             final baseValue = widget.player.elements[key] ?? 0;
             final currentValue = tempElements[key] ?? 0;
+
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 2),
               child: Row(
@@ -143,10 +144,18 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
                   : () async {
                 widget.player.resources.fateRecruitCharm -= tempUsed;
                 widget.player.elements = tempElements;
+
+                /// 🎯 新增：根据五行刷新基础属性
+                PlayerStorage.calculateBaseAttributes(widget.player);
+
                 await PlayerStorage.updateFields({
                   'resources': widget.player.resources.toMap(),
                   'elements': widget.player.elements,
+                  'baseHp': widget.player.baseHp,
+                  'baseAtk': widget.player.baseAtk,
+                  'baseDef': widget.player.baseDef,
                 });
+
                 if (context.mounted) Navigator.of(context).pop();
                 widget.onUpdated?.call();
               },

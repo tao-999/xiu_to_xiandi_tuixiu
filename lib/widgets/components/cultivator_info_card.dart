@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
+import '../../utils/number_format.dart';
 import '../constants/aptitude_table.dart';
 
 class CultivatorInfoCard extends StatelessWidget {
@@ -109,7 +109,7 @@ class CultivatorInfoCard extends StatelessWidget {
                   style: const TextStyle(color: Colors.black, fontSize: 16)),
               const SizedBox(height: 4),
               Text(
-                '战力：${formatLargeNumber(power)}',
+                '战力：${formatAnyNumber(power)}',
                 style: const TextStyle(color: Colors.black, fontSize: 16),
               ),
               const SizedBox(height: 4),
@@ -143,8 +143,8 @@ class CultivatorInfoCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAttributeRow('气血：${formatLargeNumber(hp)}', '攻击：${formatLargeNumber(atk)}'),
-              _buildAttributeRow('防御：${formatLargeNumber(def)}', '攻速：${profile.atkSpeed.toStringAsFixed(2)}秒'),
+              _buildAttributeRow('气血：${formatAnyNumber(hp)}', '攻击：${formatAnyNumber(atk)}'),
+              _buildAttributeRow('防御：${formatAnyNumber(def)}', '攻速：${profile.atkSpeed.toStringAsFixed(2)}秒'),
               _buildAttributeRow('暴击率：${formatPercent(profile.critRate)}', '暴击伤害：${formatPercent(profile.critDamage)}'),
               _buildAttributeRow('闪避率：${formatPercent(profile.dodgeRate)}', '吸血：${formatPercent(profile.lifeSteal)}'),
               _buildAttributeRow('破甲：${formatPercent(profile.breakArmorRate)}', '幸运：${formatPercent(profile.luckRate)}'),

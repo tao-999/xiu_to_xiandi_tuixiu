@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/meditation_widget.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/effects/break_through_aura.dart';
+
+import '../../utils/number_format.dart';
 
 class CultivationStatusPanel extends StatelessWidget {
   final Character player;
@@ -57,7 +58,7 @@ class CultivationStatusPanel extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                "修为：${formatLargeNumber(display.current)} / ${formatLargeNumber(display.max)}",
+                "修为：${formatAnyNumber(display.current)} / ${formatAnyNumber(display.max)}",
                 style: const TextStyle(color: Colors.black45, fontSize: 14),
               ),
               const SizedBox(height: 4),

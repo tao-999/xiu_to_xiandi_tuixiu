@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/format_large_number.dart';
+
+import '../../utils/number_format.dart';
 
 class ResourceBar extends StatelessWidget {
   final Character player;
@@ -43,11 +44,7 @@ class ResourceBar extends StatelessWidget {
   }
 
   Widget _buildItem(String label, dynamic value, IconData icon) {
-    // 如果是 BigInt 类型，转换为 double；如果是 int，先转为 BigInt 后再转换为 double
-    num displayValue = value is BigInt ? value.toDouble() : value is int ? BigInt.from(value).toDouble() : value;
-
-    // 传给 formatLargeNumber 后会变成统一的 num 类型，避免类型冲突
-    String formatted = formatLargeNumber(displayValue);
+    String formatted = formatAnyNumber(value);
 
     return Row(
       children: [

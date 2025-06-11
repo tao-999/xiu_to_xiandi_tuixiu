@@ -6,8 +6,8 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/huanyue_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/huanyue_pathfinder.dart';
 import '../../services/global_event_bus.dart';
+import '../../utils/number_format.dart';
 import '../../utils/tile_manager.dart';
-import '../../utils/format_large_number.dart';
 import 'huanyue_enemy_spawner.dart';
 import 'huanyue_door_component.dart';
 
@@ -78,7 +78,7 @@ class HuanyuePlayerComponent extends SpriteComponent
 
       final newPower = PlayerStorage.getPower(player);
       playerPower = newPower;
-      powerText.text = formatLargeNumber(playerPower);
+      powerText.text = formatAnyNumber(playerPower);
 
       powerText.add(
         ScaleEffect.by(

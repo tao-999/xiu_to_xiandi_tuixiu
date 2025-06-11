@@ -7,7 +7,10 @@ class Character {
   String name;
   String gender;
   String career;
-  double cultivation;
+
+  /// ✅ 修为改为 BigInt 类型
+  BigInt cultivation;
+
   double cultivationEfficiency;
   int currentMapStage;
 
@@ -77,7 +80,7 @@ class Character {
     'name': name,
     'gender': gender,
     'career': career,
-    'cultivation': cultivation,
+    'cultivation': cultivation.toString(), // ✅ BigInt 转字符串保存
     'cultivationEfficiency': cultivationEfficiency,
     'currentMapStage': currentMapStage,
     'baseHp': baseHp,
@@ -108,7 +111,7 @@ class Character {
     name: json['name'],
     gender: json['gender'],
     career: json['career'],
-    cultivation: (json['cultivation'] ?? 0).toDouble(),
+    cultivation: BigInt.tryParse(json['cultivation'].toString()) ?? BigInt.zero, // ✅ BigInt 解析
     cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
     currentMapStage: json['currentMapStage'] ?? 1,
     baseHp: (json['baseHp'] ?? 100) as int,
@@ -143,7 +146,7 @@ class Character {
     name: '未命名修士',
     gender: '男',
     career: '散修',
-    cultivation: 0.0,
+    cultivation: BigInt.zero, // ✅ 初始化 BigInt.zero
     cultivationEfficiency: 1.0,
     currentMapStage: 1,
     baseHp: 100,

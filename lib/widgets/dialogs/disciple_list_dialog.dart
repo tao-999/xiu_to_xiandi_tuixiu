@@ -157,7 +157,8 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                             ],
                           ),
                           subtitle: Text('资质: ${d.aptitude}｜年龄: ${d.age}'),
-                          trailing: InkWell(
+                          trailing: d.aptitude > 30
+                              ? InkWell(
                             onTap: () async {
                               final zongmen = await ZongmenStorage.loadZongmen();
                               if (zongmen == null) {
@@ -165,7 +166,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                                 return;
                               }
 
-                              // 用 sectExp 动态算等级，不访问模型 level
                               final level = ZongmenStorage.calcSectLevel(zongmen.sectExp);
                               final current = zongmen.disciples.length;
                               final max = 5 * (1 << (level - 1));
@@ -189,7 +189,21 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                                 fontSize: 14,
                                 fontFamily: 'ZcoolCangEr',
                                 color: Colors.blueAccent,
-                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          )
+                              : InkWell(
+                            onTap: () async {
+                              // await DiscipleStorage.removeById(d.id);
+                              // setState(() => widget.disciples.remove(d));
+                              ToastTip.show(context, '${d.name} 已分解成灵气残渣！');
+                            },
+                            child: const Text(
+                              '分解',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontFamily: 'ZcoolCangEr',
+                                color: Colors.redAccent,
                               ),
                             ),
                           ),

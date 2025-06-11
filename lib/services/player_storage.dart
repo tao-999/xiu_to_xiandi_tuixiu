@@ -124,12 +124,12 @@ class PlayerStorage {
 
     await savePlayer(player);
 
-    final double addedExp = calculateAddedExp(
+    final BigInt addedExp = calculateAddedExp(
       low: l,
       mid: m,
       high: h,
       supreme: s,
-    ).toDouble();
+    );
 
     final beforeLayer = calculateCultivationLevel(player.cultivation).totalLayer;
 
@@ -151,45 +151,26 @@ class PlayerStorage {
     final h = high ?? BigInt.zero;
     final s = supreme ?? BigInt.zero;
 
-    return (l * BigInt.from(5) +
-        m * BigInt.from(50000) +
-        h * BigInt.from(500000000) +
-        s * BigInt.from(5000000000000));
+    return (l * BigInt.from(1) +           // 下品：1 灵石 = 1 修为
+        m * BigInt.from(100) +         // 中品：1 = 100 修为
+        h * BigInt.from(10000) +       // 上品：1 = 10000 修为
+        s * BigInt.from(1000000));     // 极品：1 = 100 万修为
   }
 
-  /// 🎯 检查是否突破并更新属性
+  /// 🎯 检查是否突破，并统一刷新属性（用 calculateBaseAttributes）
   static Future<void> applyBreakthroughIfNeeded(Character player, int beforeLayer) async {
     final afterLayer = calculateCultivationLevel(player.cultivation).totalLayer;
+
     if (afterLayer > beforeLayer) {
-      for (int i = beforeLayer + 1; i <= afterLayer; i++) {
-        applyBreakthroughBonus(player, i);
-      }
       debugPrint('🎉 玩家突破成功！层数 $beforeLayer → $afterLayer');
+
+      // ✅ 统一刷新属性（考虑每10层翻倍 + 资质倍率）
+      calculateBaseAttributes(player);
+
       await savePlayer(player);
     }
   }
 
-  /// 💥 每层突破属性增长逻辑
-  static void applyBreakthroughBonus(Character player, int layer) {
-    // 每10层为一阶，翻倍增长
-    final stageIndex = (layer - 1) ~/ 10;
-
-    final baseHp = 50 * (1 << stageIndex);   // 等于 50 × 2^stageIndex
-    final baseAtk = 10 * (1 << stageIndex);
-    final baseDef = 5 * (1 << stageIndex);
-
-    final factor = calculateGrowthMultiplier(player.elements);
-
-    final hpGain = (baseHp * factor).round();
-    final atkGain = (baseAtk * factor).round();
-    final defGain = (baseDef * factor).round();
-
-    player.baseHp += hpGain;
-    player.baseAtk += atkGain;
-    player.baseDef += defGain;
-
-    debugPrint('💥 层 $layer 突破加成: baseHp+$hpGain baseAtk+$atkGain baseDef+$defGain');
-  }
   /// 🔢 获取当前玩家的五行资质总和
   static int calculateTotalElement(Map<String, int> elements) {
     return elements.values.fold(0, (a, b) => a + b);
@@ -217,6 +198,37 @@ class PlayerStorage {
       atk: getAtk(player),
       def: getDef(player),
     );
+  }
+
+  /// 🧬 统一属性计算（支持每10层翻倍 + 资质成长倍率）
+  static void calculateBaseAttributes(Character player) {
+    final totalLayer = calculateCultivationLevel(player.cultivation).totalLayer;
+    final factor = calculateGrowthMultiplier(player.elements);
+
+    // 🎯 初始基础值（角色创建时设定）
+    const baseHpInit = 100;
+    const baseAtkInit = 20;
+    const baseDefInit = 10;
+
+    int hpGain = 0;
+    int atkGain = 0;
+    int defGain = 0;
+
+    for (int i = 1; i <= totalLayer; i++) {
+      final stageIndex = (i - 1) ~/ 10;
+      final stageMultiplier = 1 << stageIndex;
+
+      hpGain += (50 * stageMultiplier);
+      atkGain += (10 * stageMultiplier);
+      defGain += (5 * stageMultiplier);
+    }
+
+    player.baseHp = baseHpInit + (hpGain * factor).round();
+    player.baseAtk = baseAtkInit + (atkGain * factor).round();
+    player.baseDef = baseDefInit + (defGain * factor).round();
+
+    debugPrint('📊 calculateBaseAttributes() → 层=$totalLayer 倍率=${factor.toStringAsFixed(2)} → '
+        'HP=${player.baseHp}, ATK=${player.baseAtk}, DEF=${player.baseDef}');
   }
 
 }
