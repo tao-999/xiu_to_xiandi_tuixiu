@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-
 import '../../utils/number_format.dart';
 
 class ResourceBar extends StatelessWidget {
@@ -27,15 +26,15 @@ class ResourceBar extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              _buildItem('下品灵石', res.spiritStoneLow, Icons.circle),
+              _buildItem('下品灵石', res.spiritStoneLow, 'assets/images/spirit_stone_low.png'),
               const SizedBox(width: 16),
-              _buildItem('中品灵石', res.spiritStoneMid, Icons.change_history),
+              _buildItem('中品灵石', res.spiritStoneMid, 'assets/images/spirit_stone_mid.png'),
               const SizedBox(width: 16),
-              _buildItem('上品灵石', res.spiritStoneHigh, Icons.diamond),
+              _buildItem('上品灵石', res.spiritStoneHigh, 'assets/images/spirit_stone_high.png'),
               const SizedBox(width: 16),
-              _buildItem('极品灵石', res.spiritStoneSupreme, Icons.star),
+              _buildItem('极品灵石', res.spiritStoneSupreme, 'assets/images/spirit_stone_supreme.png'),
               const SizedBox(width: 16),
-              _buildItem('资质提升券', res.fateRecruitCharm, Icons.school),
+              _buildItem('资质提升券', res.fateRecruitCharm, 'assets/images/fate_recruit_charm.png'),
             ],
           ),
         ),
@@ -43,12 +42,17 @@ class ResourceBar extends StatelessWidget {
     );
   }
 
-  Widget _buildItem(String label, dynamic value, IconData icon) {
+  Widget _buildItem(String label, dynamic value, String imagePath) {
     String formatted = formatAnyNumber(value);
 
     return Row(
       children: [
-        Icon(icon, size: 18, color: Colors.amber[800]),
+        Image.asset(
+          imagePath,
+          width: 18,
+          height: 18,
+          fit: BoxFit.contain,
+        ),
         const SizedBox(width: 4),
         Text(
           formatted,

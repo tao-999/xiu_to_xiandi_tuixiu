@@ -29,7 +29,7 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
 
   Future<void> _loadTicketCount() async {
     final player = await PlayerStorage.getPlayer();
-    final count = player?.resources.humanRecruitTicket ?? 0; // ✅ 使用 int 类型的默认值
+    final count = player?.resources.recruitTicket ?? 0; // ✅ 使用 int 类型的默认值
     setState(() {
       ticketCount = count;
     });

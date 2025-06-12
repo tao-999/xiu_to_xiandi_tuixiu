@@ -1,39 +1,37 @@
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class Resources {
-  // 💰 灵石系列（修炼提升专用）
-  BigInt spiritStoneLow;      // 下品灵石
-  BigInt spiritStoneMid;      // 中品灵石
-  BigInt spiritStoneHigh;     // 上品灵石
-  BigInt spiritStoneSupreme;  // 极品灵石
+  // 💰 灵石系列
+  BigInt spiritStoneLow;
+  BigInt spiritStoneMid;
+  BigInt spiritStoneHigh;
+  BigInt spiritStoneSupreme;
 
-  // 🪪 招募资源（仅用于招募，数量可控）
-  int humanRecruitTicket;     // 人界招募券
-  int immortalSummonOrder;    // 仙界召唤令
-  int fateRecruitCharm;       // 资质提升券
+  // 🪪 招募券系统
+  int recruitTicket;         // ✅ 新字段，统一招募券
+  int fateRecruitCharm;      // ✅ 资质提升券，保留！
 
   // 🏯 宗门资源
-  BigInt contribution;        // 宗门贡献
-  BigInt reputation;          // 声望值
+  BigInt contribution;
+  BigInt reputation;
 
   // 🌬️ 修炼资源
-  BigInt aura;                // 灵气
-  BigInt insight;             // 悟性
-  BigInt karma;               // 因果点
-  BigInt wishPower;           // 愿力
+  BigInt aura;
+  BigInt insight;
+  BigInt karma;
+  BigInt wishPower;
 
   // ⚔️ 战斗资源
-  BigInt refinedQi;           // 真元
-  BigInt mindEnergy;          // 神识
-  BigInt battleWill;          // 战意
+  BigInt refinedQi;
+  BigInt mindEnergy;
+  BigInt battleWill;
 
   Resources({
     BigInt? spiritStoneLow,
     BigInt? spiritStoneMid,
     BigInt? spiritStoneHigh,
     BigInt? spiritStoneSupreme,
-    int? humanRecruitTicket,
-    int? immortalSummonOrder,
+    int? recruitTicket,
     int? fateRecruitCharm,
     BigInt? contribution,
     BigInt? reputation,
@@ -48,8 +46,7 @@ class Resources {
         spiritStoneMid = spiritStoneMid ?? BigInt.zero,
         spiritStoneHigh = spiritStoneHigh ?? BigInt.zero,
         spiritStoneSupreme = spiritStoneSupreme ?? BigInt.zero,
-        humanRecruitTicket = humanRecruitTicket ?? 0,
-        immortalSummonOrder = immortalSummonOrder ?? 0,
+        recruitTicket = recruitTicket ?? 0,
         fateRecruitCharm = fateRecruitCharm ?? 0,
         contribution = contribution ?? BigInt.zero,
         reputation = reputation ?? BigInt.zero,
@@ -70,8 +67,7 @@ class Resources {
       spiritStoneMid: parseBig(map['spiritStoneMid']),
       spiritStoneHigh: parseBig(map['spiritStoneHigh']),
       spiritStoneSupreme: parseBig(map['spiritStoneSupreme']),
-      humanRecruitTicket: parseInt(map['humanRecruitTicket']),
-      immortalSummonOrder: parseInt(map['immortalSummonOrder']),
+      recruitTicket: parseInt(map['recruitTicket']),
       fateRecruitCharm: parseInt(map['fateRecruitCharm']),
       contribution: parseBig(map['contribution']),
       reputation: parseBig(map['reputation']),
@@ -90,8 +86,7 @@ class Resources {
     'spiritStoneMid': spiritStoneMid.toString(),
     'spiritStoneHigh': spiritStoneHigh.toString(),
     'spiritStoneSupreme': spiritStoneSupreme.toString(),
-    'humanRecruitTicket': humanRecruitTicket,
-    'immortalSummonOrder': immortalSummonOrder,
+    'recruitTicket': recruitTicket,
     'fateRecruitCharm': fateRecruitCharm,
     'contribution': contribution.toString(),
     'reputation': reputation.toString(),
@@ -127,10 +122,8 @@ class Resources {
 
   int getIntValue(String type) {
     switch (type) {
-      case 'humanRecruitTicket':
-        return humanRecruitTicket;
-      case 'immortalSummonOrder':
-        return immortalSummonOrder;
+      case 'recruitTicket':
+        return recruitTicket;
       case 'fateRecruitCharm':
         return fateRecruitCharm;
       default:
@@ -138,7 +131,8 @@ class Resources {
     }
   }
 
-  bool _isIntField(String type) => type == 'humanRecruitTicket' || type == 'immortalSummonOrder' || type == 'fateRecruitCharm';
+  bool _isIntField(String type) =>
+      type == 'recruitTicket' || type == 'fateRecruitCharm';
 
   void _set(String type, BigInt value) {
     switch (type) {
@@ -186,11 +180,8 @@ class Resources {
 
   void _setInt(String type, int value) {
     switch (type) {
-      case 'humanRecruitTicket':
-        humanRecruitTicket = value;
-        break;
-      case 'immortalSummonOrder':
-        immortalSummonOrder = value;
+      case 'recruitTicket':
+        recruitTicket = value;
         break;
       case 'fateRecruitCharm':
         fateRecruitCharm = value;
@@ -203,8 +194,7 @@ class Resources {
     spiritStoneMid = other.spiritStoneMid;
     spiritStoneHigh = other.spiritStoneHigh;
     spiritStoneSupreme = other.spiritStoneSupreme;
-    humanRecruitTicket = other.humanRecruitTicket;
-    immortalSummonOrder = other.immortalSummonOrder;
+    recruitTicket = other.recruitTicket;
     fateRecruitCharm = other.fateRecruitCharm;
     contribution = other.contribution;
     reputation = other.reputation;
@@ -221,3 +211,4 @@ class Resources {
     await PlayerStorage.updateField('resources', toMap());
   }
 }
+

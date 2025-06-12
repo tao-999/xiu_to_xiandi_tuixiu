@@ -35,7 +35,7 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
 
   Future<void> _loadAll() async {
     final player = await PlayerStorage.getPlayer();
-    final count = player?.resources.humanRecruitTicket ?? 0;
+    final count = player?.resources.recruitTicket ?? 0;
     final draws = await DiscipleStorage.getTotalDraws();
     final untilSSR = await DiscipleStorage.getDrawsUntilSSR();
 
@@ -56,12 +56,12 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
     final player = await PlayerStorage.getPlayer();
     if (player == null) return;
 
-    if (player.resources.humanRecruitTicket < count) {
+    if (player.resources.recruitTicket < count) {
       ToastTip.show(context, '招募券不足，无法招募');
       return;
     }
 
-    player.resources.humanRecruitTicket -= count;
+    player.resources.recruitTicket -= count;
     await PlayerStorage.savePlayer(player);
     await DiscipleStorage.incrementTotalDraws(count);
 
@@ -94,7 +94,7 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
     }
 
     totalDraws += count;
-    ticketCount = player.resources.humanRecruitTicket;
+    ticketCount = player.resources.recruitTicket;
     poolEmpty  = await isSsrPoolEmpty(); // ✅ 刷新状态
     if (mounted) setState(() {});
 

@@ -36,10 +36,10 @@ class CultivationBoostDialog extends StatefulWidget {
 }
 
 class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
-  String lowStr = '0';
-  String midStr = '0';
-  String highStr = '0';
-  String supremeStr = '0';
+  String lowStr = '';
+  String midStr = '';
+  String highStr = '';
+  String supremeStr = '';
 
   late Character player;
   bool loading = true;

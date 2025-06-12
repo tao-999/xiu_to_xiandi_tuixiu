@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/effects/touch_effect_overlay.dart';
 import 'pages/page_create_role.dart';
 import 'pages/page_root.dart';
 import 'models/character.dart';
@@ -76,7 +77,9 @@ class XiudiApp extends StatelessWidget {
               children: [
                 hasCreatedRole ? const XiudiRoot() : const CreateRolePage(),
 
-                // ✅ 透明填充顶部刘海区域（避免黑边）
+                // ✅ 全局触摸特效（点击光圈）
+                const TouchEffectOverlay(),
+
                 const Positioned(
                   top: 0,
                   left: 0,

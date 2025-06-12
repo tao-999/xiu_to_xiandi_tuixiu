@@ -88,11 +88,11 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
 
           if (isFirstTime) {
             player.resources.addBigInt('spiritStoneLow', firstTimeSpiritStone);
-            player.resources.add('humanRecruitTicket', firstTimeTicket);
+            player.resources.add('recruitTicket', firstTimeTicket);
             player.resources.add('fateRecruitCharm', firstTimeFateCharm); // ✅ 加入资质券
           } else {
             player.resources.addBigInt('spiritStoneLow', dailySpiritStone);
-            player.resources.add('humanRecruitTicket', 1);
+            player.resources.add('recruitTicket', 1);
             player.resources.add('fateRecruitCharm', 1);
           }
 
@@ -194,7 +194,7 @@ class _GiftPopup extends StatelessWidget {
                 : '🌅 修炼辛苦，赠你每日修仙资源：'),
             const SizedBox(height: 12),
             Text('💰 下品灵石 ×${isFirstTime ? firstTimeSpiritStone : dailySpiritStone}'),
-            Text('📜 人界招募券 ×${isFirstTime ? firstTimeTicket : 1}'),
+            Text('📜 招募券 ×${isFirstTime ? firstTimeTicket : 1}'),
             Text('🧬 资质提升券 ×${isFirstTime ? firstTimeFateCharm : 1}'),
             const SizedBox(height: 16),
             const Text('请点击下方领取，方可继续修行！', style: TextStyle(color: Colors.red)),

@@ -125,8 +125,8 @@ class _HuanyueChestComponent extends SpriteComponent with CollisionCallbacks {
       HuanyueStorage.markChestOpened(id);
 
       final isAptitudeReward = ((currentFloor ~/ 5) % 2 == 1);
-      final rewardKey = isAptitudeReward ? 'fateRecruitCharm' : 'humanRecruitTicket';
-      final reward = isAptitudeReward ? '资质提升券 x1' : '人界招募券 x1';
+      final rewardKey = isAptitudeReward ? 'fateRecruitCharm' : 'recruitTicket';
+      final reward = isAptitudeReward ? '资质提升券 x1' : '招募券 x1';
 
       // ✅ 给资源 + 存储
       PlayerStorage.getPlayer().then((player) async {

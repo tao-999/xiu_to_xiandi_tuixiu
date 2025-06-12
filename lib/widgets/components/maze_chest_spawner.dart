@@ -112,7 +112,7 @@ class _InternalChestComponent extends SpriteComponent with CollisionCallbacks {
       MazeStorage.markChestOpened(id);
 
       final isAptitudeReward = ((currentFloor ~/ 5) % 2 == 1);
-      final reward = isAptitudeReward ? '资质提升券 x1' : '人界招募券 x1';
+      final reward = isAptitudeReward ? '资质提升券 x1' : '招募券 x1';
 
       print('🎁 第 $currentFloor 层宝箱开启，获得：$reward');
 
