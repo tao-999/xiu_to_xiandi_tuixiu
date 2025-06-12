@@ -6,6 +6,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/huanyue_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/huanyue_pathfinder.dart';
 import '../../services/global_event_bus.dart';
+import '../../services/resources_storage.dart';
 import '../../utils/number_format.dart';
 import '../../utils/tile_manager.dart';
 import 'huanyue_enemy_spawner.dart';
@@ -158,7 +159,9 @@ class HuanyuePlayerComponent extends SpriteComponent
 
   @override
   Future<void> onCollision(
-      Set<Vector2> intersectionPoints, PositionComponent other) async {
+      Set<Vector2> intersectionPoints,
+      PositionComponent other,
+      ) async {
     super.onCollision(intersectionPoints, other);
 
     if (other is HuanyueEnemyComponent) {
@@ -172,11 +175,8 @@ class HuanyuePlayerComponent extends SpriteComponent
         _triggerExplosion(other.position);
         _showRewardText('+${other.reward} 下品灵石', other.position);
 
-        final player = await PlayerStorage.getPlayer();
-        if (player != null) {
-          player.resources.add('spiritStoneLow', other.reward);
-          await player.resources.saveToStorage();
-        }
+        // ✅ 使用 ResourcesStorage 发奖励
+        await ResourcesStorage.add('spiritStoneLow', BigInt.from(other.reward));
 
         HuanyueStorage.markEnemyKilled(other.id);
         other.removeFromParent();

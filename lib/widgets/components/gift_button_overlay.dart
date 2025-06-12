@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+import '../../services/resources_storage.dart';
 import '../common/toast_tip.dart';
 
 // 🎁 奖励冷却时间
@@ -83,20 +84,18 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
       builder: (_) => _GiftPopup(
         isFirstTime: isFirstTime,
         onClaimed: () async {
-          final player = await PlayerStorage.getPlayer();
-          if (player == null) return;
-
+          // ✅ 添加奖励：使用 ResourcesStorage 封装方法
           if (isFirstTime) {
-            player.resources.addBigInt('spiritStoneLow', firstTimeSpiritStone);
-            player.resources.add('recruitTicket', firstTimeTicket);
-            player.resources.add('fateRecruitCharm', firstTimeFateCharm); // ✅ 加入资质券
+            await ResourcesStorage.add('spiritStoneLow', firstTimeSpiritStone);
+            await ResourcesStorage.add('recruitTicket', BigInt.from(firstTimeTicket));
+            await ResourcesStorage.add('fateRecruitCharm', BigInt.from(firstTimeFateCharm));
           } else {
-            player.resources.addBigInt('spiritStoneLow', dailySpiritStone);
-            player.resources.add('recruitTicket', 1);
-            player.resources.add('fateRecruitCharm', 1);
+            await ResourcesStorage.add('spiritStoneLow', dailySpiritStone);
+            await ResourcesStorage.add('recruitTicket', BigInt.one);
+            await ResourcesStorage.add('fateRecruitCharm', BigInt.one);
           }
 
-          await PlayerStorage.savePlayer(player);
+          // ✅ 存储领取时间
           final prefs = await SharedPreferences.getInstance();
           await prefs.setInt('lastClaimedGiftAt', DateTime.now().millisecondsSinceEpoch);
 
@@ -109,6 +108,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
             setState(() {});
           }
 
+          // ✅ 奖励提示
           ToastTip.show(
             context,
             isFirstTime

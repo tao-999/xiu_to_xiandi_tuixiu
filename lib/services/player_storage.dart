@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import '../utils/cultivation_level.dart';
 import 'cultivation_tracker.dart';
 
@@ -100,36 +101,31 @@ class PlayerStorage {
     final h = high ?? BigInt.zero;
     final s = supreme ?? BigInt.zero;
 
-    final player = await getPlayer();
-    if (player == null) {
-      onUpdate?.call();
-      return;
-    }
+    final resLow = await ResourcesStorage.getValue('spiritStoneLow');
+    final resMid = await ResourcesStorage.getValue('spiritStoneMid');
+    final resHigh = await ResourcesStorage.getValue('spiritStoneHigh');
+    final resSupreme = await ResourcesStorage.getValue('spiritStoneSupreme');
 
-    final res = player.resources;
-
-    if (res.spiritStoneLow < l ||
-        res.spiritStoneMid < m ||
-        res.spiritStoneHigh < h ||
-        res.spiritStoneSupreme < s) {
+    if (resLow < l || resMid < m || resHigh < h || resSupreme < s) {
       debugPrint('灵石不足');
       onUpdate?.call();
       return;
     }
 
-    res.spiritStoneLow -= l;
-    res.spiritStoneMid -= m;
-    res.spiritStoneHigh -= h;
-    res.spiritStoneSupreme -= s;
+    // ✅ 扣除灵石
+    await ResourcesStorage.subtract('spiritStoneLow', l);
+    await ResourcesStorage.subtract('spiritStoneMid', m);
+    await ResourcesStorage.subtract('spiritStoneHigh', h);
+    await ResourcesStorage.subtract('spiritStoneSupreme', s);
 
-    await savePlayer(player);
+    // ✅ 添加修为
+    final addedExp = calculateAddedExp(low: l, mid: m, high: h, supreme: s);
+    final player = await getPlayer(); // 这里只是为了获取 currentCultivation + applyBreakthrough，不需要 resources
 
-    final BigInt addedExp = calculateAddedExp(
-      low: l,
-      mid: m,
-      high: h,
-      supreme: s,
-    );
+    if (player == null) {
+      onUpdate?.call();
+      return;
+    }
 
     final beforeLayer = calculateCultivationLevel(player.cultivation).totalLayer;
 

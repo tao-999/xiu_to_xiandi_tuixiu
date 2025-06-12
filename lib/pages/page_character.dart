@@ -79,7 +79,7 @@ class _CharacterPageState extends State<CharacterPage> {
               ),
 
               // 💠 顶部资源栏
-              ResourceBar(player: player),
+              const ResourceBar(),
 
               // 🧘‍♂️ 打坐动画 + 修为进度
               Align(

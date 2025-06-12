@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 import '../constants/aptitude_table.dart';
 
@@ -46,6 +47,7 @@ class AptitudeUpgradeDialog extends StatefulWidget {
 class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
   late Map<String, int> tempElements;
   int tempUsed = 0;
+  int fateCharmCount = 0; // ✅ 独立存储的资质券数量
   Timer? _addTimer;
   Timer? _subTimer;
 
@@ -63,6 +65,16 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
   void initState() {
     super.initState();
     tempElements = Map<String, int>.from(widget.player.elements);
+    _loadFateCharmCount();
+  }
+
+  Future<void> _loadFateCharmCount() async {
+    final val = await ResourcesStorage.getValue('fateRecruitCharm');
+    if (mounted) {
+      setState(() {
+        fateCharmCount = val.toInt();
+      });
+    }
   }
 
   @override
@@ -74,7 +86,7 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final remaining = widget.player.resources.fateRecruitCharm - tempUsed;
+    final remaining = fateCharmCount - tempUsed;
     final totalAptitude = tempElements.values.fold<int>(0, (sum, v) => sum + v);
     final maxAptitudeLimit = getMaxAptitudeLimit();
 
@@ -97,13 +109,11 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
               onTap: tempUsed == 0
                   ? null
                   : () async {
-                widget.player.resources.fateRecruitCharm -= tempUsed;
+                await ResourcesStorage.subtract('fateRecruitCharm', BigInt.from(tempUsed));
                 widget.player.elements = tempElements;
-
                 PlayerStorage.calculateBaseAttributes(widget.player);
 
                 await PlayerStorage.updateFields({
-                  'resources': widget.player.resources.toMap(),
                   'elements': widget.player.elements,
                   'baseHp': widget.player.baseHp,
                   'baseAtk': widget.player.baseAtk,
@@ -171,7 +181,7 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
   }
 
   void _addAptitude(String key) {
-    final remaining = widget.player.resources.fateRecruitCharm - tempUsed;
+    final remaining = fateCharmCount - tempUsed;
     final totalAptitude = tempElements.values.fold<int>(0, (sum, v) => sum + v);
     final maxLimit = getMaxAptitudeLimit();
 

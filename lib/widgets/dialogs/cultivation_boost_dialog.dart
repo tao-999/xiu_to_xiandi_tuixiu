@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
-
-import '../../utils/number_format.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 
 class CultivationBoostDialog extends StatefulWidget {
   final VoidCallback? onUpdated;
@@ -41,17 +40,25 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
   String highStr = '';
   String supremeStr = '';
 
-  late Character player;
+  BigInt lowOwned = BigInt.zero;
+  BigInt midOwned = BigInt.zero;
+  BigInt highOwned = BigInt.zero;
+  BigInt supremeOwned = BigInt.zero;
+
   bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadPlayer();
+    _loadResourceValues();
   }
 
-  Future<void> _loadPlayer() async {
-    player = (await PlayerStorage.getPlayer())!;
+  Future<void> _loadResourceValues() async {
+    lowOwned = await ResourcesStorage.getValue('spiritStoneLow');
+    midOwned = await ResourcesStorage.getValue('spiritStoneMid');
+    highOwned = await ResourcesStorage.getValue('spiritStoneHigh');
+    supremeOwned = await ResourcesStorage.getValue('spiritStoneSupreme');
+
     if (mounted) setState(() => loading = false);
   }
 
@@ -75,7 +82,6 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
       );
     }
 
-    final res = player.resources;
     final estimatedExpFormatted = formatAnyNumber(estimatedExp.toDouble());
 
     return AlertDialog(
@@ -86,25 +92,25 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
         children: [
           StoneInputRow(
             label: '下品灵石',
-            owned: res.spiritStoneLow.toString(),
+            owned: lowOwned.toString(),
             value: lowStr,
             onChanged: (v) => setState(() => lowStr = v),
           ),
           StoneInputRow(
             label: '中品灵石',
-            owned: res.spiritStoneMid.toString(),
+            owned: midOwned.toString(),
             value: midStr,
             onChanged: (v) => setState(() => midStr = v),
           ),
           StoneInputRow(
             label: '上品灵石',
-            owned: res.spiritStoneHigh.toString(),
+            owned: highOwned.toString(),
             value: highStr,
             onChanged: (v) => setState(() => highStr = v),
           ),
           StoneInputRow(
             label: '极品灵石',
-            owned: res.spiritStoneSupreme.toString(),
+            owned: supremeOwned.toString(),
             value: supremeStr,
             onChanged: (v) => setState(() => supremeStr = v),
           ),
@@ -134,10 +140,10 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
               ToastTip.show(context, '灵石少得我都替你脸红');
               return;
             }
-            if (lowBI > player.resources.spiritStoneLow ||
-                midBI > player.resources.spiritStoneMid ||
-                highBI > player.resources.spiritStoneHigh ||
-                supremeBI > player.resources.spiritStoneSupreme) {
+            if (lowBI > lowOwned ||
+                midBI > midOwned ||
+                highBI > highOwned ||
+                supremeBI > supremeOwned) {
               ToastTip.show(context, '灵石不足，无法提升修为');
               return;
             }

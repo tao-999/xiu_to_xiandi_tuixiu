@@ -7,6 +7,9 @@ import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/aptitude_color_util.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 
+import '../../services/player_storage.dart';
+import '../../services/resources_storage.dart';
+
 class DiscipleListDialog extends StatefulWidget {
   final List<Disciple> disciples;
 
@@ -194,9 +197,11 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                           )
                               : InkWell(
                             onTap: () async {
-                              // await DiscipleStorage.removeById(d.id);
-                              // setState(() => widget.disciples.remove(d));
-                              ToastTip.show(context, '${d.name} 已分解成灵气残渣！');
+                              final gained = BigInt.from(d.aptitude * 10);
+                              await ResourcesStorage.add('spiritStoneLow', gained); // ✅ 新资源架构
+                              await DiscipleStorage.removeById(d.id);
+                              setState(() => widget.disciples.remove(d));
+                              ToastTip.show(context, '${d.name} 被分解，获得下品灵石 +$gained');
                             },
                             child: const Text(
                               '分解',

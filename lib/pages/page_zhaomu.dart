@@ -7,6 +7,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/recruit_illustration_wid
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/recruit_action_panel.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/disciple_list_dialog.dart';
 
+import '../services/resources_storage.dart';
+
 class ZhaomuPage extends StatefulWidget {
   const ZhaomuPage({super.key});
 
@@ -28,10 +30,9 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
   }
 
   Future<void> _loadTicketCount() async {
-    final player = await PlayerStorage.getPlayer();
-    final count = player?.resources.recruitTicket ?? 0; // ✅ 使用 int 类型的默认值
+    final countBigInt = await ResourcesStorage.getValue('recruitTicket'); // ✅ 直接用字段名
     setState(() {
-      ticketCount = count;
+      ticketCount = countBigInt.toInt(); // ✅ 转成 int，用于 UI 展示
     });
   }
 

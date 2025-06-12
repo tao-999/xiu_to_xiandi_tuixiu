@@ -15,6 +15,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/five_element_slider_grou
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
 import '../services/cultivation_tracker.dart';
+import '../services/resources_storage.dart';
 import '../widgets/common/toast_tip.dart';
 
 class CreateRolePage extends StatefulWidget {
@@ -51,6 +52,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
+    // 创建角色（不再嵌套 resources）
     final character = Character(
       id: playerId,
       name: nickname,
@@ -83,16 +85,17 @@ class _CreateRolePageState extends State<CreateRolePage> {
         'earth': earth,
       },
       technique: '无',
-      resources: Resources(),
       createdAt: now,
     );
 
-
+    // 写入角色数据（不包含 resources）
     await prefs.setString('playerData', jsonEncode(character.toJson()));
 
-    return character; // ✅ 返回这份角色
-  }
+    // 分开写入初始资源（放 resourcesData）
+    await ResourcesStorage.save(Resources()); // ✅ 初始化资源
 
+    return character;
+  }
   void _updateValue(String element, int value) {
     setState(() {
       switch (element) {

@@ -9,6 +9,8 @@ import 'package:xiu_to_xiandi_tuixiu/services/huanyue_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/tile_manager.dart';
 
+import '../../services/resources_storage.dart';
+
 class HuanyueChestSpawner extends Component {
   final List<List<int>> grid;
   final double tileSize;
@@ -126,19 +128,17 @@ class _HuanyueChestComponent extends SpriteComponent with CollisionCallbacks {
 
       final isAptitudeReward = ((currentFloor ~/ 5) % 2 == 1);
       final rewardKey = isAptitudeReward ? 'fateRecruitCharm' : 'recruitTicket';
-      final reward = isAptitudeReward ? '资质提升券 x1' : '招募券 x1';
+      final rewardTextStr = isAptitudeReward ? '资质提升券 x1' : '招募券 x1';
 
-      // ✅ 给资源 + 存储
-      PlayerStorage.getPlayer().then((player) async {
-        if (player != null) {
-          player.resources.add(rewardKey, 1);
-          await player.resources.saveToStorage();
-          print('📦 奖励后资源快照：${player.resources.toMap()}');
-        }
+      // ✅ 使用独立资源系统发奖励
+      ResourcesStorage.add(rewardKey, BigInt.one).then((_) async {
+        final snapshot = await ResourcesStorage.load();
+        print('📦 奖励后资源快照：${snapshot.toMap()}');
       });
 
+      // ✅ 飘字特效
       final rewardText = TextComponent(
-        text: '🎁 $reward',
+        text: '🎁 $rewardTextStr',
         anchor: Anchor.bottomCenter,
         position: position - Vector2(0, size.y / 2 + 8),
         priority: 999,

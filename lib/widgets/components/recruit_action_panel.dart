@@ -9,6 +9,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/recruit_card_widget.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/disciple_preview_dialog.dart';
 
+import '../../services/resources_storage.dart';
+
 class RecruitActionPanel extends StatefulWidget {
   final VoidCallback? onRecruitFinished;
 
@@ -34,12 +36,9 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
   }
 
   Future<void> _loadAll() async {
-    final player = await PlayerStorage.getPlayer();
-    final count = player?.resources.recruitTicket ?? 0;
+    final count = (await ResourcesStorage.getValue('recruitTicket')).toInt();
     final draws = await DiscipleStorage.getTotalDraws();
     final untilSSR = await DiscipleStorage.getDrawsUntilSSR();
-
-    // ✅ 调用你封装好的函数
     final empty = await isSsrPoolEmpty();
 
     if (mounted) {
@@ -47,22 +46,20 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
         ticketCount = count;
         totalDraws = draws;
         drawsUntilSSR = untilSSR;
-        poolEmpty  = empty;
+        poolEmpty = empty;
       });
     }
   }
 
   Future<void> _doRecruit(int count) async {
-    final player = await PlayerStorage.getPlayer();
-    if (player == null) return;
-
-    if (player.resources.recruitTicket < count) {
+    final ticket = await ResourcesStorage.getValue('recruitTicket');
+    if (ticket < BigInt.from(count)) {
       ToastTip.show(context, '招募券不足，无法招募');
       return;
     }
 
-    player.resources.recruitTicket -= count;
-    await PlayerStorage.savePlayer(player);
+    // ✅ 扣除招募券
+    await ResourcesStorage.subtract('recruitTicket', BigInt.from(count));
     await DiscipleStorage.incrementTotalDraws(count);
 
     final List<Disciple> newList = [];
@@ -93,9 +90,11 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
       drawsUntilSSR -= count;
     }
 
+    // ✅ 更新票数
+    ticketCount = (await ResourcesStorage.getValue('recruitTicket')).toInt();
     totalDraws += count;
-    ticketCount = player.resources.recruitTicket;
-    poolEmpty  = await isSsrPoolEmpty(); // ✅ 刷新状态
+    poolEmpty = await isSsrPoolEmpty();
+
     if (mounted) setState(() {});
 
     showDialog(

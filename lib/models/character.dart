@@ -1,20 +1,16 @@
 import 'package:flutter/cupertino.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
-/// 👤 Character —— 修士角色类（纯数据，不含任何逻辑）
+/// 👤 Character —— 修士角色类（纯数据，不含任何资源）
 class Character {
   final String id;
   String name;
   String gender;
   String career;
 
-  /// ✅ 修为改为 BigInt 类型
   BigInt cultivation;
-
   double cultivationEfficiency;
   int currentMapStage;
 
-  // 拆分基础属性 + 附加属性
   int baseHp;
   int extraHp;
 
@@ -41,8 +37,7 @@ class Character {
   Map<String, int> elements;
   String technique;
 
-  Resources resources;
-  final int createdAt; // 创建时间戳（秒）
+  final int createdAt;
 
   Character({
     required this.id,
@@ -69,7 +64,6 @@ class Character {
     required this.corrosionAura,
     required this.elements,
     required this.technique,
-    required this.resources,
     required this.createdAt,
     this.cultivationEfficiency = 1.0,
     this.currentMapStage = 1,
@@ -80,7 +74,7 @@ class Character {
     'name': name,
     'gender': gender,
     'career': career,
-    'cultivation': cultivation.toString(), // ✅ BigInt 转字符串保存
+    'cultivation': cultivation.toString(),
     'cultivationEfficiency': cultivationEfficiency,
     'currentMapStage': currentMapStage,
     'baseHp': baseHp,
@@ -102,7 +96,6 @@ class Character {
     'corrosionAura': corrosionAura,
     'elements': elements,
     'technique': technique,
-    'resources': resources.toMap(),
     'createdAt': createdAt,
   };
 
@@ -111,7 +104,7 @@ class Character {
     name: json['name'],
     gender: json['gender'],
     career: json['career'],
-    cultivation: BigInt.tryParse(json['cultivation'].toString()) ?? BigInt.zero, // ✅ BigInt 解析
+    cultivation: BigInt.tryParse(json['cultivation'].toString()) ?? BigInt.zero,
     cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
     currentMapStage: json['currentMapStage'] ?? 1,
     baseHp: (json['baseHp'] ?? 100) as int,
@@ -137,7 +130,6 @@ class Character {
       ),
     ),
     technique: json['technique'] ?? '无名功法',
-    resources: Resources.fromMap(json['resources'] ?? {}),
     createdAt: json['createdAt'] ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000),
   );
 
@@ -146,7 +138,7 @@ class Character {
     name: '未命名修士',
     gender: '男',
     career: '散修',
-    cultivation: BigInt.zero, // ✅ 初始化 BigInt.zero
+    cultivation: BigInt.zero,
     cultivationEfficiency: 1.0,
     currentMapStage: 1,
     baseHp: 100,
@@ -174,7 +166,6 @@ class Character {
       'earth': 0,
     },
     technique: '无名功法',
-    resources: Resources(),
     createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
   );
 }
