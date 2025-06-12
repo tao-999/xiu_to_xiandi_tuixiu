@@ -19,6 +19,7 @@ class MapSwitchDialog extends StatefulWidget {
 
 class _MapSwitchDialogState extends State<MapSwitchDialog> {
   int maxStage = 1;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -33,7 +34,6 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
     final exp = player.cultivation;
     final level = calculateCultivationLevel(exp);
 
-    // 计算已解锁的最大地图阶数
     final unlockedStage = ((level.totalLayer - 1) ~/ CultivationConfig.levelsPerRealm + 1)
         .clamp(1, CultivationConfig.realms.length);
 
@@ -42,6 +42,30 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
     setState(() {
       maxStage = unlockedStage;
     });
+
+    // 延迟执行跳转，确保 scrollView 已 attach
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedStageSilently();
+    });
+  }
+
+  void _scrollToSelectedStageSilently() {
+    final itemHeight = 56.0;
+    final viewHeight = 400.0;
+    final offsetCorrection = viewHeight / 2 - itemHeight / 2;
+
+    final rawOffset = (widget.currentStage - 1) * itemHeight;
+    final targetOffset = max(rawOffset - offsetCorrection, 0);
+
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(targetOffset.toDouble());
+    } else {
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(targetOffset.toDouble());
+        }
+      });
+    }
   }
 
   @override
@@ -59,6 +83,7 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
         width: 300,
         height: 400,
         child: ListView.builder(
+          controller: _scrollController,
           itemCount: itemCount,
           itemBuilder: (context, index) {
             final stage = index + 1;

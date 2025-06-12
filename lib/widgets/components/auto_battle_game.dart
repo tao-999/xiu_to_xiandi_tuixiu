@@ -5,6 +5,8 @@ import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/lightning_effect_component.dart';
 
+import '../../utils/number_format.dart';
+
 class AutoBattleGame extends FlameGame {
   final String playerEmojiOrIconPath;
   final bool isAssetImage;
@@ -34,8 +36,10 @@ class AutoBattleGame extends FlameGame {
     add(player);
 
     spawnTimer = Timer(1.5, repeat: true, onTick: () async {
-      for (int i = 0; i < 2; i++) {
-        await _spawnEnemy();
+      if (currentMapStage < 22) {
+        for (int i = 0; i < 2; i++) {
+          await _spawnEnemy();
+        }
       }
     })..start();
 
@@ -71,12 +75,10 @@ class AutoBattleGame extends FlameGame {
     bg?.removeFromParent();
 
     String bgPath;
-    if (stage <= 3) {
-      bgPath = 'assets/images/hell_stage_1_to_3.webp';
-    } else if (stage <= 6) {
-      bgPath = 'assets/images/hell_stage_4_to_6.webp';
+    if (stage >= 1 && stage <= 22) {
+      bgPath = 'assets/images/hell_stage_$stage.webp';
     } else {
-      bgPath = 'assets/images/hell_stage_7_to_9.webp';
+      bgPath = 'assets/images/hell_stage_default.webp';
     }
 
     bg = SpriteComponent()
@@ -90,6 +92,8 @@ class AutoBattleGame extends FlameGame {
   }
 
   Future<void> _spawnEnemy() async {
+    if (currentMapStage >= 22) return;
+
     final imagePath = _getEnemyImagePathByStage(currentMapStage);
     final sprite = await _loadEnemySprite(imagePath);
 
@@ -107,23 +111,23 @@ class AutoBattleGame extends FlameGame {
     final edge = rng.nextInt(4);
     double x, y;
 
-    const double buffer = 30.0; // 出生缓冲距离
-    final playerYLimit = player.position.y - 20; // 不高于主角
+    const double buffer = 30.0;
+    final playerYLimit = player.position.y - 20;
 
     switch (edge) {
-      case 0: // 左侧中下
+      case 0:
         x = -buffer;
         y = rng.nextDouble() * (size.y - playerYLimit) + playerYLimit;
         break;
-      case 1: // 右侧中下
+      case 1:
         x = size.x + buffer;
         y = rng.nextDouble() * (size.y - playerYLimit) + playerYLimit;
         break;
-      case 2: // 左下角
+      case 2:
         x = rng.nextDouble() * (size.x / 3);
         y = size.y + buffer;
         break;
-      case 3: // 右下角
+      case 3:
         x = rng.nextDouble() * (size.x / 3) + (2 * size.x / 3);
         y = size.y + buffer;
         break;
@@ -182,8 +186,8 @@ class AutoBattleGame extends FlameGame {
 
   void _applyHit(PositionComponent target) {
     if (children.contains(target)) {
-      final damage = int.parse('9' * currentMapStage);
-      _showDamageText(target.position, damage: damage);
+      final damageValue = BigInt.from(9) * BigInt.from(10).pow(currentMapStage - 1);
+      _showDamageText(target.position, damage: damageValue);
       enemiesToRemove.add(target);
     }
   }
@@ -198,9 +202,11 @@ class AutoBattleGame extends FlameGame {
     await _loadMap(newStage);
   }
 
-  void _showDamageText(Vector2 pos, {int damage = 0, String? text}) {
+  void _showDamageText(Vector2 pos, {BigInt? damage, String? text}) {
+    final displayText = text ?? '-${formatAnyNumber(damage ?? BigInt.zero)}';
+
     final textComp = TextComponent(
-      text: text ?? '-$damage',
+      text: displayText,
       textRenderer: TextPaint(
         style: const TextStyle(fontSize: 16, color: Colors.white),
       ),
@@ -242,8 +248,10 @@ class AutoBattleGame extends FlameGame {
 
     spawnTimer.stop();
     spawnTimer = Timer(spawnInterval, repeat: true, onTick: () async {
-      for (int i = 0; i < 2; i++) {
-        await _spawnEnemy();
+      if (currentMapStage < 22) {
+        for (int i = 0; i < 2; i++) {
+          await _spawnEnemy();
+        }
       }
     })..start();
   }
