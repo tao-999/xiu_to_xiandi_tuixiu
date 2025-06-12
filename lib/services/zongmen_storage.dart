@@ -88,4 +88,12 @@ class ZongmenStorage {
     final lvl = calcSectLevel(currentExp);
     return requiredExp(lvl + 1);
   }
+
+  /// 给宗门增加经验，自动保存并返回最新对象
+  static Future<Zongmen> addSectExp(Zongmen zongmen, int delta) async {
+    final newExp = zongmen.sectExp + delta;
+    final newZongmen = zongmen.copyWith(sectExp: newExp);
+    await saveZongmen(newZongmen);
+    return newZongmen;
+  }
 }

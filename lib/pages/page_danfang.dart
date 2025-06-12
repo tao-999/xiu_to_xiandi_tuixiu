@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
+import '../widgets/effects/five_star_danfang_array.dart';
 
 class DanfangPage extends StatefulWidget {
   const DanfangPage({super.key});
@@ -13,6 +14,9 @@ class _DanfangPageState extends State<DanfangPage> {
   int outputPerHour = 5;
   int cooldownSeconds = 3600;
   DateTime lastCollectTime = DateTime.now().subtract(const Duration(hours: 1));
+
+  bool isRunning = false;
+  bool hasStarted = false;
 
   @override
   Widget build(BuildContext context) {
@@ -42,16 +46,46 @@ class _DanfangPageState extends State<DanfangPage> {
                       fontFamily: 'ZcoolCangEr',
                     )),
                 const SizedBox(height: 20),
-                _infoRow("当前等级", "$level 级", trailing: const CirclePlusIcon()),
+                _infoRow(
+                  "当前等级",
+                  "$level 级",
+                  trailing: const Icon(Icons.add_circle_outline, color: Colors.orangeAccent, size: 20),
+                ),
                 _infoRow("每小时产出", "$outputPerHour 颗灵药"),
                 _infoRow("冷却状态", isReady ? "可收取" : _formatTime(remaining)),
                 const SizedBox(height: 24),
                 Center(
-                  child: Image.asset(
-                    'assets/images/zongmen_liandanlu.png',
-                    width: 240,
-                    height: 240,
-                    fit: BoxFit.contain,
+                  child: FiveStarDanfangArray(
+                    imagePath: 'assets/images/zongmen_liandanlu.png',
+                    radius: 120,
+                    imageSize: 80,
+                    isRunning: isRunning,
+                    hasStarted: hasStarted,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: Center(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          if (hasStarted) {
+                            // 停止炼丹
+                            hasStarted = false;
+                            isRunning = false;
+                          } else {
+                            // 开始炼丹
+                            hasStarted = true;
+                            isRunning = true;
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(hasStarted ? "结束炼丹" : "开始炼丹"),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -122,56 +156,4 @@ class _DanfangPageState extends State<DanfangPage> {
     final s = (seconds % 60).toString().padLeft(2, '0');
     return "$m 分 $s 秒后可收取";
   }
-}
-
-// ✅ 圆圈 + 号图标
-class CirclePlusIcon extends StatelessWidget {
-  const CirclePlusIcon({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 24,
-      height: 24,
-      child: CustomPaint(
-        painter: _CirclePlusPainter(),
-      ),
-    );
-  }
-}
-
-class _CirclePlusPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.orangeAccent
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 2;
-
-    // 画圆圈
-    canvas.drawCircle(center, radius, paint);
-
-    // 画十字
-    final plusPaint = Paint()
-      ..color = Colors.orangeAccent
-      ..strokeWidth = 2;
-
-    final offset = radius * 0.6;
-    canvas.drawLine(
-      Offset(center.dx - offset, center.dy),
-      Offset(center.dx + offset, center.dy),
-      plusPaint,
-    );
-    canvas.drawLine(
-      Offset(center.dx, center.dy - offset),
-      Offset(center.dx, center.dy + offset),
-      plusPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

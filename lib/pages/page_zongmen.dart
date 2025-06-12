@@ -79,7 +79,15 @@ class _ZongmenPageState extends State<ZongmenPage> {
                 children: [
                   const SizedBox(height: 16),
                   // 宗门名 + 等级 + 经验进度
-                  ZongmenHeaderWidget(zongmen: zongmen!),
+                  ZongmenHeaderWidget(
+                    zongmen: zongmen!,
+                    onAddExp: () async {
+                      final level = ZongmenStorage.calcSectLevel(zongmen!.sectExp);
+                      final addExp = ZongmenStorage.requiredExp(level + 1) - ZongmenStorage.requiredExp(level);
+                      zongmen = await ZongmenStorage.addSectExp(zongmen!, addExp);
+                      setState(() {});
+                    },
+                  ),
                   const SizedBox(height: 24),
                   // 弟子数量卡片
                   _buildZongmenInfoCard(),

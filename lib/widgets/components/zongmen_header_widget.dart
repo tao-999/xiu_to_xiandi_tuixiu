@@ -6,8 +6,13 @@ import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 
 class ZongmenHeaderWidget extends StatelessWidget {
   final Zongmen zongmen;
+  final VoidCallback? onAddExp;
 
-  const ZongmenHeaderWidget({super.key, required this.zongmen});
+  const ZongmenHeaderWidget({
+    super.key,
+    required this.zongmen,
+    this.onAddExp,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +20,11 @@ class ZongmenHeaderWidget extends StatelessWidget {
     final level = ZongmenStorage.calcSectLevel(exp);
     final currentLevelExp = ZongmenStorage.requiredExp(level);
     final nextLevelExp = ZongmenStorage.requiredExp(level + 1);
-    final progress = ((exp - currentLevelExp) / (nextLevelExp - currentLevelExp)).clamp(0.0, 1.0);
+
+    final currentExpInLevel = exp - currentLevelExp;
+    final expNeededForLevelUp = nextLevelExp - currentLevelExp;
+
+    final progress = (currentExpInLevel / expNeededForLevelUp).clamp(0.0, 1.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,13 +48,23 @@ class ZongmenHeaderWidget extends StatelessWidget {
                 color: Colors.orangeAccent.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: Text(
-                'Lv $level',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.orangeAccent,
-                  fontFamily: 'ZcoolCangEr',
-                ),
+              child: Row(
+                children: [
+                  Text(
+                    'Lv $level',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.orangeAccent,
+                      fontFamily: 'ZcoolCangEr',
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  if (onAddExp != null)
+                    GestureDetector(
+                      onTap: onAddExp,
+                      child: const Icon(Icons.add_circle_outline, size: 16, color: Colors.orangeAccent),
+                    ),
+                ],
               ),
             ),
           ],
@@ -77,7 +96,7 @@ class ZongmenHeaderWidget extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          "经验：$exp / $nextLevelExp",
+          "经验：$currentExpInLevel / $expNeededForLevelUp",
           style: const TextStyle(fontSize: 14, color: Colors.white70, fontFamily: 'ZcoolCangEr'),
         ),
       ],

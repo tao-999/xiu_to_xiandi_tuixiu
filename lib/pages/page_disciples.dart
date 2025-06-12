@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_zhaomu.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_disciple_card.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/disciple_limit_info_dialog.dart';
 
 class DiscipleListPage extends StatefulWidget {
   const DiscipleListPage({super.key});
@@ -30,9 +30,8 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
     final zongmen = await ZongmenStorage.loadZongmen();
     int max = 0;
     if (zongmen != null) {
-      // 根据 sectExp 计算等级
       final level = ZongmenStorage.calcSectLevel(zongmen.sectExp);
-      max = 5 * (1 << (level - 1));
+      max = 5 * level;  // 改成等差逻辑
     }
 
     setState(() {
@@ -72,32 +71,9 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
                     const SizedBox(width: 6),
                     GestureDetector(
                       onTap: () {
-                        final zongmen = ZongmenStorage.loadZongmen();
                         showDialog(
                           context: context,
-                          builder: (_) => AlertDialog(
-                            backgroundColor: const Color(0xFFF9F5E3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            content: const Text(
-                              "宗门等级越高，容纳的弟子就越多。\n\n"
-                                  "等级对照表：\n"
-                                  "1级：5人\n"
-                                  "2级：10人\n"
-                                  "3级：20人\n"
-                                  "4级：40人\n"
-                                  "5级：80人\n"
-                                  "6级：160人\n"
-                                  "7级：320人\n"
-                                  "8级：640人\n"
-                                  "9级：1280人",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontFamily: 'ZcoolCangEr',
-                              ),
-                            ),
-                          ),
+                          builder: (_) => const DiscipleLimitInfoDialog(),
                         );
                       },
                       child: const Icon(
@@ -143,8 +119,7 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                const ZhaomuPage(),
+                                builder: (context) => const ZhaomuPage(),
                               ),
                             );
                             _loadDisciples();
