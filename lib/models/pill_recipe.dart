@@ -1,15 +1,13 @@
-enum PillType {
-  attack,
-  defense,
-  health,
-}
+// lib/models/pill_recipe.dart
+
+enum PillType { attack, defense, health }
 
 class PillRecipe {
   final String name;
   final PillType type;
   final int level;
   final String description;
-  final List<String> usageTypes; // 可以是 ['攻击'] 或 ['防御']
+  final List<String> usageTypes;
   final List<String> requirements;
   final int effectValue;
 

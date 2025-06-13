@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
-import '../widgets/effects/five_star_danfang_array.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/danfang_header.dart';
+import '../widgets/effects/five_star_danfang_array.dart'; // ✅ 五芒星阵法组件
 
 class DanfangPage extends StatefulWidget {
   const DanfangPage({super.key});
@@ -11,19 +12,12 @@ class DanfangPage extends StatefulWidget {
 
 class _DanfangPageState extends State<DanfangPage> {
   int level = 1;
-  int outputPerHour = 5;
-  int cooldownSeconds = 3600;
-  DateTime lastCollectTime = DateTime.now().subtract(const Duration(hours: 1));
-
-  bool isRunning = false;
   bool hasStarted = false;
+
+  final GlobalKey<FiveStarAlchemyArrayState> _arrayKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
-    final elapsed = DateTime.now().difference(lastCollectTime).inSeconds;
-    final remaining = cooldownSeconds - elapsed;
-    final isReady = remaining <= 0;
-
     return Scaffold(
       body: Stack(
         children: [
@@ -39,79 +33,65 @@ class _DanfangPageState extends State<DanfangPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 40),
-                Text('🔥 炼丹房',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.orangeAccent,
-                      fontFamily: 'ZcoolCangEr',
-                    )),
-                const SizedBox(height: 20),
-                _infoRow(
-                  "当前等级",
-                  "$level 级",
-                  trailing: const Icon(Icons.add_circle_outline, color: Colors.orangeAccent, size: 20),
+
+                /// ✅ 顶部标题 + 等级 + 加号按钮
+                DanfangHeader(
+                  level: level,
+                  onLevelUp: () {
+                    setState(() {
+                      level += 1;
+                    });
+                  },
                 ),
-                _infoRow("每小时产出", "$outputPerHour 颗灵药"),
-                _infoRow("冷却状态", isReady ? "可收取" : _formatTime(remaining)),
+
                 const SizedBox(height: 24),
+
+                /// ✅ 阵法组件
                 Center(
-                  child: FiveStarDanfangArray(
-                    imagePath: 'assets/images/zongmen_liandanlu.png',
-                    radius: 120,
-                    imageSize: 80,
-                    isRunning: isRunning,
-                    hasStarted: hasStarted,
+                  child: FiveStarAlchemyArray(
+                    key: _arrayKey,
+                    radius: 150,
+                    bigDanluSize: 200,
+                    smallDanluSize: 100,
                   ),
                 ),
+
                 const SizedBox(height: 16),
+
+                /// ✅ 开始/结束炼丹按钮
                 Center(
-                  child: Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          if (hasStarted) {
-                            // 停止炼丹
-                            hasStarted = false;
-                            isRunning = false;
-                          } else {
-                            // 开始炼丹
-                            hasStarted = true;
-                            isRunning = true;
-                          }
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Text(hasStarted ? "结束炼丹" : "开始炼丹"),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        if (hasStarted) {
+                          _arrayKey.currentState?.stop();
+                        } else {
+                          _arrayKey.currentState?.start();
+                        }
+                        hasStarted = !hasStarted;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
                     ),
+                    child: Text(hasStarted ? "结束炼丹" : "开始炼丹"),
                   ),
                 ),
+
                 const SizedBox(height: 32),
+
+                /// ✅ 驻守弟子标题
                 Text("驻守弟子", style: _titleStyle()),
+
                 const SizedBox(height: 12),
+
+                /// ✅ 驻守弟子占位区域
                 _buildDiscipleSlot(),
               ],
             ),
           ),
           const BackButtonOverlay(),
-        ],
-      ),
-    );
-  }
-
-  Widget _infoRow(String label, String value, {Widget? trailing}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Text("$label：", style: const TextStyle(color: Colors.white70, fontFamily: 'ZcoolCangEr')),
-          Text(value, style: const TextStyle(color: Colors.white, fontFamily: 'ZcoolCangEr')),
-          if (trailing != null) ...[
-            const SizedBox(width: 8),
-            trailing,
-          ],
         ],
       ),
     );
@@ -139,21 +119,5 @@ class _DanfangPageState extends State<DanfangPage> {
         ),
       ),
     );
-  }
-
-  void _collectOutput() {
-    setState(() {
-      lastCollectTime = DateTime.now();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("成功收取 5 颗灵药！")),
-    );
-  }
-
-  String _formatTime(int seconds) {
-    final m = (seconds ~/ 60).toString().padLeft(2, '0');
-    final s = (seconds % 60).toString().padLeft(2, '0');
-    return "$m 分 $s 秒后可收取";
   }
 }

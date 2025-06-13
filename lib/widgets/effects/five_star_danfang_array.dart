@@ -1,287 +1,276 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-class FiveStarDanfangArray extends StatefulWidget {
-  final String imagePath;
-  final double radius;
-  final double imageSize;
-  final bool isRunning;
-  final bool hasStarted;
-  final Duration duration;
+enum AlchemyPhase {
+  idle,
+  drawingStarPath,
+  drawingInnerArc,
+  drawingRunes,
+  drawingOuterArc,
+  done,
+  reversing,
+}
 
-  const FiveStarDanfangArray({
+class FiveStarAlchemyArray extends StatefulWidget {
+  final double radius;
+  final double bigDanluSize;   // ✅ 中心丹炉大小
+  final double smallDanluSize; // ✅ 飞出丹炉大小
+
+  const FiveStarAlchemyArray({
     super.key,
-    required this.imagePath,
-    this.radius = 100,
-    this.imageSize = 60,
-    required this.isRunning,
-    required this.hasStarted,
-    this.duration = const Duration(seconds: 6),
+    this.radius = 120,
+    this.bigDanluSize = 90,
+    this.smallDanluSize = 36,
   });
 
   @override
-  State<FiveStarDanfangArray> createState() => _FiveStarDanfangArrayState();
+  FiveStarAlchemyArrayState createState() => FiveStarAlchemyArrayState();
 }
 
-class _FiveStarDanfangArrayState extends State<FiveStarDanfangArray>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  double stoppedAngle = 0.0;
-  List<Offset> lastOrbitPoints = [];
-  bool isDisappearing = false;
+class FiveStarAlchemyArrayState extends State<FiveStarAlchemyArray>
+    with TickerProviderStateMixin {
+  late AnimationController starController;
+  late AnimationController arcController;
+  late AnimationController runeController;
+  late AnimationController outerController;
+  late AnimationController flyController;
+  late AnimationController floatController;
+  late Animation<double> floatAnimation;
+
+  AlchemyPhase phase = AlchemyPhase.idle;
+  List<Animation<Offset>>? flyAnimations;
+  bool hasFiredDanlu = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
 
-    if (widget.isRunning) {
-      _controller.repeat();
-    } else {
-      _controller.value = 0.0;
-    }
+    starController = _ctrl(seconds: 1);
+    arcController = _ctrl(milliseconds: 800);
+    runeController = _ctrl(milliseconds: 800);
+    outerController = _ctrl(milliseconds: 800);
+
+    flyController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..addListener(() => setState(() {}));
+
+    floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    floatAnimation = Tween<double>(begin: -6, end: 6).animate(
+      CurvedAnimation(parent: floatController, curve: Curves.easeInOut),
+    )..addListener(() => setState(() {}));
   }
 
-  @override
-  void didUpdateWidget(covariant FiveStarDanfangArray oldWidget) {
-    super.didUpdateWidget(oldWidget);
+  AnimationController _ctrl({int seconds = 0, int milliseconds = 0}) {
+    return AnimationController(
+      vsync: this,
+      duration: Duration(seconds: seconds, milliseconds: milliseconds),
+    )..addListener(() => setState(() {}));
+  }
 
-    // 旋转控制
-    if (widget.isRunning != oldWidget.isRunning) {
-      if (widget.isRunning) {
-        _controller.repeat();
-      } else {
-        _controller.stop();
-        stoppedAngle = _controller.value * 2 * math.pi;
-      }
-    }
+  Future<void> start() async {
+    setState(() {
+      phase = AlchemyPhase.drawingStarPath;
+      hasFiredDanlu = false;
+    });
 
-    // 收回动画触发
-    if (!widget.hasStarted && oldWidget.hasStarted) {
-      final angle = widget.isRunning
-          ? _controller.value * 2 * math.pi
-          : stoppedAngle;
-      final inner = widget.radius * 0.7;
-      final outer = widget.radius * 0.9;
-      final orbitRadius = (inner + outer) / 2;
+    await starController.forward(from: 0);
+    setState(() => phase = AlchemyPhase.drawingInnerArc);
 
-      setState(() {
-        isDisappearing = true;
-        lastOrbitPoints = _calculateOrbitPoints(orbitRadius, angle);
-      });
+    await arcController.forward(from: 0);
+    setState(() => phase = AlchemyPhase.drawingRunes);
 
-      Future.delayed(const Duration(milliseconds: 600), () {
-        if (mounted) {
-          setState(() {
-            isDisappearing = false;
-            lastOrbitPoints = [];
-          });
-        }
-      });
-    }
+    await runeController.forward(from: 0);
+    setState(() => phase = AlchemyPhase.drawingOuterArc);
+
+    await outerController.forward(from: 0);
+    setState(() => phase = AlchemyPhase.done);
+
+    _launchSmallDanlus();
+    await flyController.forward(from: 0);
+  }
+
+  Future<void> stop() async {
+    setState(() => phase = AlchemyPhase.reversing);
+    await flyController.reverse(from: 1.0);
+    setState(() => hasFiredDanlu = false);
+
+    await outerController.reverse(from: 1.0);
+    await runeController.reverse(from: 1.0);
+    await arcController.reverse(from: 1.0);
+    await starController.reverse(from: 1.0);
+    setState(() => phase = AlchemyPhase.idle);
+  }
+
+  void _launchSmallDanlus() {
+    final r = widget.radius * 0.78;
+    flyAnimations = List.generate(5, (i) {
+      final angle = -math.pi / 2 + i * 2 * math.pi / 5;
+      final target = Offset(r * math.cos(angle), r * math.sin(angle));
+      return Tween<Offset>(begin: Offset.zero, end: target).animate(
+        CurvedAnimation(parent: flyController, curve: Curves.easeOut),
+      );
+    });
+    hasFiredDanlu = true;
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    starController.dispose();
+    arcController.dispose();
+    runeController.dispose();
+    outerController.dispose();
+    flyController.dispose();
+    floatController.dispose();
     super.dispose();
-  }
-
-  List<Offset> _calculateOrbitPoints(double radius, double rotation) {
-    const int points = 5;
-    final angleOffset = -math.pi / 2;
-    final step = 2 * math.pi / points;
-    return List.generate(points, (i) {
-      final angle = angleOffset + step * i + rotation;
-      final x = radius * math.cos(angle);
-      final y = radius * math.sin(angle);
-      return Offset(x, y);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (_, __) {
-        final angle = widget.isRunning
-            ? _controller.value * 2 * math.pi
-            : stoppedAngle;
-
-        final inner = widget.radius * 0.7;
-        final outer = widget.radius * 0.9;
-        final orbitRadius = (inner + outer) / 2;
-        final orbitPoints = _calculateOrbitPoints(orbitRadius, angle);
-
-        return SizedBox(
-          width: widget.radius * 2 + widget.imageSize,
-          height: widget.radius * 2 + widget.imageSize,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // 五芒星图案
-              CustomPaint(
-                size: Size(widget.radius * 2, widget.radius * 2),
-                painter: _FiveStarPainter(rotation: angle),
-              ),
-
-              // 中心丹炉（未开始或已收回）
-              if (!widget.hasStarted && !isDisappearing)
-                Image.asset(
-                  widget.imagePath,
-                  width: widget.imageSize * 2,
-                  height: widget.imageSize * 2,
-                ),
-
-              // 开始炼丹：五个飞出丹炉
-              if (widget.hasStarted)
-                for (int i = 0; i < orbitPoints.length; i++)
-                  TweenAnimationBuilder<Offset>(
-                    tween: Tween<Offset>(
-                      begin: Offset.zero,
-                      end: orbitPoints[i],
-                    ),
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeOutBack,
-                    builder: (_, offset, child) {
-                      return Positioned(
-                        left: widget.radius + offset.dx,
-                        top: widget.radius + offset.dy,
-                        child: child!,
-                      );
-                    },
-                    child: Image.asset(
-                      widget.imagePath,
-                      width: widget.imageSize,
-                      height: widget.imageSize,
-                    ),
-                  ),
-
-              // 结束炼丹：五个丹炉飞回中心
-              if (isDisappearing)
-                for (int i = 0; i < lastOrbitPoints.length; i++)
-                  TweenAnimationBuilder<Offset>(
-                    tween: Tween<Offset>(
-                      begin: lastOrbitPoints[i],
-                      end: Offset.zero,
-                    ),
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeInBack,
-                    builder: (_, offset, child) {
-                      return Positioned(
-                        left: widget.radius + offset.dx,
-                        top: widget.radius + offset.dy,
-                        child: child!,
-                      );
-                    },
-                    child: Image.asset(
-                      widget.imagePath,
-                      width: widget.imageSize,
-                      height: widget.imageSize,
-                    ),
-                  ),
-            ],
+    return SizedBox(
+      width: widget.radius * 2,
+      height: widget.radius * 2,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            painter: _AlchemyPainter(
+              radius: widget.radius,
+              phase: phase,
+              starProgress: starController.value,
+              arcProgress: arcController.value,
+              runeProgress: runeController.value,
+              outerProgress: outerController.value,
+            ),
+            size: Size.square(widget.radius * 2),
           ),
-        );
-      },
+
+          // 🏺 中心大丹炉
+          if (!hasFiredDanlu || phase == AlchemyPhase.reversing)
+            Image.asset(
+              'assets/images/zongmen_liandanlu.png',
+              width: widget.bigDanluSize,
+              height: widget.bigDanluSize,
+            ),
+
+          // 🏺 小丹炉（上下浮动）
+          if (hasFiredDanlu && flyAnimations != null)
+            ...List.generate(5, (i) {
+              final anim = flyAnimations![i].value;
+              final offset = Offset(anim.dx, anim.dy + floatAnimation.value);
+              return Transform.translate(
+                offset: offset,
+                child: Image.asset(
+                  'assets/images/zongmen_liandanlu.png',
+                  width: widget.smallDanluSize,
+                  height: widget.smallDanluSize,
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 }
 
-class _FiveStarPainter extends CustomPainter {
-  final List<String> symbols;
-  final double outerRadiusRatio;
-  final double innerRadiusRatio;
-  final Color circleColor;
-  final Color textColor;
-  final double rotation;
+class _AlchemyPainter extends CustomPainter {
+  final double radius;
+  final AlchemyPhase phase;
+  final double starProgress;
+  final double arcProgress;
+  final double runeProgress;
+  final double outerProgress;
 
-  _FiveStarPainter({
-    this.symbols = const ['✶', '卍', '₪', '☯', '※', 'Ω', '𓂀', '卐', '¤', '♒︎'],
-    this.outerRadiusRatio = 0.9,
-    this.innerRadiusRatio = 0.7,
-    this.circleColor = Colors.orange,
-    this.textColor = Colors.white,
-    this.rotation = 0.0,
+  _AlchemyPainter({
+    required this.radius,
+    required this.phase,
+    required this.starProgress,
+    required this.arcProgress,
+    required this.runeProgress,
+    required this.outerProgress,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = circleColor.withOpacity(0.3)
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()
+      ..color = Colors.orangeAccent
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
-    final Offset center = Offset(size.width / 2, size.height / 2);
-    final double outerRadius = size.width / 2 * outerRadiusRatio;
-    final double innerRadius = size.width / 2 * innerRadiusRatio;
+    final innerR = radius * 0.6;
+    final outerR = radius * 0.9;
+    final middleR = (innerR + outerR) / 2;
 
-    // 加旋转
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(rotation);
-    canvas.translate(-center.dx, -center.dy);
-
-    // 圈圈
-    canvas.drawCircle(center, outerRadius, paint);
-    canvas.drawCircle(center, innerRadius, paint);
-
-    // 五角星路径
-    const int pointCount = 5;
-    final double angleStep = 2 * math.pi / pointCount;
-    final List<Offset> points = [];
-
-    for (int i = 0; i < pointCount; i++) {
-      final angle = -math.pi / 2 + i * angleStep;
-      points.add(Offset(
-        center.dx + innerRadius * math.cos(angle),
-        center.dy + innerRadius * math.sin(angle),
-      ));
-    }
-
-    final starPath = Path();
-    for (int i = 0; i < pointCount; i++) {
-      starPath.moveTo(points[i].dx, points[i].dy);
-      starPath.lineTo(points[(i + 2) % pointCount].dx, points[(i + 2) % pointCount].dy);
-    }
-    canvas.drawPath(starPath, paint);
-
-    // 符文
-    final symbolCount = symbols.length;
-    final double symbolRadius = (outerRadius + innerRadius) / 2;
-    final double anglePerSymbol = 2 * math.pi / symbolCount;
-
-    final textStyle = TextStyle(
-      color: textColor,
-      fontSize: 14,
-      fontFamily: 'ZcoolCangEr',
-    );
-
-    for (int i = 0; i < symbolCount; i++) {
-      final angle = -math.pi / 2 + i * anglePerSymbol;
-      final Offset pos = Offset(
-        center.dx + symbolRadius * math.cos(angle),
-        center.dy + symbolRadius * math.sin(angle),
+    final points = List.generate(5, (i) {
+      final angle = -math.pi / 2 + i * 2 * math.pi / 5;
+      return Offset(
+        center.dx + innerR * math.cos(angle),
+        center.dy + innerR * math.sin(angle),
       );
+    });
 
-      final textPainter = TextPainter(
-        text: TextSpan(text: symbols[i], style: textStyle),
-        textDirection: TextDirection.ltr,
-      )..layout();
+    final path = Path()..moveTo(points[0].dx, points[0].dy);
+    int index = 0;
+    for (int i = 0; i < 5; i++) {
+      index = (index + 2) % 5;
+      path.lineTo(points[index].dx, points[index].dy);
+    }
+    path.close();
 
-      final offset = Offset(
-        pos.dx - textPainter.width / 2,
-        pos.dy - textPainter.height / 2,
-      );
-      textPainter.paint(canvas, offset);
+    if (phase.index >= AlchemyPhase.drawingStarPath.index) {
+      final metric = path.computeMetrics().first;
+      final extract = metric.extractPath(0, metric.length * starProgress);
+      canvas.drawPath(extract, paint);
     }
 
-    canvas.restore(); // 还原旋转
+    if (phase.index >= AlchemyPhase.drawingInnerArc.index) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: innerR),
+        -math.pi / 2,
+        2 * math.pi * arcProgress,
+        false,
+        paint,
+      );
+    }
+
+    if (phase.index >= AlchemyPhase.drawingRunes.index) {
+      final symbols = ['✶', 'Ω', '卍', '₪', '☯', '※', '𓂀', '♒︎'];
+      final textStyle = TextStyle(color: Colors.white, fontSize: 14);
+      for (int i = 0; i < (symbols.length * runeProgress).floor(); i++) {
+        final angle = -math.pi / 2 + i * 2 * math.pi / symbols.length;
+        final pos = Offset(
+          center.dx + middleR * math.cos(angle),
+          center.dy + middleR * math.sin(angle),
+        );
+        final tp = TextPainter(
+          text: TextSpan(text: symbols[i], style: textStyle),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(canvas, Offset(pos.dx - tp.width / 2, pos.dy - tp.height / 2));
+      }
+    }
+
+    if (phase.index >= AlchemyPhase.drawingOuterArc.index) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: outerR),
+        -math.pi / 2,
+        2 * math.pi * outerProgress,
+        false,
+        paint,
+      );
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _AlchemyPainter old) =>
+      starProgress != old.starProgress ||
+          arcProgress != old.arcProgress ||
+          runeProgress != old.runeProgress ||
+          outerProgress != old.outerProgress ||
+          phase != old.phase;
 }
