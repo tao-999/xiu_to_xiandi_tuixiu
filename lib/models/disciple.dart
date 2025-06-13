@@ -2,7 +2,7 @@ class Disciple {
   final String id;
   final String name;
   final String gender;
-  final int age; // 初始年龄
+  final int age;
   final int aptitude;
   final int hp;
   final int atk;
@@ -21,7 +21,10 @@ class Disciple {
   final int? missionEndTimestamp;
   final String imagePath;
 
-  final int? joinedAt; // ✅ 可空！未入宗门时为 null
+  final int? joinedAt;
+
+  /// ✅ 新增：当前驻守房间（如 liandanfang、lianqifang 等）
+  final String? assignedRoom;
 
   Disciple({
     required this.id,
@@ -44,7 +47,8 @@ class Disciple {
     this.isOnMission = false,
     this.missionEndTimestamp,
     this.imagePath = '',
-    this.joinedAt, // ✅ 可选
+    this.joinedAt,
+    this.assignedRoom, // ✅ 新字段
   });
 
   Map<String, dynamic> toMap() {
@@ -69,7 +73,8 @@ class Disciple {
       'isOnMission': isOnMission,
       'missionEndTimestamp': missionEndTimestamp,
       'imagePath': imagePath,
-      'joinedAt': joinedAt, // ✅ 可以为 null
+      'joinedAt': joinedAt,
+      'assignedRoom': assignedRoom, // ✅ 加入 map
     };
   }
 
@@ -95,13 +100,15 @@ class Disciple {
       isOnMission: map['isOnMission'] ?? false,
       missionEndTimestamp: map['missionEndTimestamp'],
       imagePath: map['imagePath'] ?? '',
-      joinedAt: map['joinedAt'], // ✅ 无需兜底
+      joinedAt: map['joinedAt'],
+      assignedRoom: map['assignedRoom'], // ✅ 加入解析
     );
   }
 
   Disciple copyWith({
     int? age,
     int? joinedAt,
+    String? assignedRoom, // ✅ 加回来了
   }) {
     return Disciple(
       id: id,
@@ -125,6 +132,7 @@ class Disciple {
       missionEndTimestamp: missionEndTimestamp,
       imagePath: imagePath,
       joinedAt: joinedAt ?? this.joinedAt,
+      assignedRoom: assignedRoom, // ✅ 传啥用啥，null 就是清除
     );
   }
 }

@@ -10,7 +10,7 @@ class PillIcon extends StatelessWidget {
     super.key,
     required this.type,
     required this.level,
-    this.size = 36,
+    this.size = 32,
   });
 
   @override
@@ -44,7 +44,7 @@ class _PillIconPainter extends CustomPainter {
       colors: [
         color.withOpacity(0.95),
         color.withOpacity(0.7),
-        Colors.black.withOpacity(0.05),
+        color.withOpacity(0.2), // ✅ 外圈也是主色，整体统一
       ],
       stops: const [0.0, 0.6, 1.0],
     );

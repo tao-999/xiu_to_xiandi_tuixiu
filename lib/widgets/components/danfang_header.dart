@@ -7,12 +7,10 @@ import '../../models/pill_recipe.dart';
 
 class DanfangHeader extends StatelessWidget {
   final int level;
-  final VoidCallback onLevelUp;
 
   const DanfangHeader({
     super.key,
     required this.level,
-    required this.onLevelUp,
   });
 
   @override
@@ -35,11 +33,6 @@ class DanfangHeader extends StatelessWidget {
             color: Colors.white,
             fontFamily: 'ZcoolCangEr',
           ),
-        ),
-        const SizedBox(width: 4),
-        GestureDetector(
-          onTap: onLevelUp,
-          child: const Icon(Icons.add_circle_outline, color: Colors.orangeAccent, size: 20),
         ),
         const Spacer(),
         IconButton(
@@ -68,7 +61,6 @@ class DanfangHeader extends StatelessWidget {
         renderBox.size.height,
       );
 
-      // 自动判断方向
       double left = 0;
       double top = 0;
 
@@ -123,75 +115,71 @@ class DanfangHeader extends StatelessWidget {
         insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 20),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: hideTooltip, // ✅ 只关闭气泡，不关闭弹窗
+          onTap: hideTooltip,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: SizedBox(
               width: double.infinity,
               height: 500,
-              child: Scrollbar(
-                thumbVisibility: true,
-                child: ListView(
-                  children: grouped.entries.map((entry) {
-                    final level = entry.key;
-                    final pills = entry.value;
+              child: ListView(
+                children: grouped.entries.map((entry) {
+                  final level = entry.key;
+                  final pills = entry.value;
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '$level阶',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4E342E),
-                              fontFamily: 'ZcoolCangEr',
-                            ),
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$level阶',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF4E342E),
+                            fontFamily: 'ZcoolCangEr',
                           ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 8,
-                            children: pills.map((pill) {
-                              final key = GlobalKey();
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: pills.map((pill) {
+                            final key = GlobalKey();
 
-                              return GestureDetector(
-                                onTap: () {
-                                  final box = key.currentContext?.findRenderObject() as RenderBox?;
-                                  if (box != null) {
-                                    if (tooltipEntry != null) {
-                                      hideTooltip();
-                                    } else {
-                                      showTooltip(context, pill, box);
-                                    }
+                            return GestureDetector(
+                              onTap: () {
+                                final box = key.currentContext?.findRenderObject() as RenderBox?;
+                                if (box != null) {
+                                  if (tooltipEntry != null) {
+                                    hideTooltip();
+                                  } else {
+                                    showTooltip(context, pill, box);
                                   }
-                                },
-                                child: Row(
-                                  key: key,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    PillIcon(type: pill.type, level: pill.level, size: 24),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      pill.name,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: Color(0xFF4E342E),
-                                        fontFamily: 'ZcoolCangEr',
-                                      ),
+                                }
+                              },
+                              child: Row(
+                                key: key,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PillIcon(type: pill.type, level: pill.level, size: 16),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    pill.name,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF4E342E),
+                                      fontFamily: 'ZcoolCangEr',
                                     ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ),
           ),
