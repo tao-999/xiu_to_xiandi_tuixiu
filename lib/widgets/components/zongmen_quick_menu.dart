@@ -4,6 +4,7 @@ import 'package:xiu_to_xiandi_tuixiu/pages/page_danfang.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_cangjingge.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_task_dispatch.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_lianqi.dart';
 
 class ZongmenQuickMenu extends StatelessWidget {
   const ZongmenQuickMenu({super.key});
@@ -15,7 +16,7 @@ class ZongmenQuickMenu extends StatelessWidget {
       ["任务派遣", "renwu", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskDispatchPage()))],
       ["升级宗门", "shengji", () => ToastTip.show(context, "升级功能开发中")],
       ["炼丹房", "liandan", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DanfangPage()))],
-      ["炼器房", "lianqi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DanfangPage()))],
+      ["炼器房", "lianqi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LianqiPage()))],
       ["藏经阁", "gongfa", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CangjinggePage()))],
       ["灵田", "lingtian", () => ToastTip.show(context, "灵田开发中")],
       ["洞天福地", "dongtianfudi", () => ToastTip.show(context, "洞天福地开发中")],

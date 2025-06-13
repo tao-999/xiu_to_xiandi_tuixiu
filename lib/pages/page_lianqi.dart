@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/danfang_header.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/lianqi_header.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zhushou_disciple_slot.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/alchemy_material_selector.dart'; // ✅ 引入新组件
-import '../widgets/effects/five_star_danfang_array.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/refine_material_selector.dart'; // ⛏️ 后续封装组件
 import '../models/zongmen.dart';
 
-class DanfangPage extends StatefulWidget {
-  const DanfangPage({super.key});
+class LianqiPage extends StatefulWidget {
+  const LianqiPage({super.key});
 
   @override
-  State<DanfangPage> createState() => _DanfangPageState();
+  State<LianqiPage> createState() => _LianqiPageState();
 }
 
-class _DanfangPageState extends State<DanfangPage> {
-  final GlobalKey<FiveStarAlchemyArrayState> _arrayKey = GlobalKey();
+class _LianqiPageState extends State<LianqiPage> {
   late Future<Zongmen?> _zongmenFuture;
 
   @override
@@ -41,7 +39,7 @@ class _DanfangPageState extends State<DanfangPage> {
             children: [
               Positioned.fill(
                 child: Image.asset(
-                  'assets/images/zongmen_bg_liandanfang.webp',
+                  'assets/images/zongmen_bg_lianqifang.webp',
                   fit: BoxFit.cover,
                 ),
               ),
@@ -53,29 +51,40 @@ class _DanfangPageState extends State<DanfangPage> {
                     const SizedBox(height: 40),
 
                     /// 顶部标题 + 等级
-                    DanfangHeader(level: level),
+                    LianqiHeader(level: level),
 
                     const SizedBox(height: 24),
 
-                    /// 阵法组件
+                    /// 👇 特效区域空着，等锤子特效上场
                     Center(
-                      child: FiveStarAlchemyArray(
-                        key: _arrayKey,
-                        radius: 150,
-                        bigDanluSize: 200,
-                        smallDanluSize: 100,
+                      child: Container(
+                        width: 200,
+                        height: 120,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          border: Border.all(color: Colors.white24),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          '（此处预留炼器特效）',
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontFamily: 'ZcoolCangEr',
+                          ),
+                        ),
                       ),
                     ),
 
                     const SizedBox(height: 16),
 
-                    /// 材料选择组件（替换原按钮）
-                    const AlchemyMaterialSelector(),
+                    /// 材料选择组件
+                    const RefineMaterialSelector(),
 
                     const SizedBox(height: 16),
 
                     /// 驻守弟子组件
-                    const ZhushouDiscipleSlot(roomName: '炼丹房'),
+                    const ZhushouDiscipleSlot(roomName: '炼器房'),
                   ],
                 ),
               ),

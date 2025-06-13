@@ -4,7 +4,9 @@ import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import '../../utils/aptitude_color_util.dart';
 
 class ZhushouDiscipleSlot extends StatefulWidget {
-  const ZhushouDiscipleSlot({super.key});
+  final String roomName;
+
+  const ZhushouDiscipleSlot({super.key, required this.roomName});
 
   @override
   State<ZhushouDiscipleSlot> createState() => _ZhushouDiscipleSlotState();
@@ -12,7 +14,6 @@ class ZhushouDiscipleSlot extends StatefulWidget {
 
 class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
   Disciple? _selected;
-  final String _roomName = '炼丹房';
 
   @override
   void initState() {
@@ -20,34 +21,26 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
     _loadAssignedDisciple();
   }
 
+  @override
+  void didUpdateWidget(covariant ZhushouDiscipleSlot oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.roomName != widget.roomName) {
+      _loadAssignedDisciple();
+    }
+  }
+
   void _loadAssignedDisciple() async {
-    print('🧪 [ZhushouDiscipleSlot] 加载炼丹房驻守弟子开始');
     final all = await ZongmenStorage.loadDisciples();
 
-    for (final d in all) {
-      print('   - 弟子 ${d.name} => assignedRoom: ${d.assignedRoom}');
-    }
+    final matches = all.where((d) => d.assignedRoom == widget.roomName);
+    final match = matches.isNotEmpty ? matches.first : null;
 
-    Disciple? found;
-    try {
-      found = all.firstWhere((d) => d.assignedRoom == _roomName);
-      print('✅ 找到炼丹房弟子: ${found.name}');
-    } catch (_) {
-      print('⚠️ 没有弟子 assigned 到炼丹房');
-      found = null;
-    }
-
-    if (found != null) {
-      setState(() {
-        _selected = found;
-        print('🎯 已设置 _selected 为: ${_selected!.name}');
-      });
-    }
+    setState(() => _selected = match);
   }
 
   void _removeDisciple() async {
     if (_selected != null) {
-      await ZongmenStorage.removeDiscipleFromRoom(_selected!.id, _roomName);
+      await ZongmenStorage.removeDiscipleFromRoom(_selected!.id, widget.roomName);
       setState(() => _selected = null);
     }
   }
@@ -56,7 +49,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
     final all = await ZongmenStorage.loadDisciples();
     final list = all.where((d) =>
     d.assignedRoom == null ||
-        d.assignedRoom == _roomName ||
+        d.assignedRoom == widget.roomName ||
         d.id == _selected?.id).toList();
 
     showDialog(
@@ -69,9 +62,9 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                '选择驻守弟子',
-                style: TextStyle(fontSize: 16, color: Colors.white, fontFamily: 'ZcoolCangEr'),
+              Text(
+                '选择驻守弟子 - ${widget.roomName}',
+                style: const TextStyle(fontSize: 16, color: Colors.white, fontFamily: 'ZcoolCangEr'),
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -90,12 +83,12 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
                     final isSelected = _selected?.id == d.id;
 
                     return GestureDetector(
-                        onTap: () async {
-                          await ZongmenStorage.setDiscipleAssignedRoom(d.id, _roomName); // ✅ 持久化优先，确保写入成功
-                          setState(() => _selected = d);                                  // ✅ 然后更新 UI
-                          Navigator.pop(context);                                         // ✅ 最后关闭弹窗
-                        },
-                        child: Stack(
+                      onTap: () async {
+                        await ZongmenStorage.setDiscipleAssignedRoom(d.id, widget.roomName);
+                        setState(() => _selected = d);
+                        Navigator.pop(context);
+                      },
+                      child: Stack(
                         children: [
                           Container(
                             decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(
@@ -214,7 +207,6 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
             ),
           ),
         ),
-
         if (_selected != null)
           Positioned(
             top: 0,
@@ -230,11 +222,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
                   border: Border.all(color: Colors.white24),
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
-                  Icons.close,
-                  size: 14,
-                  color: Colors.white70,
-                ),
+                child: const Icon(Icons.close, size: 14, color: Colors.white70),
               ),
             ),
           ),
