@@ -1,4 +1,4 @@
-// lib/services/pills_service.dart
+import 'dart:math';
 
 import '../data/all_pill_recipes.dart';
 import '../models/pill_recipe.dart';
@@ -13,7 +13,7 @@ class PillsService {
 
       for (final entry in pillInfoMap.entries) {
         final PillType type = entry.key;
-        final Map<String, String> info = entry.value[level - 1];
+        final Map<String, String> info = entry.value.first; // ✅ 修复点
         final String namePrefix = info['prefix']!;
         final String description = info['desc']!;
         final int effectValue = _getEffectValue(type, level);
@@ -37,16 +37,27 @@ class PillsService {
     return recipes;
   }
 
-  /// 获取效果值（线性增长）
+  /// 获取效果值
   static int _getEffectValue(PillType type, int level) {
+    double base;
+    double multiplier;
+
     switch (type) {
       case PillType.attack:
-        return 10 * level;
+        base = 10;
+        multiplier = 1.6;
+        break;
       case PillType.defense:
-        return 5 * level;
+        base = 5;
+        multiplier = 1.55;
+        break;
       case PillType.health:
-        return 50 * level;
+        base = 50;
+        multiplier = 1.7;
+        break;
     }
+
+    return (base * pow(multiplier, level - 1)).toInt();
   }
 
   /// 根据类型选取专属第三种药材

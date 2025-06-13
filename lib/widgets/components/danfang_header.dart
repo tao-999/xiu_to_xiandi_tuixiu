@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/pills_service.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/pillInfo_bubble.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/pill_icon.dart';
-
 import '../../models/pill_recipe.dart';
 
 class DanfangHeader extends StatelessWidget {
   final int level;
 
-  const DanfangHeader({
-    super.key,
-    required this.level,
-  });
+  const DanfangHeader({super.key, required this.level});
 
   @override
   Widget build(BuildContext context) {
@@ -140,11 +135,21 @@ class DanfangHeader extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 8,
+                        GridView.count(
+                          crossAxisCount: 3,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.2,
                           children: pills.map((pill) {
                             final key = GlobalKey();
+
+                            final imagePath = switch (pill.type) {
+                              PillType.attack => 'assets/images/danyao_gongji.png',
+                              PillType.defense => 'assets/images/danyao_fangyu.png',
+                              PillType.health => 'assets/images/danyao_xueliang.png',
+                            };
 
                             return GestureDetector(
                               onTap: () {
@@ -157,14 +162,15 @@ class DanfangHeader extends StatelessWidget {
                                   }
                                 }
                               },
-                              child: Row(
+                              child: Column(
                                 key: key,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  PillIcon(type: pill.type, level: pill.level, size: 16),
-                                  const SizedBox(width: 2),
+                                  Image.asset(imagePath, width: 40, height: 40),
+                                  const SizedBox(height: 4),
                                   Text(
                                     pill.name,
+                                    textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Color(0xFF4E342E),
@@ -175,7 +181,7 @@ class DanfangHeader extends StatelessWidget {
                               ),
                             );
                           }).toList(),
-                        ),
+                        )
                       ],
                     ),
                   );
