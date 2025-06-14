@@ -1,7 +1,6 @@
 // lib/widgets/components/recruit_action_panel.dart
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_factory.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_registry.dart';
@@ -10,6 +9,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/disciple_preview_dialog.dart';
 
 import '../../services/resources_storage.dart';
+import '../../utils/shared_prefs_debugger.dart';
 
 class RecruitActionPanel extends StatefulWidget {
   final VoidCallback? onRecruitFinished;
@@ -69,7 +69,8 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
       newList.add(d);
     }
 
-    await DiscipleStorage.addAll(newList);
+    // ✅ 改为逐个保存弟子（每个弟子变成一个 JSON 文件）
+    await Future.wait(newList.map(DiscipleStorage.save));
 
     int? lastSSRIndex;
     for (int i = count - 1; i >= 0; i--) {
@@ -101,7 +102,9 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
       context: context,
       builder: (_) => RecruitCardWidget(disciples: newList),
     );
+
     widget.onRecruitFinished?.call();
+    SharedPrefsDebugger.printPrefsSizeDetail();
   }
 
   @override

@@ -1,13 +1,9 @@
-// lib/widgets/dialogs/disciple_list_dialog.dart
-
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/aptitude_color_util.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
-
-import '../../services/player_storage.dart';
 import '../../services/resources_storage.dart';
 
 class DiscipleListDialog extends StatefulWidget {
@@ -62,7 +58,9 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
   }
 
   List<Disciple> get sortedDisciples {
-    final list = [...widget.disciples];
+    // ✅ 只展示未加入宗门的弟子
+    final list = widget.disciples.where((d) => d.joinedAt == null).toList();
+
     switch (_sortOption) {
       case 'time_asc':
         return list;
@@ -170,20 +168,24 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                               }
 
                               final level = ZongmenStorage.calcSectLevel(zongmen.sectExp);
-                              final current = zongmen.disciples.length;
                               final max = 5 * (1 << (level - 1));
 
-                              if (current >= max) {
+                              final all = await DiscipleStorage.getAll();
+                              final joinedCount = all.where((d) => d.joinedAt != null).length;
+
+                              if (joinedCount >= max) {
                                 ToastTip.show(context, '宗门弟子已满，无法再收人！');
                                 return;
                               }
 
                               final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
                               final updated = d.copyWith(joinedAt: now);
-                              await ZongmenStorage.addDisciple(updated);
-                              await DiscipleStorage.removeById(d.id);
 
-                              setState(() => widget.disciples.remove(d));
+                              await DiscipleStorage.save(updated);             // ✅ 写回 Hive，保持完整数据
+
+                              widget.disciples.removeWhere((e) => e.id == d.id); // ✅ 移除展示
+
+                              if (mounted) setState(() {});
                               ToastTip.show(context, '${d.name} 已加入宗门！');
                             },
                             child: const Text(
@@ -198,9 +200,11 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                               : InkWell(
                             onTap: () async {
                               final gained = BigInt.from(d.aptitude * 10);
-                              await ResourcesStorage.add('spiritStoneLow', gained); // ✅ 新资源架构
-                              await DiscipleStorage.removeById(d.id);
-                              setState(() => widget.disciples.remove(d));
+                              await ResourcesStorage.add('spiritStoneLow', gained);
+                              await DiscipleStorage.delete(d.id);
+                              widget.disciples.removeWhere((e) => e.id == d.id);
+
+                              if (mounted) setState(() {});
                               ToastTip.show(context, '${d.name} 被分解，获得下品灵石 +$gained');
                             },
                             child: const Text(
@@ -226,3 +230,4 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
     );
   }
 }
+

@@ -1,30 +1,76 @@
-class Disciple {
-  final String id;
-  final String name;
-  final String gender;
-  final int age;
-  final int aptitude;
-  final int hp;
-  final int atk;
-  final int def;
-  final String realm;
+// lib/models/disciple.dart
 
-  final int loyalty;
-  final String specialty;
-  final List<String> talents;
-  final int lifespan;
-  final int cultivation;
-  final int breakthroughChance;
-  final List<String> skills;
-  final int fatigue;
-  final bool isOnMission;
-  final int? missionEndTimestamp;
-  final String imagePath;
+import 'package:hive/hive.dart';
 
-  final int? joinedAt;
+part 'disciple.g.dart'; // 自动生成文件
 
-  /// ✅ 新增：当前驻守房间（如 liandanfang、lianqifang 等）
-  final String? assignedRoom;
+@HiveType(typeId: 1)
+class Disciple extends HiveObject {
+  @HiveField(0)
+  String id;
+
+  @HiveField(1)
+  String name;
+
+  @HiveField(2)
+  String gender;
+
+  @HiveField(3)
+  int age;
+
+  @HiveField(4)
+  int aptitude;
+
+  @HiveField(5)
+  int hp;
+
+  @HiveField(6)
+  int atk;
+
+  @HiveField(7)
+  int def;
+
+  @HiveField(8)
+  String realm;
+
+  @HiveField(9)
+  int loyalty;
+
+  @HiveField(10)
+  String specialty;
+
+  @HiveField(11)
+  List<String> talents;
+
+  @HiveField(12)
+  int lifespan;
+
+  @HiveField(13)
+  int cultivation;
+
+  @HiveField(14)
+  int breakthroughChance;
+
+  @HiveField(15)
+  List<String> skills;
+
+  @HiveField(16)
+  int fatigue;
+
+  @HiveField(17)
+  bool isOnMission;
+
+  @HiveField(18)
+  int? missionEndTimestamp;
+
+  @HiveField(19)
+  String imagePath;
+
+  @HiveField(20)
+  int? joinedAt;
+
+  @HiveField(21)
+  String? assignedRoom;
 
   Disciple({
     required this.id,
@@ -48,67 +94,13 @@ class Disciple {
     this.missionEndTimestamp,
     this.imagePath = '',
     this.joinedAt,
-    this.assignedRoom, // ✅ 新字段
+    this.assignedRoom,
   });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'gender': gender,
-      'age': age,
-      'aptitude': aptitude,
-      'hp': hp,
-      'atk': atk,
-      'def': def,
-      'realm': realm,
-      'loyalty': loyalty,
-      'specialty': specialty,
-      'talents': talents,
-      'lifespan': lifespan,
-      'cultivation': cultivation,
-      'breakthroughChance': breakthroughChance,
-      'skills': skills,
-      'fatigue': fatigue,
-      'isOnMission': isOnMission,
-      'missionEndTimestamp': missionEndTimestamp,
-      'imagePath': imagePath,
-      'joinedAt': joinedAt,
-      'assignedRoom': assignedRoom, // ✅ 加入 map
-    };
-  }
-
-  factory Disciple.fromMap(Map<String, dynamic> map) {
-    return Disciple(
-      id: map['id'],
-      name: map['name'],
-      gender: map['gender'],
-      age: map['age'],
-      aptitude: map['aptitude'],
-      hp: map['hp'],
-      atk: map['atk'],
-      def: map['def'],
-      realm: map['realm'],
-      loyalty: map['loyalty'] ?? 100,
-      specialty: map['specialty'] ?? '',
-      talents: List<String>.from(map['talents'] ?? []),
-      lifespan: map['lifespan'] ?? 0,
-      cultivation: map['cultivation'] ?? 0,
-      breakthroughChance: map['breakthroughChance'] ?? 0,
-      skills: List<String>.from(map['skills'] ?? []),
-      fatigue: map['fatigue'] ?? 0,
-      isOnMission: map['isOnMission'] ?? false,
-      missionEndTimestamp: map['missionEndTimestamp'],
-      imagePath: map['imagePath'] ?? '',
-      joinedAt: map['joinedAt'],
-      assignedRoom: map['assignedRoom'], // ✅ 加入解析
-    );
-  }
 
   Disciple copyWith({
     int? age,
     int? joinedAt,
-    String? assignedRoom, // ✅ 加回来了
+    String? assignedRoom,
   }) {
     return Disciple(
       id: id,
@@ -132,7 +124,7 @@ class Disciple {
       missionEndTimestamp: missionEndTimestamp,
       imagePath: imagePath,
       joinedAt: joinedAt ?? this.joinedAt,
-      assignedRoom: assignedRoom, // ✅ 传啥用啥，null 就是清除
+      assignedRoom: assignedRoom,
     );
   }
 }

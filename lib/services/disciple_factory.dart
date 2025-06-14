@@ -3,7 +3,8 @@ import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/name_generator.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/initial_disciple_pool.dart';
+
+import '../data/initial_disciple_pool.dart';
 
 final _rng = Random();
 

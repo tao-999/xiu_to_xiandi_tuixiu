@@ -3,14 +3,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/pages/page_create_role.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/maze_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/chiyangu_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/typewriter_poem_section.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/mengpo_soup_dialog.dart';
 
+import '../services/disciple_storage.dart';
 import '../widgets/components/naihe_info_icon.dart';
 
 class NaiheBridgePage extends StatefulWidget {
@@ -79,18 +78,26 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
       _spinning = true;
     });
 
-    await Future.delayed(const Duration(seconds: 8));
-
+    // ✅ 清空 SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    MazeStorage.clearAllMazeData();
+
+    // ✅ 清空 弟子
+    await DiscipleStorage.clear(); // 清除所有弟子
+
+    // ✅ 停止修炼 tick、清除赤炎谷数据
     CultivationTracker.stopTick();
     ChiyanguStorage.resetPickaxeData();
 
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const CreateRolePage()),
-          (route) => false,
-    );
+    await Future.delayed(const Duration(seconds: 8));
+
+    // ✅ 回到创建角色页
+    if (context.mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const CreateRolePage()),
+            (route) => false,
+      );
+    }
   }
 
   @override

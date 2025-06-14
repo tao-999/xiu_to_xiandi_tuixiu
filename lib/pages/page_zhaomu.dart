@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/recruit_header_widget.dart';
@@ -34,14 +33,6 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
     setState(() {
       ticketCount = countBigInt.toInt(); // ✅ 转成 int，用于 UI 展示
     });
-  }
-
-  void _changePool(String pool) {
-    if (pool == currentPool) return;
-    setState(() {
-      currentPool = pool;
-    });
-    _loadTicketCount();
   }
 
   @override

@@ -1,103 +1,89 @@
-import 'dart:convert';
+// lib/services/disciple_storage.dart
+
+import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
+import '../models/disciple.dart';
 
 class DiscipleStorage {
-  static const _key = 'recruited_disciples';
-  static const _totalDrawsKey = 'total_draws'; // 记录总抽卡次数
-  static const _drawsUntilSSRKey = 'draws_until_ssr'; // 保底抽卡次数
-
-  /// 获取所有已招募弟子
-  static Future<List<Disciple>> getAll() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_key);
-    if (jsonString == null || jsonString.isEmpty) return [];
-    final List<dynamic> decoded = json.decode(jsonString);
-    return decoded.map((e) => Disciple.fromMap(e)).toList();
-  }
-
-  /// 添加新弟子
-  static Future<void> addAll(List<Disciple> list) async {
-    final prefs = await SharedPreferences.getInstance();
-    final existing = await getAll();
-    final updated = [...existing, ...list];
-    final encoded = json.encode(updated.map((e) => e.toMap()).toList());
-    await prefs.setString(_key, encoded);
-  }
-
-  /// 更新某个弟子（根据 id 匹配）
-  static Future<void> update(Disciple d) async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = await getAll();
-    final updated = list.map((e) => e.id == d.id ? d : e).toList();
-    final encoded = json.encode(updated.map((e) => e.toMap()).toList());
-    await prefs.setString(_key, encoded);
-  }
-
-  /// 删除某个弟子（根据 id 匹配）
-  static Future<void> removeById(String id) async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = await getAll();
-    final updated = list.where((e) => e.id != id).toList();
-    final encoded = json.encode(updated.map((e) => e.toMap()).toList());
-    await prefs.setString(_key, encoded);
-  }
-
-  /// 清空所有弟子
-  static Future<void> clear() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_key);
-  }
-
-  /// 获取当前总抽卡次数
-  static Future<int> getTotalDraws() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_totalDrawsKey) ?? 0;
-  }
-
-  /// 增加抽卡次数
-  static Future<void> incrementTotalDraws(int count) async {
-    final prefs = await SharedPreferences.getInstance();
-    int total = prefs.getInt(_totalDrawsKey) ?? 0;
-    total += count;
-    await prefs.setInt(_totalDrawsKey, total);
-  }
-
-  /// 获取当前保底剩余次数
-  static Future<int> getDrawsUntilSSR() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt(_drawsUntilSSRKey) ?? 80;
-  }
-
-  /// 直接设置保底剩余抽数（骚哥用的精准保底更新）
-  static Future<void> setDrawsUntilSSR(int value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_drawsUntilSSRKey, value.clamp(0, 80)); // 限制范围避免负数或超出
-  }
-
-  /// 抽卡后更新保底剩余抽数（仅用于没中SSR时）
-  static Future<void> incrementDrawsUntilSSR(int count, {bool hitSSR = false}) async {
-    final prefs = await SharedPreferences.getInstance();
-    int current = prefs.getInt(_drawsUntilSSRKey) ?? 80;
-
-    if (!hitSSR) {
-      current -= count;
-      if (current <= 0) current = 80; // 到0保底自动触发，重置
-      await prefs.setInt(_drawsUntilSSRKey, current);
-    }
-
-    // 如果 hitSSR 为 true，则不处理（你应该用 setDrawsUntilSSR 外部控制）
-  }
-
+  static const _boxName = 'disciples';
+  static const _metaTotalKey = 'total_draws';
+  static const _metaSSRKey = 'draws_until_ssr';
   static const _sortOptionKey = 'disciple_sort_option';
 
-  // ✅ 保存排序选项
+  static Future<Box<Disciple>> _openBox() async {
+    return await Hive.openBox<Disciple>(_boxName);
+  }
+
+  static Future<void> save(Disciple d) async {
+    final box = await _openBox();
+    await box.put(d.id, d);
+  }
+
+  static Future<Disciple?> load(String id) async {
+    final box = await _openBox();
+    return box.get(id);
+  }
+
+  static Future<void> delete(String id) async {
+    final box = await _openBox();
+    await box.delete(id);
+  }
+
+  static Future<List<Disciple>> getAll() async {
+    final box = await _openBox();
+    return box.values.toList();
+  }
+
+  static Future<void> saveAll(List<Disciple> list) async {
+    final box = await _openBox();
+    final Map<String, Disciple> map = {for (var d in list) d.id: d};
+    await box.putAll(map);
+  }
+
+  static Future<void> clear() async {
+    final box = await _openBox();
+    print("清除前： ${box.length}"); // 打印当前盒子的长度
+    await box.clear();
+    print("清除后： ${box.length}");  // 打印清除后的长度
+  }
+
+  // 抽卡元数据
+  static Future<int> getTotalDraws() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_metaTotalKey) ?? 0;
+  }
+
+  static Future<void> incrementTotalDraws(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getInt(_metaTotalKey) ?? 0;
+    await prefs.setInt(_metaTotalKey, current + count);
+  }
+
+  static Future<int> getDrawsUntilSSR() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_metaSSRKey) ?? 80;
+  }
+
+  static Future<void> setDrawsUntilSSR(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_metaSSRKey, value.clamp(0, 80));
+  }
+
+  static Future<void> incrementDrawsUntilSSR(int count, {bool hitSSR = false}) async {
+    if (hitSSR) return;
+    final prefs = await SharedPreferences.getInstance();
+    int current = prefs.getInt(_metaSSRKey) ?? 80;
+    current -= count;
+    if (current <= 0) current = 80;
+    await prefs.setInt(_metaSSRKey, current);
+  }
+
+  // 排序选项
   static Future<void> saveSortOption(String option) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_sortOptionKey, option);
   }
 
-  // ✅ 读取排序选项，默认返回 'time_desc'
   static Future<String> loadSortOption() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_sortOptionKey) ?? 'time_desc';
