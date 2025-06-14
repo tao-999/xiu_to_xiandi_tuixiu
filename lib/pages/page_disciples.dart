@@ -112,7 +112,7 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 24, vertical: 12),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
+                              borderRadius: BorderRadius.zero,
                             ),
                           ),
                           onPressed: () async {

@@ -21,7 +21,7 @@ class ToastTip {
                 margin: const EdgeInsets.symmetric(horizontal: 32),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.75), // 👈 这里你可以自由控制透明度
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.zero,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black26,

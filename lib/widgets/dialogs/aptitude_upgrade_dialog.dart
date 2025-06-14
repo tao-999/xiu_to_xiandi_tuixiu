@@ -128,8 +128,22 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
                 widget.onUpdated?.call();
               },
               child: InkWell(
-                onTap: tempUsed == 0 ? null : () {
-                  // 执行确认提升逻辑
+                onTap: tempUsed == 0
+                    ? null
+                    : () async {
+                  await ResourcesStorage.subtract('fateRecruitCharm', BigInt.from(tempUsed));
+                  widget.player.elements = tempElements;
+                  PlayerStorage.calculateBaseAttributes(widget.player);
+
+                  await PlayerStorage.updateFields({
+                    'elements': widget.player.elements,
+                    'baseHp': widget.player.baseHp,
+                    'baseAtk': widget.player.baseAtk,
+                    'baseDef': widget.player.baseDef,
+                  });
+
+                  if (context.mounted) Navigator.of(context).pop();
+                  widget.onUpdated?.call();
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

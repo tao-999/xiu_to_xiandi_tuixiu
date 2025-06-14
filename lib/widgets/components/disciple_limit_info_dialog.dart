@@ -8,7 +8,7 @@ class DiscipleLimitInfoDialog extends StatelessWidget {
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
       ),
       content: const Text(
         "宗门等级越高，容纳的弟子就越多。\n\n"

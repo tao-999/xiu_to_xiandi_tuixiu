@@ -95,7 +95,7 @@ class _CangjinggePageState extends State<CangjinggePage> {
       height: 80,
       decoration: BoxDecoration(
         color: Colors.white12,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: Colors.white24),
       ),
       child: const Center(

@@ -8,6 +8,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_chiyangu.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_xianling_qizhen.dart';
 
+import '../../pages/page_market.dart';
 import '../../pages/page_naihe_bridge.dart';
 
 class YouliMapGame extends FlameGame {
@@ -29,7 +30,11 @@ class YouliMapGame extends FlameGame {
       ..position = Vector2(0, screen.y - 2400 * 0.45);
     add(bg);
 
-    await _addEntry('youli_fanchenshiji.png', Vector2(500, 1900));
+    await _addEntry('youli_fanchenshiji.png', Vector2(500, 1900), onTap: () {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const XiuXianMarketPage()),
+      );
+    });
     await _addEntry('youli_huanyueshan.png', Vector2(550, 1300), onTap: () {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const HuanyueExplorePage()),

@@ -135,7 +135,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
         right: 20,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.zero),
           child: Text(
             '下次领取：${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
             style: const TextStyle(color: Colors.white, fontSize: 12),
