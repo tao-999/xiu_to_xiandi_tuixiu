@@ -181,7 +181,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
                       child: PolygonRadarChart(
                         values: [gold, wood, water, fire, earth],
                         labels: ['金', '木', '水', '火', '土'],
-                        max: 15,
+                        max: 14,
                         strokeColor: Colors.black87,
                         fillColor: Colors.teal.withOpacity(0.2),
                         labelStyle: const TextStyle(fontSize: 14, color: Colors.black),
@@ -193,13 +193,8 @@ class _CreateRolePageState extends State<CreateRolePage> {
 
                   /// 启灵按钮
                   Center(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal.shade600,
-                        foregroundColor: Colors.white,
-                        elevation: 4,
-                      ),
-                      onPressed: () async {
+                    child: InkWell(
+                      onTap: () async {
                         if (nickname.trim().isEmpty) return;
                         final character = await _saveRoleData(); // ✅ 获取新角色
                         await CultivationTracker.initWithPlayer(character); // ✅ 启动修为系统
@@ -213,7 +208,24 @@ class _CreateRolePageState extends State<CreateRolePage> {
                               (route) => false,
                         );
                       },
-                      child: const Text("确认启灵"),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.auto_awesome, size: 20, color: Colors.black),
+                            SizedBox(width: 6),
+                            Text(
+                              "确认启灵",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontFamily: 'ZcoolCangEr',
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],

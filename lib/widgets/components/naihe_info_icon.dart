@@ -25,6 +25,9 @@ class NaiheInfoIcon extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFFF9F5E3),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero, // ✅ 重点：直角无圆弧
+        ),
         title: Text(
           title,
           style: const TextStyle(

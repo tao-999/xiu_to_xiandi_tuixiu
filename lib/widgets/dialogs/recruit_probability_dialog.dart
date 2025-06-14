@@ -35,11 +35,11 @@ class RecruitProbabilityDialog {
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFFF9F5E3),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           title: const Text(
             title,
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               color: Colors.black87,
               fontFamily: 'ZcoolCangEr',
             ),
@@ -84,7 +84,7 @@ class RecruitProbabilityDialog {
                   textAlign: TextAlign.left,
                   style: TextStyle(
                     color: Colors.black87,
-                    fontSize: 12,
+                    fontSize: 11,
                     fontFamily: 'ZcoolCangEr',
                   ),
                 ),
@@ -104,7 +104,7 @@ class RecruitProbabilityDialog {
         style: TextStyle(
           color: Colors.black87,
           fontFamily: 'ZcoolCangEr',
-          fontSize: 12,
+          fontSize: 11,
         ),
       ),
     );

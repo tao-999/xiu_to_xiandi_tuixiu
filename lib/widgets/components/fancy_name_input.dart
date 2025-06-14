@@ -63,10 +63,6 @@ class FancyNameInput extends StatelessWidget {
                     color: Color(0xFF5E4B36),
                   ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFD8CFC0), width: 2),
-                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Color(0xFFD8CFC0), width: 2),

@@ -50,7 +50,7 @@ class _ZhaomuPageState extends State<ZhaomuPage> with AutomaticKeepAliveClientMi
             ),
           ),
 
-          // 📍顶部标题 + 池切换
+          // 📍顶部标题
           RecruitHeaderWidget(),
 
           // 🎯 中部按钮 + 招募券

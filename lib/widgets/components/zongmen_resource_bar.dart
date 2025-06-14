@@ -12,10 +12,6 @@ class ZongmenResourceBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -43,7 +39,7 @@ class ZongmenResourceBar extends StatelessWidget {
         Text(
           "$value",
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 12,
             color: Colors.white,
             fontFamily: 'ZcoolCangEr',
           ),

@@ -98,19 +98,17 @@ class CultivatorInfoCard extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFE5D7B8),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE5D7B8), width: 1.5),
+            color: const Color(0xFFE5D7B8).withOpacity(0.6), // 60% 不透明
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('${profile.name} · ${profile.career}',
-                  style: const TextStyle(color: Colors.black, fontSize: 16)),
+                  style: const TextStyle(color: Colors.black, fontSize: 14)),
               const SizedBox(height: 4),
               Text(
                 '战力：${formatAnyNumber(power)}',
-                style: const TextStyle(color: Colors.black, fontSize: 16),
+                style: const TextStyle(color: Colors.black, fontSize: 14),
               ),
               const SizedBox(height: 4),
               Text(
@@ -119,12 +117,12 @@ class CultivatorInfoCard extends StatelessWidget {
                         .where((e) => e.value > 0)
                         .map((e) => '${elementLabels[e.key] ?? e.key}${e.value}')
                         .join('  '),
-                style: const TextStyle(color: Colors.black, fontSize: 16),
+                style: const TextStyle(color: Colors.black, fontSize: 14),
               ),
               const SizedBox(height: 4),
               Text(
                 '资质：$totalElement（${_getAptitudeLabel(totalElement)}）',
-                style: const TextStyle(color: Colors.black, fontSize: 16),
+                style: const TextStyle(color: Colors.black, fontSize: 14),
               ),
             ],
           ),
@@ -136,9 +134,7 @@ class CultivatorInfoCard extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFE5D7B8),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE5D7B8), width: 1.5),
+            color: const Color(0xFFE5D7B8).withOpacity(0.6), // 60% 不透明
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,10 +142,6 @@ class CultivatorInfoCard extends StatelessWidget {
               _buildAttributeRow('气血：${formatAnyNumber(hp)}', '攻击：${formatAnyNumber(atk)}'),
               _buildAttributeRow('防御：${formatAnyNumber(def)}', '攻速：${profile.atkSpeed.toStringAsFixed(2)}秒'),
               _buildAttributeRow('暴击率：${formatPercent(profile.critRate)}', '暴击伤害：${formatPercent(profile.critDamage)}'),
-              _buildAttributeRow('闪避率：${formatPercent(profile.dodgeRate)}', '吸血：${formatPercent(profile.lifeSteal)}'),
-              _buildAttributeRow('破甲：${formatPercent(profile.breakArmorRate)}', '幸运：${formatPercent(profile.luckRate)}'),
-              _buildAttributeRow('连击率：${formatPercent(profile.comboRate)}', '邪气环：${formatPercent(profile.evilAura)}'),
-              _buildAttributeRow('虚弱环：${formatPercent(profile.weakAura)}', '腐蚀环：${formatPercent(profile.corrosionAura)}'),
             ],
           ),
         ),

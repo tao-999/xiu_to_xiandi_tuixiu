@@ -23,7 +23,7 @@ class _CreateZongmenCardState extends State<CreateZongmenCard> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: const Color(0xFFF9F5E3),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.zero,
           boxShadow: const [
             BoxShadow(
               color: Colors.black26,
@@ -35,20 +35,11 @@ class _CreateZongmenCardState extends State<CreateZongmenCard> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              '创建你的宗门',
-              style: TextStyle(
-                fontSize: 20,
-                fontFamily: 'ZcoolCangEr',
-              ),
-            ),
-            const SizedBox(height: 16),
             TextField(
               controller: _controller,
               onChanged: (val) => name = val,
               decoration: InputDecoration(
                 hintText: '请输入宗门名称',
-                border: const OutlineInputBorder(),
                 filled: true,
                 fillColor: Colors.white,
                 suffixIcon: IconButton(
@@ -62,8 +53,8 @@ class _CreateZongmenCardState extends State<CreateZongmenCard> {
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
+            InkWell(
+              onTap: () async {
                 final trimmed = name.trim();
                 final nameWithoutSpaces = trimmed.replaceAll(' ', '');
 
@@ -82,22 +73,18 @@ class _CreateZongmenCardState extends State<CreateZongmenCard> {
                   return;
                 }
 
-                // ✅ 更新职业
                 await PlayerStorage.updateField('career', '$nameWithoutSpaces宗主');
-
                 widget.onConfirm(nameWithoutSpaces);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                '创建宗门',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: 'ZcoolCangEr',
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: const Text(
+                  '创建宗门',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black, // ✅ 黑色文字
+                    fontFamily: 'ZcoolCangEr',
+                  ),
                 ),
               ),
             )

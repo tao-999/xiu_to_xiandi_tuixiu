@@ -51,11 +51,6 @@ class ZongmenQuickMenu extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
-        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

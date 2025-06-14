@@ -116,17 +116,53 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton.icon(
-                onPressed: () => _doRecruit(1),
-                icon: const Icon(Icons.star),
-                label: const Text('招募一次'),
+              InkWell(
+                onTap: () => _doRecruit(1), // 👈 保留点击事件
+                borderRadius: BorderRadius.zero, // 如果你想点击区域也直角
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.star, color: Colors.orange),
+                      SizedBox(width: 6),
+                      Text(
+                        '招募一次',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontFamily: 'ZcoolCangEr',
+                          color: Colors.orange,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
+
               const SizedBox(width: 16),
-              ElevatedButton.icon(
-                onPressed: () => _doRecruit(10),
-                icon: const Icon(Icons.auto_awesome),
-                label: const Text('招募十次'),
+              InkWell(
+                onTap: () => _doRecruit(10),
+                borderRadius: BorderRadius.zero,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.auto_awesome, color: Colors.deepOrange),
+                      SizedBox(width: 6),
+                      Text(
+                        '招募十次',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontFamily: 'ZcoolCangEr',
+                          color: Colors.deepOrange,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
+
             ],
           ),
           const SizedBox(height: 8),
@@ -136,7 +172,7 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
               Text(
                 '招募券：$ticketCount',
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: Colors.white70,
                   fontFamily: 'ZcoolCangEr',
                 ),
@@ -155,7 +191,7 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
               Text(
                 '抽卡次数：$totalDraws',
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   color: Colors.white70,
                   fontFamily: 'ZcoolCangEr',
                 ),
@@ -165,7 +201,7 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
                 Text(
                   '$drawsUntilSSR 抽必出美少女立绘',
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: Colors.white70,
                     fontFamily: 'ZcoolCangEr',
                   ),

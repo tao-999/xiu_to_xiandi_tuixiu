@@ -75,6 +75,7 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
 
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       title: const Text(
         "选择挂机地图",
         style: TextStyle(fontSize: 16),
@@ -101,12 +102,6 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: isSelected ? Colors.green.withOpacity(0.1) : null,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade300),
-                  ),
-                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -121,7 +116,7 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
                             TextSpan(
                               text: '（挂机效率 ×$efficiency）',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: isDisabled
                                     ? Colors.grey.shade400
                                     : Colors.grey,

@@ -151,11 +151,6 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
         onTap: _showGiftDialog,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.amber.withOpacity(0.9),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
-          ),
           child: const Row(
             children: [
               Icon(Icons.card_giftcard, color: Colors.white, size: 20),
@@ -184,35 +179,65 @@ class _GiftPopup extends StatelessWidget {
     return WillPopScope(
       onWillPop: () async => false,
       child: AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('🎁 修仙大礼包', textAlign: TextAlign.center),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text(
+          '🎁 修仙大礼包',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 18), // ✅ 标题字号
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(isFirstTime
-                ? '🧙‍♂️ 欢迎修士踏入仙道，来一份开光大礼包：'
-                : '🌅 修炼辛苦，赠你每日修仙资源：'),
+            Text(
+              isFirstTime
+                  ? '🧙‍♂️ 欢迎修士踏入仙道，来一份开光大礼包'
+                  : '🌅 修炼辛苦，赠你每日修仙资源',
+              style: const TextStyle(fontSize: 14), // ✅ 段落文字字号
+            ),
             const SizedBox(height: 12),
-            Text('💰 下品灵石 ×${isFirstTime ? firstTimeSpiritStone : dailySpiritStone}'),
-            Text('📜 招募券 ×${isFirstTime ? firstTimeTicket : 1}'),
-            Text('🧬 资质提升券 ×${isFirstTime ? firstTimeFateCharm : 1}'),
+
+            Text(
+              '💰 下品灵石 ×${isFirstTime ? firstTimeSpiritStone : dailySpiritStone}',
+              style: const TextStyle(fontSize: 13),
+            ),
+            Text(
+              '📜 招募券 ×${isFirstTime ? firstTimeTicket : 1}',
+              style: const TextStyle(fontSize: 13),
+            ),
+            Text(
+              '🧬 资质提升券 ×${isFirstTime ? firstTimeFateCharm : 1}',
+              style: const TextStyle(fontSize: 13),
+            ),
+
             const SizedBox(height: 16),
-            const Text('请点击下方领取，方可继续修行！', style: TextStyle(color: Colors.red)),
+
+            const Text(
+              '请点击下方领取，方可继续修行！',
+              style: TextStyle(fontSize: 14, color: Colors.red), // ✅ 提示文字也标一下
+            ),
+
             const SizedBox(height: 24),
+
             Center(
-              child: ElevatedButton(
-                onPressed: () {
+              child: InkWell(
+                onTap: () {
                   Navigator.of(context).pop();
                   Future.delayed(Duration.zero, onClaimed);
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.withOpacity(0.5),
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: const Text(
+                    '立即领取',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontFamily: 'ZcoolCangEr',
+                      color: Colors.black,
+                    ),
+                  ),
                 ),
-                child: const Text('立即领取', style: TextStyle(fontSize: 16)),
               ),
-            ),
+            )
           ],
         ),
       ),

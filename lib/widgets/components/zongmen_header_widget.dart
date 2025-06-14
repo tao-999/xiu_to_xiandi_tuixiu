@@ -44,10 +44,6 @@ class ZongmenHeaderWidget extends StatelessWidget {
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.orangeAccent.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(4),
-              ),
               child: Row(
                 children: [
                   Text(

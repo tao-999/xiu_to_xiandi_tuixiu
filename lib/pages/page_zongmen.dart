@@ -136,12 +136,6 @@ class _ZongmenPageState extends State<ZongmenPage> {
 
   Widget _buildZongmenInfoCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.brown.shade200.withOpacity(0.25),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
       child: Text(
         "弟子数量：${disciples.length}",
         style: _infoStyle(),
@@ -151,7 +145,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
 
   TextStyle _infoStyle() {
     return const TextStyle(
-      fontSize: 16,
+      fontSize: 14,
       color: Colors.white70,
       fontFamily: 'ZcoolCangEr',
     );

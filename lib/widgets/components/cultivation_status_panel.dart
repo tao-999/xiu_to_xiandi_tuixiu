@@ -22,11 +22,26 @@ class CultivationStatusPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final realmText = "${display.realm}${display.rank}层";
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // ✅ 称号（不被 Stack 限制）
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(
+            "${display.realm}滔天大修士",
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.black,
+              fontFamily: 'ZcoolCangEr',
+              shadows: [
+                Shadow(blurRadius: 2, offset: Offset(1, 1), color: Colors.black26),
+              ],
+            ),
+          ),
+        ),
+
+        // ✅ 打坐动画 + 灵光
         Stack(
           alignment: Alignment.center,
           children: [
@@ -45,16 +60,15 @@ class CultivationStatusPanel extends StatelessWidget {
               ),
           ],
         ),
+
+        // ✅ 修为进度部分保持原样
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
           child: Column(
             children: [
               Text(
-                realmText,
-                style: const TextStyle(
-                  color: Colors.black54,
-                  fontSize: 16,
-                ),
+                "${display.realm}${display.rank}层",
+                style: const TextStyle(color: Colors.black54, fontSize: 16),
               ),
               const SizedBox(height: 4),
               Text(

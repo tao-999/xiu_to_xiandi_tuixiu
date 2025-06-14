@@ -72,8 +72,10 @@ class AutoBattleGame extends FlameGame {
   }
 
   Future<void> _loadMap(int stage) async {
+    // 🔄 移除旧背景
     bg?.removeFromParent();
 
+    // 🖼️ 选择背景路径
     String bgPath;
     if (stage >= 1 && stage <= 22) {
       bgPath = 'assets/images/hell_stage_$stage.webp';
@@ -81,13 +83,24 @@ class AutoBattleGame extends FlameGame {
       bgPath = 'assets/images/hell_stage_default.webp';
     }
 
+    // 🎨 加载精灵图
+    final sprite = await Sprite.load(bgPath.replaceFirst('assets/images/', ''));
+    final spriteSize = sprite.srcSize;
+
+    // 📐 计算缩放比例（等比铺满，可能裁切）
+    final scaleX = size.x / spriteSize.x;
+    final scaleY = size.y / spriteSize.y;
+    final scale = scaleX > scaleY ? scaleX : scaleY; // ⚠️ 取最大值，保证覆盖全屏
+
+    // 🧱 创建背景组件
     bg = SpriteComponent()
-      ..sprite = await Sprite.load(bgPath.replaceFirst('assets/images/', ''))
-      ..size = size
+      ..sprite = sprite
+      ..size = spriteSize * scale
       ..position = Vector2.zero()
       ..anchor = Anchor.topLeft
       ..priority = -1;
 
+    // ➕ 加入游戏
     add(bg!);
   }
 

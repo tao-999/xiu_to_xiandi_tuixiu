@@ -37,25 +37,15 @@ class WuxingAllocationPanel extends StatelessWidget {
       children: [
         RichText(
           text: TextSpan(
-            style: const TextStyle(fontSize: 14, color: Colors.black),
+            style: const TextStyle(fontFamily: 'ZcoolCangEr'),
             children: [
               const TextSpan(
-                text: '五行天赋分配（上限30，剩余点数：',
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 16,
-                ),
+                text: '五行天赋分配',
+                style: TextStyle(fontSize: 16, color: Colors.black),
               ),
               TextSpan(
-                text: '${maxTotal - currentTotal}',
-                style: TextStyle(
-                  color: Colors.black54,
-                  fontSize: 16,
-                ),
-              ),
-              const TextSpan(
-                text: '）',
+                text: '（上限30，剩余点数：${maxTotal - currentTotal}）',
+                style: const TextStyle(fontSize: 12, color: Colors.black54),
               ),
             ],
           ),
@@ -63,7 +53,7 @@ class WuxingAllocationPanel extends StatelessWidget {
         const SizedBox(height: 12),
         Wrap(
           spacing: 24,
-          runSpacing: 16,
+          runSpacing: 6,
           children: elements.entries.map((entry) {
             final label = entry.key;
             final value = entry.value;
@@ -72,15 +62,22 @@ class WuxingAllocationPanel extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("$label：$value", style: const TextStyle(color: Colors.black)),
+                  Text(
+                    "$label：$value",
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 14, // ✅ 自己调节字号大小
+                      fontFamily: 'ZcoolCangEr', // 可选：统一骚字体
+                    ),
+                  ),
                   Slider(
                     min: 0,
                     max: 15,
                     divisions: 15,
                     label: value.toString(),
                     value: value.toDouble(),
-                    activeColor: Colors.teal,
-                    inactiveColor: Colors.teal.shade100,
+                    activeColor: Colors.black.withOpacity(0.5),
+                    inactiveColor: Colors.black,
                     onChanged: (val) {
                       if (currentTotal - value + val.toInt() <= maxTotal) {
                         onValueChanged(label, val.toInt());

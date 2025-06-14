@@ -14,19 +14,24 @@ class CultivationBoostDialog extends StatefulWidget {
     required BuildContext context,
     VoidCallback? onUpdated,
   }) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.orange,
-        minimumSize: const Size(40, 32),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-      ),
-      onPressed: () {
+    return InkWell(
+      onTap: () {
         showDialog(
           context: context,
           builder: (_) => CultivationBoostDialog(onUpdated: onUpdated),
         );
       },
-      child: const Text("升修为", style: TextStyle(fontSize: 12, color: Colors.white)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Text(
+          "升修为",
+          style: const TextStyle(
+            fontSize: 15,
+            fontFamily: 'ZcoolCangEr',
+            color: Colors.black,
+          ),
+        ),
+      ),
     );
   }
 
@@ -86,7 +91,7 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
 
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
-      title: const Text('消耗灵石提升修为'),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -127,7 +132,8 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFD28C41),
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           ),
           onPressed: () async {
             final lowBI = _parse(lowStr);

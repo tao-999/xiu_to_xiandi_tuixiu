@@ -10,6 +10,7 @@ class ChessPoemDialog extends StatelessWidget {
         return AlertDialog(
           backgroundColor: const Color(0xFFF9F5E3),
           contentPadding: const EdgeInsets.all(20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           content: const SizedBox(
             width: 320,
             child: Column(
@@ -45,7 +46,7 @@ class ChessPoemDialog extends StatelessWidget {
       child: IconButton(
         icon: const Icon(
           Icons.auto_stories,
-          size: 22,
+          size: 20,
           color: Colors.white, // 💡 就是这里！改成你想要的颜色
         ),
         tooltip: '棋阵序诗',

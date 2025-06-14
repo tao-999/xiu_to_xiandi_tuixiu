@@ -82,7 +82,7 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: Container(
         width: double.maxFinite,
         padding: const EdgeInsets.all(16),
@@ -125,9 +125,7 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                   final d = sortedDisciples[index];
                   return Container(
                     margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

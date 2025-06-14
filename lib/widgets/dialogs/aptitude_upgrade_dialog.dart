@@ -21,13 +21,8 @@ class AptitudeUpgradeDialog extends StatefulWidget {
     required Character player,
     VoidCallback? onUpdated,
   }) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.orange,
-        minimumSize: const Size(40, 32),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-      ),
-      onPressed: () async {
+    return InkWell(
+      onTap: () async {
         await showDialog(
           context: context,
           builder: (_) => AptitudeUpgradeDialog(
@@ -36,7 +31,17 @@ class AptitudeUpgradeDialog extends StatefulWidget {
           ),
         );
       },
-      child: const Text("升资质", style: TextStyle(fontSize: 12, color: Colors.white)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Text(
+          "升资质",
+          style: const TextStyle(
+            fontSize: 15,
+            fontFamily: 'ZcoolCangEr',
+            color: Colors.black,
+          ),
+        ),
+      ),
     );
   }
 
@@ -92,15 +97,14 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
 
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
-      contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('✨ 资质：$totalAptitude / $maxAptitudeLimit', style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 4),
-          Text('剩余资质券：$remaining', style: const TextStyle(color: Colors.orange, fontSize: 14)),
+          Text('资质券：$remaining', style: const TextStyle(color: Colors.orange, fontSize: 14)),
           const SizedBox(height: 12),
           ...tempElements.keys.map(_buildAptitudeRow).toList(),
           const SizedBox(height: 12),
@@ -123,17 +127,19 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
                 if (context.mounted) Navigator.of(context).pop();
                 widget.onUpdated?.call();
               },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 10),
-                decoration: BoxDecoration(
-                  color: tempUsed == 0 ? Colors.grey : Colors.orange[400],
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Text(
-                  '☯️ 确认提升',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: tempUsed == 0 ? Colors.black38 : Colors.white,
+              child: InkWell(
+                onTap: tempUsed == 0 ? null : () {
+                  // 执行确认提升逻辑
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    '☯️ 确认提升',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontFamily: 'ZcoolCangEr',
+                      color: tempUsed == 0 ? Colors.black38 : Colors.orange,
+                    ),
                   ),
                 ),
               ),
@@ -150,24 +156,29 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
     final currentValue = tempElements[key] ?? 0;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 72,
-            child: Text('$label：', textAlign: TextAlign.right, style: const TextStyle(fontSize: 14)),
-          ),
-          const SizedBox(width: 8),
+          Text('$label：', style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 4),
           Text('$currentValue', style: const TextStyle(fontSize: 14)),
-          const Spacer(),
-          if (currentValue > baseValue)
-            GestureDetector(
+          const SizedBox(width: 48),
+          Visibility(
+            visible: currentValue > baseValue,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: GestureDetector(
               onTap: () => _subAptitude(key, baseValue),
               onTapDown: (_) => _startSubTimer(key, baseValue),
               onTapUp: (_) => _stopSubTimer(),
               onTapCancel: () => _stopSubTimer(),
               child: const Icon(Icons.remove_circle, size: 20, color: Colors.red),
             ),
+          ),
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => _addAptitude(key),
             onTapDown: (_) => _startAddTimer(key),
@@ -178,6 +189,7 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
         ],
       ),
     );
+
   }
 
   void _addAptitude(String key) {

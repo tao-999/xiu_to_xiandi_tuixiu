@@ -17,8 +17,6 @@ Widget _buildDiscipleAvatar(String aptitude, Set<int> ownedAptitudes) {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.white30),
-          borderRadius: BorderRadius.circular(4),
           image: DecorationImage(
             image: AssetImage('assets/images/$aptitude.png'),
             fit: BoxFit.contain,
@@ -44,7 +42,7 @@ Widget _buildSection(String title, Set<int> ownedAptitudes, int start, int end) 
       Text(
         title,
         style: const TextStyle(
-          fontSize: 16,
+          fontSize: 14,
           color: Colors.white,
         ),
       ),
@@ -71,6 +69,7 @@ Future<void> showDisciplePreviewDialog(BuildContext context) async {
     builder: (context) {
       return Dialog(
         backgroundColor: const Color(0xFF1D1A17),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
