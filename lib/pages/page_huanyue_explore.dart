@@ -69,8 +69,8 @@ class _HuanyueExplorePageState extends State<HuanyueExplorePage> {
 }
 
 class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
-  static const int mapRows = 96;
-  static const int mapCols = 96;
+  static const int mapRows = 72;
+  static const int mapCols = 72;
   static const double tileSize = 16;
 
   final VoidCallback? onReload;
