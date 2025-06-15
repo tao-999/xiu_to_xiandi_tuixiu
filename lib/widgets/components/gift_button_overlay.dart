@@ -1,20 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
-import '../../services/resources_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/gift_service.dart';
 import '../common/toast_tip.dart';
-
-// 🎁 奖励冷却时间
-const Duration giftCooldown = Duration(hours: 24);
-// const Duration giftCooldown = Duration(seconds: 10);
-
-// 🎁 奖励配置（支持 BigInt，但不能 const）
-final BigInt firstTimeSpiritStone = BigInt.parse('1' + '0' * 48);
-final int firstTimeTicket = 50000;
-final int firstTimeFateCharm = 1000; // ✅ 新增：首次资质提升券
-
-final BigInt dailySpiritStone = BigInt.from(8640);
 
 class GiftButtonOverlay extends StatefulWidget {
   final VoidCallback onGiftClaimed;
@@ -38,11 +25,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
   }
 
   Future<void> _loadGiftTime() async {
-    final prefs = await SharedPreferences.getInstance();
-    final ms = prefs.getInt('lastClaimedGiftAt');
-    if (ms != null) {
-      _lastClaimed = DateTime.fromMillisecondsSinceEpoch(ms);
-    }
+    _lastClaimed = await GiftService.getLastClaimedAt();
     _updateRemaining();
     _checking = false;
     _startCountdown();
@@ -54,7 +37,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
       _remaining = Duration.zero;
       return;
     }
-    final nextClaim = _lastClaimed!.add(giftCooldown);
+    final nextClaim = _lastClaimed!.add(GiftService.cooldown);
     final now = DateTime.now();
     _remaining = nextClaim.isAfter(now) ? nextClaim.difference(now) : Duration.zero;
   }
@@ -81,42 +64,87 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _GiftPopup(
-        isFirstTime: isFirstTime,
-        onClaimed: () async {
-          // ✅ 添加奖励：使用 ResourcesStorage 封装方法
-          if (isFirstTime) {
-            await ResourcesStorage.add('spiritStoneLow', firstTimeSpiritStone);
-            await ResourcesStorage.add('recruitTicket', BigInt.from(firstTimeTicket));
-            await ResourcesStorage.add('fateRecruitCharm', BigInt.from(firstTimeFateCharm));
-          } else {
-            await ResourcesStorage.add('spiritStoneLow', dailySpiritStone);
-            await ResourcesStorage.add('recruitTicket', BigInt.one);
-            await ResourcesStorage.add('fateRecruitCharm', BigInt.one);
-          }
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        title: const Text(
+          '🎁 修仙大礼包',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 18),
+        ),
+        content: FutureBuilder<int>(
+          future: GiftService.getClaimCount(),
+          builder: (context, snapshot) {
+            final count = (snapshot.data ?? 0) + 1;
+            final amount = 10000 + (count - 1) * 500;
 
-          // ✅ 存储领取时间
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('lastClaimedGiftAt', DateTime.now().millisecondsSinceEpoch);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isFirstTime
+                      ? '🧙‍♂️ 欢迎修士踏入仙道，来一份开光大礼包'
+                      : '🌅 修炼辛苦，赠你每日修仙资源',
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '💰 下品灵石 ×${isFirstTime ? '1${'0' * 48}' : amount}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                Text(
+                  '📜 招募券 ×${isFirstTime ? 50000 : 1}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                Text(
+                  '🧬 资质提升券 ×${isFirstTime ? 1000 : 1}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '请点击下方领取，方可继续修行！',
+                  style: TextStyle(fontSize: 14, color: Colors.red),
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: InkWell(
+                    onTap: () async {
+                      Navigator.of(context).pop();
 
-          widget.onGiftClaimed();
+                      final result = await GiftService.claimReward();
+                      widget.onGiftClaimed();
 
-          if (mounted) {
-            _lastClaimed = DateTime.now();
-            _updateRemaining();
-            _startCountdown();
-            setState(() {});
-          }
+                      if (mounted) {
+                        _lastClaimed = DateTime.now();
+                        _updateRemaining();
+                        _startCountdown();
+                        setState(() {});
+                      }
 
-          // ✅ 奖励提示
-          ToastTip.show(
-            context,
-            isFirstTime
-                ? '🎁 首次礼包领取成功！\n下品灵石 +$firstTimeSpiritStone\n招募券 +$firstTimeTicket\n资质提升券 +$firstTimeFateCharm'
-                : '🪙 每日修仙奖励：\n下品灵石 +$dailySpiritStone\n招募券 +1\n资质提升券 +1',
-            duration: const Duration(seconds: 3),
-          );
-        },
+                      ToastTip.show(
+                        context,
+                        result.isFirstTime
+                            ? '🎁 首次礼包领取成功！\n下品灵石 +${result.spiritStone}\n招募券 +${result.recruitTicket}\n资质提升券 +${result.fateCharm}'
+                            : '🪙 第 ${result.claimCount} 次修仙礼包：\n下品灵石 +${result.spiritStone}\n招募券 +1\n资质提升券 +1',
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text(
+                        '立即领取',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontFamily: 'ZcoolCangEr',
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -135,7 +163,6 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
         right: 20,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(borderRadius: BorderRadius.zero),
           child: Text(
             '下次领取：${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
             style: const TextStyle(color: Colors.white, fontSize: 12),
@@ -158,87 +185,6 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
               Text('修仙大礼包', style: TextStyle(color: Colors.white, fontSize: 14)),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GiftPopup extends StatelessWidget {
-  final VoidCallback onClaimed;
-  final bool isFirstTime;
-
-  const _GiftPopup({
-    required this.onClaimed,
-    required this.isFirstTime,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async => false,
-      child: AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        title: const Text(
-          '🎁 修仙大礼包',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18), // ✅ 标题字号
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isFirstTime
-                  ? '🧙‍♂️ 欢迎修士踏入仙道，来一份开光大礼包'
-                  : '🌅 修炼辛苦，赠你每日修仙资源',
-              style: const TextStyle(fontSize: 14), // ✅ 段落文字字号
-            ),
-            const SizedBox(height: 12),
-
-            Text(
-              '💰 下品灵石 ×${isFirstTime ? firstTimeSpiritStone : dailySpiritStone}',
-              style: const TextStyle(fontSize: 13),
-            ),
-            Text(
-              '📜 招募券 ×${isFirstTime ? firstTimeTicket : 1}',
-              style: const TextStyle(fontSize: 13),
-            ),
-            Text(
-              '🧬 资质提升券 ×${isFirstTime ? firstTimeFateCharm : 1}',
-              style: const TextStyle(fontSize: 13),
-            ),
-
-            const SizedBox(height: 16),
-
-            const Text(
-              '请点击下方领取，方可继续修行！',
-              style: TextStyle(fontSize: 14, color: Colors.red), // ✅ 提示文字也标一下
-            ),
-
-            const SizedBox(height: 24),
-
-            Center(
-              child: InkWell(
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Future.delayed(Duration.zero, onClaimed);
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: const Text(
-                    '立即领取',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontFamily: 'ZcoolCangEr',
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-              ),
-            )
-          ],
         ),
       ),
     );
