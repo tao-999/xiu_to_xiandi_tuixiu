@@ -1,4 +1,5 @@
 // lib/widgets/components/recruit_action_panel.dart
+
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_factory.dart';
@@ -27,7 +28,9 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
   int ticketCount = 0;
   int totalDraws = 0;
   int drawsUntilSSR = 80;
-  bool poolEmpty  = false; // ✅ 新增：是否已抽光美少女
+  bool poolEmpty = false;
+
+  bool isRecruiting = false; // ✅ 防止连点标识
 
   @override
   void initState() {
@@ -52,59 +55,62 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
   }
 
   Future<void> _doRecruit(int count) async {
-    final ticket = await ResourcesStorage.getValue('recruitTicket');
-    if (ticket < BigInt.from(count)) {
-      ToastTip.show(context, '招募券不足，无法招募');
-      return;
-    }
+    if (isRecruiting) return; // ✅ 阻止重复点击
+    isRecruiting = true;
 
-    // ✅ 扣除招募券
-    await ResourcesStorage.subtract('recruitTicket', BigInt.from(count));
-    await DiscipleStorage.incrementTotalDraws(count);
-
-    final List<Disciple> newList = [];
-    for (int i = 0; i < count; i++) {
-      final d = await DiscipleFactory.generateRandom();
-      await DiscipleRegistry.markOwned(d.aptitude);
-      newList.add(d);
-    }
-
-    // ✅ 改为逐个保存弟子（每个弟子变成一个 JSON 文件）
-    await Future.wait(newList.map(DiscipleStorage.save));
-
-    int? lastSSRIndex;
-    for (int i = count - 1; i >= 0; i--) {
-      final d = newList[i];
-      if (d.aptitude >= 31) {
-        lastSSRIndex = i;
-        break;
+    try {
+      final ticket = await ResourcesStorage.getValue('recruitTicket');
+      if (ticket < BigInt.from(count)) {
+        ToastTip.show(context, '招募券不足，无法招募');
+        return;
       }
+
+      await ResourcesStorage.subtract('recruitTicket', BigInt.from(count));
+      await DiscipleStorage.incrementTotalDraws(count);
+
+      final List<Disciple> newList = [];
+      for (int i = 0; i < count; i++) {
+        final d = await DiscipleFactory.generateRandom();
+        await DiscipleRegistry.markOwned(d.aptitude);
+        newList.add(d);
+      }
+
+      await Future.wait(newList.map(DiscipleStorage.save));
+
+      int? lastSSRIndex;
+      for (int i = count - 1; i >= 0; i--) {
+        if (newList[i].aptitude >= 31) {
+          lastSSRIndex = i;
+          break;
+        }
+      }
+
+      if (lastSSRIndex != null) {
+        final afterSSR = count - lastSSRIndex - 1;
+        final resetValue = 80 - afterSSR;
+        await DiscipleStorage.setDrawsUntilSSR(resetValue);
+        drawsUntilSSR = resetValue;
+      } else {
+        await DiscipleStorage.incrementDrawsUntilSSR(count, hitSSR: false);
+        drawsUntilSSR -= count;
+      }
+
+      ticketCount = (await ResourcesStorage.getValue('recruitTicket')).toInt();
+      totalDraws += count;
+      poolEmpty = await isSsrPoolEmpty();
+
+      if (mounted) setState(() {});
+
+      showDialog(
+        context: context,
+        builder: (_) => RecruitCardWidget(disciples: newList),
+      );
+
+      widget.onRecruitFinished?.call();
+      SharedPrefsDebugger.printPrefsSizeDetail();
+    } finally {
+      isRecruiting = false; // ✅ 解锁
     }
-
-    if (lastSSRIndex != null) {
-      final afterSSR = count - lastSSRIndex - 1;
-      final resetValue = 80 - afterSSR;
-      await DiscipleStorage.setDrawsUntilSSR(resetValue);
-      drawsUntilSSR = resetValue;
-    } else {
-      await DiscipleStorage.incrementDrawsUntilSSR(count, hitSSR: false);
-      drawsUntilSSR -= count;
-    }
-
-    // ✅ 更新票数
-    ticketCount = (await ResourcesStorage.getValue('recruitTicket')).toInt();
-    totalDraws += count;
-    poolEmpty = await isSsrPoolEmpty();
-
-    if (mounted) setState(() {});
-
-    showDialog(
-      context: context,
-      builder: (_) => RecruitCardWidget(disciples: newList),
-    );
-
-    widget.onRecruitFinished?.call();
-    SharedPrefsDebugger.printPrefsSizeDetail();
   }
 
   @override
@@ -117,8 +123,8 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               InkWell(
-                onTap: () => _doRecruit(1), // 👈 保留点击事件
-                borderRadius: BorderRadius.zero, // 如果你想点击区域也直角
+                onTap: () => _doRecruit(1),
+                borderRadius: BorderRadius.zero,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
@@ -138,7 +144,6 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
                   ),
                 ),
               ),
-
               const SizedBox(width: 16),
               InkWell(
                 onTap: () => _doRecruit(10),
@@ -162,7 +167,6 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
                   ),
                 ),
               ),
-
             ],
           ),
           const SizedBox(height: 8),
@@ -213,4 +217,3 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
     );
   }
 }
-

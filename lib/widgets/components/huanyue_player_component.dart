@@ -13,13 +13,12 @@ import 'huanyue_enemy_spawner.dart';
 import 'huanyue_door_component.dart';
 
 class HuanyuePlayerComponent extends SpriteComponent
-    with CollisionCallbacks, HasGameRef {
+    with CollisionCallbacks, HasGameReference {
   final double tileSize;
   final List<List<int>> grid;
 
   List<Vector2> _path = [];
   int _currentStep = 0;
-  final double _moveSpeed = 200;
   int playerPower = 1;
 
   final VoidCallback? onEnterDoor;
@@ -29,10 +28,13 @@ class HuanyuePlayerComponent extends SpriteComponent
 
   bool hasTriggeredEnter = false;
   bool hintCooldown = false;
-  bool _isFacingLeft = false; // ✅ 当前朝向
+  bool _isFacingLeft = false;
 
   late TextComponent powerText;
   late final Future<void> Function() _onPowerUpdate;
+
+  // ✅ 新增速度逻辑
+  double get _currentMoveSpeed => 200 + currentFloor * 0.1;
 
   HuanyuePlayerComponent({
     required this.tileSize,
@@ -54,7 +56,7 @@ class HuanyuePlayerComponent extends SpriteComponent
     size = Vector2.all(tileSize * multiplier);
 
     final gender = await PlayerStorage.getField<String>('gender') ?? 'male';
-    sprite = await gameRef.loadSprite(
+    sprite = await game.loadSprite(
       gender == 'female' ? 'icon_youli_female.png' : 'icon_youli_male.png',
     );
     add(RectangleHitbox());
@@ -90,10 +92,7 @@ class HuanyuePlayerComponent extends SpriteComponent
     };
 
     EventBus.on('powerUpdated', _onPowerUpdate);
-
-    Future.microtask(() async {
-      await _onPowerUpdate();
-    });
+    Future.microtask(() async => await _onPowerUpdate());
 
     final gridPos = gridPosition;
     tileManager.occupy(gridPos.x.toInt(), gridPos.y.toInt(), 2, 2);
@@ -117,6 +116,19 @@ class HuanyuePlayerComponent extends SpriteComponent
           .map((p) => p * tileSize + Vector2.all(tileSize / 2))
           .toList();
       _currentStep = 0;
+
+      // ✅ 提前判断方向
+      for (int i = 0; i < _path.length; i++) {
+        final dir = _path[i] - position;
+        if (dir.x.abs() > 1e-3) {
+          final shouldFaceLeft = dir.x < 0;
+          if (shouldFaceLeft != _isFacingLeft) {
+            flipHorizontally();
+            _isFacingLeft = shouldFaceLeft;
+          }
+          break;
+        }
+      }
     }
   }
 
@@ -135,9 +147,8 @@ class HuanyuePlayerComponent extends SpriteComponent
     final target = _path[_currentStep];
     final dir = target - position;
     final distance = dir.length;
-    final move = dir.normalized() * _moveSpeed * dt;
+    final move = dir.normalized() * _currentMoveSpeed * dt;
 
-    // ✅ 判断左右方向并翻转角色图像
     if (dir.x.abs() > 1e-3) {
       final shouldFaceLeft = dir.x < 0;
       if (shouldFaceLeft != _isFacingLeft) {
@@ -175,9 +186,7 @@ class HuanyuePlayerComponent extends SpriteComponent
         _triggerExplosion(other.position);
         _showRewardText('+${other.reward} 下品灵石', other.position);
 
-        // ✅ 使用 ResourcesStorage 发奖励
         await ResourcesStorage.add('spiritStoneLow', BigInt.from(other.reward));
-
         HuanyueStorage.markEnemyKilled(other.id);
         other.removeFromParent();
       } else {
@@ -197,7 +206,6 @@ class HuanyuePlayerComponent extends SpriteComponent
         if (!hintCooldown) {
           hintCooldown = true;
           _showHintText('清光怪物和宝箱才能进入下一层', position);
-
           Future.delayed(const Duration(seconds: 1), () {
             hintCooldown = false;
           });
@@ -218,11 +226,9 @@ class HuanyuePlayerComponent extends SpriteComponent
       paint: Paint()..color = Colors.orange,
       priority: 998,
     );
-
     Future.delayed(const Duration(milliseconds: 300), () {
       explosion.removeFromParent();
     });
-
     parent?.add(explosion);
   }
 
