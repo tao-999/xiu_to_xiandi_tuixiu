@@ -108,23 +108,36 @@ class CultivationTracker {
     if (player == null) return;
 
     final aptitude = PlayerStorage.calculateTotalElement(player.elements);
-    final BigInt maxExp = getMaxExpByAptitude(aptitude); // 👈 应该是 totalExpToLevel(apt + 1)
+    final BigInt maxExp = getMaxExpByAptitude(aptitude);
 
     final BigInt current = player.cultivation;
     final BigInt capped = current + addedExp;
 
-    // ✅ 修正裁切方式：允许等于 maxExp，不能再超
-    player.cultivation = capped > maxExp ? maxExp : capped;
+    // ✅ 修为不能超过 maxExp
+    final newCultivation = capped > maxExp ? maxExp : capped;
+    player.cultivation = newCultivation;
 
-    // 🧠 检查是否突破
+    // 🧠 记录旧层数，判断是否突破
     final oldLayer = calculateCultivationLevel(current).totalLayer;
-    final newLayer = calculateCultivationLevel(player.cultivation).totalLayer;
+    final newLayer = calculateCultivationLevel(newCultivation).totalLayer;
+
+    final Map<String, dynamic> updatedFields = {
+      'cultivation': newCultivation.toString(), // ⚠️ BigInt → String
+    };
 
     if (newLayer > oldLayer) {
-      PlayerStorage.calculateBaseAttributes(player); // 重新计算属性
+      PlayerStorage.calculateBaseAttributes(player);
+
+      updatedFields.addAll({
+        'baseHp': player.baseHp,
+        'baseAtk': player.baseAtk,
+        'baseDef': player.baseDef,
+      });
+
+      debugPrint('🎉 safeAddExp → 突破成功！层数 $oldLayer → $newLayer');
     }
 
-    await PlayerStorage.savePlayer(player);
+    await PlayerStorage.updateFields(updatedFields); // ✅ 精准保存修为 + 属性
     startGlobalTick();
     onUpdate?.call();
   }

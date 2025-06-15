@@ -35,12 +35,6 @@ class PlayerStorage {
     return Character.fromJson(jsonDecode(raw));
   }
 
-  /// 全量覆盖 playerData（慎用）
-  static Future<void> savePlayer(Character player) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_playerKey, jsonEncode(player.toJson()));
-  }
-
   /// 读取 playerData 中指定字段（返回 int，默认 0）
   static Future<int> getIntField(String key) async {
     final prefs = await SharedPreferences.getInstance();
@@ -160,10 +154,15 @@ class PlayerStorage {
     if (afterLayer > beforeLayer) {
       debugPrint('🎉 玩家突破成功！层数 $beforeLayer → $afterLayer');
 
-      // ✅ 统一刷新属性（考虑每10层翻倍 + 资质倍率）
+      // ✅ 重新计算属性
       calculateBaseAttributes(player);
 
-      await savePlayer(player);
+      // ✅ 精准保存基础属性字段
+      await updateFields({
+        'baseHp': player.baseHp,
+        'baseAtk': player.baseAtk,
+        'baseDef': player.baseDef,
+      });
     }
   }
 
