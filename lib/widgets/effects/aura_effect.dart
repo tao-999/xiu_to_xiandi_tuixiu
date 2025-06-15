@@ -6,7 +6,7 @@ import 'package:flame/game.dart';
 import 'package:flame/particles.dart';
 import 'package:flame/extensions.dart';
 
-class AuraCloudEffect extends PositionComponent with HasGameRef<FlameGame> {
+class AuraCloudEffect extends PositionComponent with HasGameReference<FlameGame> {
   late Timer _timer;
   final int density;
   final double interval;
@@ -26,7 +26,7 @@ class AuraCloudEffect extends PositionComponent with HasGameRef<FlameGame> {
 
   void _spawnParticles() {
     final rand = Random();
-    final rect = gameRef.camera.visibleWorldRect;
+    final rect = game.camera.visibleWorldRect;
 
     final colors = [
       Colors.white.withOpacity(0.5),
@@ -56,7 +56,7 @@ class AuraCloudEffect extends PositionComponent with HasGameRef<FlameGame> {
         ),
       );
 
-      gameRef.add(ParticleSystemComponent(particle: particle));
+      game.add(ParticleSystemComponent(particle: particle));
     }
   }
 

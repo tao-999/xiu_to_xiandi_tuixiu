@@ -5,15 +5,17 @@ import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/chiyangu_storage.dart';
+import '../../services/resources_storage.dart';
 import '../common/toast_tip.dart';
 import 'pickaxe_effect_component.dart';
 import 'chiyangu_game.dart';
 
 class RockCellComponent extends PositionComponent
-    with TapCallbacks, HasGameRef<ChiyanguGame> {
+    with TapCallbacks, HasGameReference<ChiyanguGame> {
   final String gridKey;
   bool broken = false;
   int hitCount = 0;
+  bool isProcessingTap = false; // ✅ 防止连点重复扣锄头
 
   SpriteComponent? rockSprite;
   SpriteComponent? crackOverlay;
@@ -46,7 +48,7 @@ class RockCellComponent extends PositionComponent
   }
 
   Future<void> _setNormalSprite() async {
-    final sprite = await gameRef.loadSprite('chiyangu_shitou.webp');
+    final sprite = await game.loadSprite('chiyangu_shitou.webp');
     rockSprite?.removeFromParent();
     rockSprite = SpriteComponent(sprite: sprite, size: size);
     add(rockSprite!);
@@ -54,34 +56,36 @@ class RockCellComponent extends PositionComponent
 
   Future<void> _addCrackOverlay() async {
     if (crackOverlay != null) return;
-    final sprite = await gameRef.loadSprite('chiyangu_shitou_liefeng.png');
+    final sprite = await game.loadSprite('chiyangu_shitou_liefeng.png');
     crackOverlay = SpriteComponent(sprite: sprite, size: size);
     add(crackOverlay!);
   }
 
   @override
   void onTapDown(TapDownEvent event) async {
-    if (broken || gameRef.isShifting) return;
-    if (!gameRef.canBreak(gridKey)) return;
+    if (broken || game.isShifting || isProcessingTap) return;
+    if (!game.canBreak(gridKey)) return;
 
-    // ✅ 检查锄头数量
+    isProcessingTap = true;
+
     final count = await ChiyanguStorage.getPickaxeCount();
     if (count <= 0) {
-      ToastTip.show(gameRef.buildContext!, '⛏️ 你的锄头已经用完了！');
+      ToastTip.show(game.buildContext!, '⛏️ 你的锄头已经用完了！');
+      isProcessingTap = false;
       return;
     }
 
-    // ✅ 扣除锄头
     await ChiyanguStorage.consumePickaxe();
 
-    gameRef.lastTappedKey = gridKey;
+    game.lastTappedKey = gridKey;
     final globalClick = absolutePosition + size / 2;
 
-    gameRef.add(PickaxeEffectComponent(
+    game.add(PickaxeEffectComponent(
       targetPosition: globalClick,
       onFinish: () async {
         await Future.delayed(const Duration(milliseconds: 500));
         _onPickaxeStrike(event.localPosition, shouldShift: true);
+        isProcessingTap = false;
       },
     ));
   }
@@ -93,7 +97,7 @@ class RockCellComponent extends PositionComponent
 
   void _onPickaxeStrike(Vector2 clickPoint, {required bool shouldShift}) {
     hitCount++;
-    gameRef.saveCurrentState(); // ✅ 每次敲击后保存状态
+    game.saveCurrentState();
 
     if (hitCount == 1) {
       _addCrackOverlay();
@@ -109,52 +113,19 @@ class RockCellComponent extends PositionComponent
 
     final debris = _createShatteredDebris();
     for (final frag in debris) {
-      gameRef.add(frag);
+      game.add(frag);
     }
 
-    gameRef.add(_showSpiritStoneReward(absolutePosition + size / 2));
+    // ✅ 发奖励：根据当前深度加下品灵石
+    final depth = ChiyanguGame.depthNotifier.value;
+    ResourcesStorage.add('spiritStoneLow', BigInt.from(depth));
+
+    // ✅ 展示飘字
+    game.add(_showSpiritStoneReward(absolutePosition + size / 2));
 
     if (shouldShift) {
-      gameRef.tryShiftIfNeeded(gridKey, onlyIfTapped: true);
+      game.tryShiftIfNeeded(gridKey, onlyIfTapped: true);
     }
-  }
-
-  List<Component> _createShatteredDebris() {
-    final fragments = <Component>[];
-    final count = 5 + Random().nextInt(3);
-    final polygons = _generateShatteredPolygons(size, count);
-
-    for (int i = 0; i < polygons.length; i++) {
-      final frag = PolygonComponent(
-        polygons[i],
-        paint: Paint()..color = const Color(0xFF555555),
-        position: absolutePosition,
-        anchor: Anchor.topLeft,
-      );
-
-      final delay = i * 0.05;
-      final targetY = gameRef.size.y + 100;
-      final randomX = (Random().nextDouble() - 0.5) * 60;
-
-      frag.add(MoveEffect.to(
-        Vector2(frag.x + randomX, targetY),
-        EffectController(
-          duration: 1.2,
-          startDelay: delay,
-          curve: Curves.easeIn,
-        ),
-        onComplete: () => frag.removeFromParent(), // ✅ 注意这里改位置了
-      ));
-
-      frag.add(RotateEffect.by(
-        (Random().nextDouble() - 0.5) * pi / 2,
-        EffectController(duration: 1.2),
-      ));
-
-      fragments.add(frag);
-    }
-
-    return fragments;
   }
 
   Component _showSpiritStoneReward(Vector2 pos) {
@@ -178,6 +149,44 @@ class RockCellComponent extends PositionComponent
     );
 
     return text;
+  }
+
+  List<Component> _createShatteredDebris() {
+    final fragments = <Component>[];
+    final count = 5 + Random().nextInt(3);
+    final polygons = _generateShatteredPolygons(size, count);
+
+    for (int i = 0; i < polygons.length; i++) {
+      final frag = PolygonComponent(
+        polygons[i],
+        paint: Paint()..color = const Color(0xFF555555),
+        position: absolutePosition,
+        anchor: Anchor.topLeft,
+      );
+
+      final delay = i * 0.05;
+      final targetY = game.size.y + 100;
+      final randomX = (Random().nextDouble() - 0.5) * 60;
+
+      frag.add(MoveEffect.to(
+        Vector2(frag.x + randomX, targetY),
+        EffectController(
+          duration: 1.2,
+          startDelay: delay,
+          curve: Curves.easeIn,
+        ),
+        onComplete: () => frag.removeFromParent(),
+      ));
+
+      frag.add(RotateEffect.by(
+        (Random().nextDouble() - 0.5) * pi / 2,
+        EffectController(duration: 1.2),
+      ));
+
+      fragments.add(frag);
+    }
+
+    return fragments;
   }
 
   List<List<Vector2>> _generateShatteredPolygons(Vector2 size, int count) {

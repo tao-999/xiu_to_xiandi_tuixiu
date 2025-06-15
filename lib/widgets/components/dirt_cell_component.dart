@@ -10,7 +10,7 @@ import 'pickaxe_effect_component.dart';
 import 'chiyangu_game.dart';
 
 class DirtCellComponent extends PositionComponent
-    with TapCallbacks, HasGameRef<ChiyanguGame> {
+    with TapCallbacks, HasGameReference<ChiyanguGame> {
   final int depth;
   late String gridKey;
   bool broken = false;
@@ -28,7 +28,7 @@ class DirtCellComponent extends PositionComponent
   Future<void> onLoad() async {
     super.onLoad();
 
-    final sprite = await gameRef.loadSprite(_getSoilSpritePath(depth));
+    final sprite = await game.loadSprite(_getSoilSpritePath(depth));
     fillSprite = SpriteComponent(sprite: sprite, size: size);
     add(fillSprite);
 
@@ -57,30 +57,30 @@ class DirtCellComponent extends PositionComponent
 
   @override
   void onTapDown(TapDownEvent event) async {
-    if (tapped || broken || gameRef.isShifting) return;
-    if (!gameRef.canBreak(gridKey)) return;
+    if (tapped || broken || game.isShifting) return;
+    if (!game.canBreak(gridKey)) return;
 
-    // ✅ 获取当前锄头数量
+    tapped = true; // ✅ 第一时间就加锁！
+
     final count = await ChiyanguStorage.getPickaxeCount();
     if (count <= 0) {
-      ToastTip.show(gameRef.buildContext!, '⛏️ 你的锄头已经用完了！');
+      ToastTip.show(game.buildContext!, '⛏️ 你的锄头已经用完了！');
+      tapped = false; // ❗要恢复锁，否则就锁死了
       return;
     }
 
-    // ✅ 扣除锄头
     await ChiyanguStorage.consumePickaxe();
 
-    gameRef.lastTappedKey = gridKey;
-    tapped = true;
+    game.lastTappedKey = gridKey;
 
     final globalClick = absolutePosition + size / 2;
 
-    gameRef.add(PickaxeEffectComponent(
+    game.add(PickaxeEffectComponent(
       targetPosition: globalClick,
       onFinish: () async {
         await Future.delayed(const Duration(milliseconds: 500));
         _breakBlock(shouldShift: true);
-        gameRef.breakAdjacent(gridKey, fromDirt: true);
+        game.breakAdjacent(gridKey, fromDirt: true);
       },
     ));
   }
@@ -97,11 +97,11 @@ class DirtCellComponent extends PositionComponent
 
     final debris = _createShatteredDebris();
     for (final frag in debris) {
-      gameRef.add(frag);
+      game.add(frag);
     }
 
     if (shouldShift) {
-      gameRef.tryShiftIfNeeded(gridKey, onlyIfTapped: true);
+      game.tryShiftIfNeeded(gridKey, onlyIfTapped: true);
     }
   }
 
@@ -138,7 +138,7 @@ class DirtCellComponent extends PositionComponent
       );
 
       final delay = i * 0.05;
-      final targetY = gameRef.size.y + 100;
+      final targetY = game.size.y + 100;
       final randomX = (Random().nextDouble() - 0.5) * 60;
 
       frag.add(MoveEffect.to(

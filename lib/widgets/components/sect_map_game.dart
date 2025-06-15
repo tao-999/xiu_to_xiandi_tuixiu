@@ -31,7 +31,7 @@ class SectMapGame extends FlameGame with TapDetector {
   }
 }
 
-class VerticalMap extends PositionComponent with HasGameRef<FlameGame> {
+class VerticalMap extends PositionComponent with HasGameReference<FlameGame> {
   final List<SpriteComponent> chunks = [];
   final double chunkHeight = 2048;
   final int preloadChunks = 3;
@@ -39,7 +39,7 @@ class VerticalMap extends PositionComponent with HasGameRef<FlameGame> {
 
   @override
   Future<void> onLoad() async {
-    final ui.Image image = await gameRef.images.load('sect_map_bg.png');
+    final ui.Image image = await game.images.load('sect_map_bg.png');
     bgSprite = Sprite(image);
 
     for (int i = 0; i < preloadChunks; i++) {
@@ -49,13 +49,13 @@ class VerticalMap extends PositionComponent with HasGameRef<FlameGame> {
     }
 
     size = Vector2.all(999999);
-    position = Vector2(0, gameRef.size.y - chunkHeight); // 地图底部贴屏幕底部
+    position = Vector2(0, game.size.y - chunkHeight); // 地图底部贴屏幕底部
   }
 
   SpriteComponent _createChunk(int index) {
     return SpriteComponent()
       ..sprite = bgSprite
-      ..size = Vector2(gameRef.size.x, chunkHeight)
+      ..size = Vector2(game.size.x, chunkHeight)
       ..position = Vector2(0, index * chunkHeight);
   }
 
@@ -76,7 +76,7 @@ class VerticalMap extends PositionComponent with HasGameRef<FlameGame> {
 
   void scrollUp() {
     final bottomEdge = position.y + chunks.last.position.y + chunkHeight;
-    final screenBottom = gameRef.size.y;
+    final screenBottom = game.size.y;
 
     if (bottomEdge <= screenBottom) return; // 禁止再下移（防止底部露黑）
     position.y -= 100;
