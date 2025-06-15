@@ -32,18 +32,19 @@ class ZongmenStorage {
     print("📦 当前弟子总数（含未加入宗门的）: ${box.length}");
 
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    const timeRate = 10000; // 时间倍率
+    const timeRate = 10000;
 
     final List<Disciple> zongmenDisciples = [];
 
     for (final d in box.values) {
-      // 只处理已加入宗门的弟子
-      if (d.joinedAt == null) continue;
+      if (d.joinedAt == null) continue; // 🚫 未加入宗门，跳过
+
+      // ✅ 放在这，保证是宗门弟子才打印
+      print('🧬 加载宗门弟子：${d.name}（id=${d.id}）→ assignedRoom=${d.assignedRoom}');
 
       final passed = (now - d.joinedAt!) * timeRate;
       final years = (passed / (3600 * 24 * 365)).floor();
 
-      // 更新年龄（仅当年纪成长了才保存）
       if (years > d.age) {
         final newD = d.copyWith(age: years);
         await box.put(newD.id, newD);

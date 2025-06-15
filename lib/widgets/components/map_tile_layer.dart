@@ -50,12 +50,12 @@ class MapTileLayer extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
-    await _loadSprites();
-    await _buildWalls();
-    tileStyles = _generateVoronoiTiles();
-    await _buildTiles();
-    await _spawnGroupedDecorObstacles();
-    buildGrid();
+    await _loadSprites();                  // 🎨 加载 sprite
+    tileStyles = _generateVoronoiTiles(); // ✅ 先生成地形样式
+    await _buildTiles();                  // ✅ 再贴所有地砖（视觉基础）
+    await _buildWalls();                  // 🚧 墙体/内圈障碍（加障碍贴图 + 占位）
+    await _spawnGroupedDecorObstacles();  // 🌲 贴装饰图 + 占位
+    buildGrid();                          // 🔗 构建逻辑网格
   }
 
   Future<void> _loadSprites() async {
@@ -114,14 +114,14 @@ class MapTileLayer extends PositionComponent {
   Future<void> _buildTiles() async {
     for (int y = 0; y < rows; y++) {
       for (int x = 0; x < cols; x++) {
-        if (tileManager.isTileOccupied(x, y)) continue;
-        final style = tileStyles[y][x];
+        final style = tileStyles[y][x]; // ✅ 不跳过任何格子
         final sprite = styleSprites[style]!;
+
         add(SpriteComponent()
           ..sprite = sprite
           ..size = Vector2.all(tileSize)
           ..position = Vector2(x * tileSize, y * tileSize)
-          ..priority = 0);
+          ..priority = 0); // ✅ 优先级最低，贴地用
       }
     }
   }
@@ -132,7 +132,7 @@ class MapTileLayer extends PositionComponent {
       {'image': 'tietu_dashu.png', 'count': 5},
       {'image': 'tietu_caocong.png', 'count': 6},
       {'image': 'tietu_mogu.png', 'count': 6},
-      {'image': 'tietue_gouhuo.png', 'count': 2},
+      {'image': 'tietu_gouhuo.png', 'count': 2}, // ✅ 拼写已修正
     ];
 
     for (final group in decorGroups) {
@@ -144,27 +144,32 @@ class MapTileLayer extends PositionComponent {
         final y = rand.nextInt(rows - 4);
 
         bool canPlaceGroup = true;
-        for (int dx = 0; dx < 2; dx++) {
-          for (int dy = 0; dy < 2; dy++) {
-            for (int ox = 0; ox < 2; ox++) {
-              for (int oy = 0; oy < 2; oy++) {
-                final px = x + dx + ox;
-                final py = y + dy + oy;
-                if (tileManager.isTileOccupied(px, py)) {
-                  canPlaceGroup = false;
-                  break;
-                }
-              }
+
+        for (int dx = 0; dx < 4; dx++) {
+          for (int dy = 0; dy < 4; dy++) {
+            if (tileManager.isTileOccupied(x + dx, y + dy)) {
+              canPlaceGroup = false;
+              break;
             }
           }
+          if (!canPlaceGroup) break;
         }
 
         if (canPlaceGroup) {
+          // ✅ 四角贴图先加上（别让占位拦路）
           for (int dx = 0; dx <= 2; dx += 2) {
             for (int dy = 0; dy <= 2; dy += 2) {
               await _addBigDecoration(x + dx, y + dy, group['image'] as String);
             }
           }
+
+          // ✅ 然后整块占位（逻辑隔离，完美）
+          for (int dx = 0; dx < 4; dx++) {
+            for (int dy = 0; dy < 4; dy++) {
+              tileManager.occupyTile(x + dx, y + dy);
+            }
+          }
+
           placed++;
         }
       }
@@ -172,10 +177,10 @@ class MapTileLayer extends PositionComponent {
   }
 
   Future<void> _addBigDecoration(int x, int y, String imagePath) async {
-    if (tileManager.isOccupied(x, y, 2, 2)) return;
-    tileManager.occupy(x, y, 2, 2);
-
     final sprite = await Sprite.load(imagePath);
+
+    print('🖼️ 放置装饰贴图: $imagePath at ($x, $y)'); // ✅ 调试用
+
     add(SpriteComponent()
       ..sprite = sprite
       ..size = Vector2(tileSize * 2, tileSize * 2)

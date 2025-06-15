@@ -174,7 +174,6 @@ class HuanyueEnemyComponent extends SpriteComponent with CollisionCallbacks {
 
     add(RectangleHitbox()..collisionType = CollisionType.passive);
 
-    print('👾 怪物 $id 加载完成 at $position，奖励：$reward 下品灵石');
   }
 
   int get spiritStoneReward => reward;
