@@ -110,11 +110,10 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
             opacity: isDisabled ? 0.4 : 1.0,
             child: Row(
               children: [
-                Image.asset(getLingShiImagePath(type), width: 24, height: 24),
-                const SizedBox(width: 8),
+                Image.asset(getLingShiImagePath(type), width: 16, height: 16),
                 Text(
                   lingShiNames[type]!,
-                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                  style: const TextStyle(fontSize: 12, color: Colors.black87),
                 ),
               ],
             ),
@@ -231,8 +230,8 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
         final BigInt count = _getStoneValue(res, type);
         return Row(
           children: [
-            Image.asset(getLingShiImagePath(type), width: 24, height: 24),
-            const SizedBox(width: 8),
+            Image.asset(getLingShiImagePath(type), width: 16, height: 16),
+            const SizedBox(width: 4),
             Text(
               '${lingShiNames[type]}：${formatAnyNumber(count)}',
               style: const TextStyle(fontSize: 12, color: Colors.black87),
