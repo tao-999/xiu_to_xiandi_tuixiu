@@ -32,6 +32,11 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
   void _loadAssignedDisciple() async {
     final all = await ZongmenStorage.loadDisciples();
 
+    debugPrint('🔍 [ZhushouDiscipleSlot] 加载弟子列表（房间名：${widget.roomName}）：');
+    for (final d in all) {
+      debugPrint(' - ${d.name}（id=${d.id}） => assignedRoom: ${d.assignedRoom ?? "未分配"}');
+    }
+
     final matches = all.where((d) => d.assignedRoom == widget.roomName);
     final match = matches.isNotEmpty ? matches.first : null;
 
