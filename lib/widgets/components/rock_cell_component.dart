@@ -158,8 +158,10 @@ class RockCellComponent extends PositionComponent
   }
 
   Component _showSpiritStoneReward(Vector2 pos) {
+    final amount = ChiyanguGame.depthNotifier.value;
+
     final text = TextComponent(
-      text: '+1 下品灵石',
+      text: '+$amount 下品灵石',
       position: pos,
       anchor: Anchor.center,
       textRenderer: TextPaint(
@@ -171,7 +173,7 @@ class RockCellComponent extends PositionComponent
       MoveEffect.by(
         Vector2(0, -30),
         EffectController(duration: 0.8),
-        onComplete: () => text.removeFromParent(), // ✅ Flame 1.29 新语法
+        onComplete: () => text.removeFromParent(),
       ),
     );
 
