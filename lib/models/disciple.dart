@@ -98,6 +98,9 @@ class Disciple extends HiveObject {
   });
 
   /// ✅ 安全 copyWith：所有字段都支持保留原值
+  /// ✅ 安全 copyWith：所有字段都支持保留原值（assignedRoom 支持设为 null）
+  static const _unset = Object();
+
   Disciple copyWith({
     String? id,
     String? name,
@@ -120,7 +123,7 @@ class Disciple extends HiveObject {
     int? missionEndTimestamp,
     String? imagePath,
     int? joinedAt,
-    String? assignedRoom, // 允许传 null，代表“未驻守”
+    Object? assignedRoom = _unset, // ✅ 用 sentinel 方式单独处理
   }) {
     return Disciple(
       id: id ?? this.id,
@@ -144,7 +147,9 @@ class Disciple extends HiveObject {
       missionEndTimestamp: missionEndTimestamp ?? this.missionEndTimestamp,
       imagePath: imagePath ?? this.imagePath,
       joinedAt: joinedAt ?? this.joinedAt,
-      assignedRoom: assignedRoom, // ✅ 保留传入 null 的语义
+      assignedRoom: identical(assignedRoom, _unset)
+          ? this.assignedRoom
+          : assignedRoom as String?, // ✅ 显式设为 null 或新值
     );
   }
 }

@@ -20,6 +20,9 @@ class Resources {
   BigInt mindEnergy;
   BigInt battleWill;
 
+  // 📜 图纸唯一 key 列表，例如 weapon-1、armor-3（图纸类型-阶数）
+  List<String> ownedBlueprintKeys;
+
   Resources({
     BigInt? spiritStoneLow,
     BigInt? spiritStoneMid,
@@ -34,6 +37,7 @@ class Resources {
     BigInt? refinedQi,
     BigInt? mindEnergy,
     BigInt? battleWill,
+    List<String>? ownedBlueprintKeys,
   })  : spiritStoneLow = spiritStoneLow ?? BigInt.zero,
         spiritStoneMid = spiritStoneMid ?? BigInt.zero,
         spiritStoneHigh = spiritStoneHigh ?? BigInt.zero,
@@ -46,7 +50,8 @@ class Resources {
         wishPower = wishPower ?? BigInt.zero,
         refinedQi = refinedQi ?? BigInt.zero,
         mindEnergy = mindEnergy ?? BigInt.zero,
-        battleWill = battleWill ?? BigInt.zero;
+        battleWill = battleWill ?? BigInt.zero,
+        ownedBlueprintKeys = ownedBlueprintKeys ?? [];
 
   factory Resources.fromMap(Map<String, dynamic> map) {
     BigInt parseBig(dynamic v) => BigInt.tryParse(v?.toString() ?? '0') ?? BigInt.zero;
@@ -66,6 +71,7 @@ class Resources {
       refinedQi: parseBig(map['refinedQi']),
       mindEnergy: parseBig(map['mindEnergy']),
       battleWill: parseBig(map['battleWill']),
+      ownedBlueprintKeys: List<String>.from(map['ownedBlueprintKeys'] ?? []),
     );
   }
 
@@ -83,5 +89,6 @@ class Resources {
     'refinedQi': refinedQi.toString(),
     'mindEnergy': mindEnergy.toString(),
     'battleWill': battleWill.toString(),
+    'ownedBlueprintKeys': ownedBlueprintKeys,
   };
 }

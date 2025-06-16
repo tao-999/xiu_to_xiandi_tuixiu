@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
+import '../models/refine_blueprint.dart';
+
 class ResourcesStorage {
   static const _key = 'resourcesData';
 
@@ -72,4 +74,25 @@ class ResourcesStorage {
     'recruitTicket',
     'fateRecruitCharm',
   ];
+
+  /// 添加已拥有图纸记录（根据类型 + 阶数）
+  /// 例如：RefineBlueprint(type=weapon, level=3) → 'weapon-3'
+  static Future<void> addBlueprintKey(RefineBlueprint blueprint) async {
+    final res = await load();
+    final key = '${blueprint.type.name}-${blueprint.level}';
+
+    if (!res.ownedBlueprintKeys.contains(key)) {
+      res.ownedBlueprintKeys.add(key);
+      await save(res);
+      print('✅ [图纸已记录] $key');
+    } else {
+      print('ℹ️ [图纸已存在] $key，跳过保存');
+    }
+  }
+
+  static Future<Set<String>> getBlueprintKeys() async {
+    final res = await load(); // 已有的读取 Resources 方法
+    return res.ownedBlueprintKeys.toSet(); // 确保是 Set<String>
+  }
+
 }

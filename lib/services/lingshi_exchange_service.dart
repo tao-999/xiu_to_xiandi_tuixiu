@@ -8,75 +8,48 @@ class LingShiExchangeService {
   static Future<bool> exchangeLingShi({
     required LingShiType fromType,
     required LingShiType toType,
-    required int inputAmount,
+    required BigInt inputAmount, // ✅ 改成 BigInt
     required Resources res,
   }) async {
-    // 获取资源（灵石）字段
     final fromField = lingShiFieldMap[fromType]!;
     final toField = lingShiFieldMap[toType]!;
 
-    // 获取当前拥有的灵石数量
-    BigInt available = await ResourcesStorage.getValue(fromField);
-    print('当前可用灵石：$available');
+    final BigInt available = await ResourcesStorage.getValue(fromField);
+    final BigInt fromRate = lingShiRates[fromType]!;
+    final BigInt toRate = lingShiRates[toType]!;
 
-    // 计算所需的灵石数量
-    final fromRate = lingShiRates[fromType]!;
-    final toRate = lingShiRates[toType]!;
-    final required = (toRate * BigInt.from(inputAmount) ~/ fromRate);
-    print('所需灵石：$required');
+    final BigInt required = (toRate * inputAmount) ~/ fromRate;
 
-    // 检查是否足够兑换
-    if (inputAmount <= 0 || required > available) {
-      print('兑换失败，灵石不足');
-      return false; // 灵石不足
+    if (inputAmount <= BigInt.zero || required > available) {
+      return false;
     }
 
-    // 执行兑换操作：从已有灵石中扣除
     await ResourcesStorage.subtract(fromField, required);
-    print('灵石已扣除：$required');
+    await ResourcesStorage.add(toField, inputAmount);
 
-    // 增加目标灵石
-    await ResourcesStorage.add(toField, BigInt.from(inputAmount));
-    print('灵石已增加：$inputAmount ${lingShiNames[toType]}');
+    final updatedRes = await ResourcesStorage.load();
 
-    // 更新资源对象并保存
-    res = await ResourcesStorage.load();  // 确保读取最新资源
+    // 确保不为负
+    updatedRes.spiritStoneLow = updatedRes.spiritStoneLow < BigInt.zero ? BigInt.zero : updatedRes.spiritStoneLow;
+    updatedRes.spiritStoneMid = updatedRes.spiritStoneMid < BigInt.zero ? BigInt.zero : updatedRes.spiritStoneMid;
+    updatedRes.spiritStoneHigh = updatedRes.spiritStoneHigh < BigInt.zero ? BigInt.zero : updatedRes.spiritStoneHigh;
+    updatedRes.spiritStoneSupreme = updatedRes.spiritStoneSupreme < BigInt.zero ? BigInt.zero : updatedRes.spiritStoneSupreme;
 
-    // 检查并确保灵石不为负数
-    res.spiritStoneLow = res.spiritStoneLow < BigInt.zero ? BigInt.zero : res.spiritStoneLow;
-    res.spiritStoneMid = res.spiritStoneMid < BigInt.zero ? BigInt.zero : res.spiritStoneMid;
-    res.spiritStoneHigh = res.spiritStoneHigh < BigInt.zero ? BigInt.zero : res.spiritStoneHigh;
-    res.spiritStoneSupreme = res.spiritStoneSupreme < BigInt.zero ? BigInt.zero : res.spiritStoneSupreme;
-
-    await ResourcesStorage.save(res); // 保存更新后的资源数据
-    print('资源数据已更新');
-    print('💰 下品：${res.spiritStoneLow}');
-    print('💰 中品：${res.spiritStoneMid}');
-    print('💰 上品：${res.spiritStoneHigh}');
-    print('💰 极品：${res.spiritStoneSupreme}');
-    return true; // 兑换成功
+    await ResourcesStorage.save(updatedRes);
+    return true;
   }
 
-  /// 获取最大可兑换数量
-  static Future<int> getMaxExchangeAmount({
+  /// 获取最大可兑换数量（BigInt 返回）
+  static Future<BigInt> getMaxExchangeAmount({
     required LingShiType fromType,
     required LingShiType toType,
     required Resources res,
   }) async {
     final fromField = lingShiFieldMap[fromType]!;
-    final toField = lingShiFieldMap[toType]!;
-
     final fromRate = lingShiRates[fromType]!;
     final toRate = lingShiRates[toType]!;
 
-    // 获取当前拥有的灵石数量
-    BigInt available = await ResourcesStorage.getValue(fromField);
-
-    // 计算最大可兑换数量
-    final maxAmount = (available * fromRate ~/ toRate).toInt();
-    print('最大可兑换数量：$maxAmount');
-    return maxAmount; // 最大可兑换数量
+    final BigInt available = await ResourcesStorage.getValue(fromField);
+    return (available * fromRate) ~/ toRate;
   }
 }
-
-

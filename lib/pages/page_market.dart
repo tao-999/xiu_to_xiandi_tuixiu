@@ -2,7 +2,8 @@
 
 import 'package:flutter/material.dart';
 import '../widgets/components/back_button_overlay.dart';
-import '../widgets/components/duihuan_lingshi.dart'; // ✅ 引入组件
+import '../widgets/components/duihuan_lingshi.dart';
+import '../widgets/components/forge_blueprint_shop.dart';
 
 class XiuXianMarketPage extends StatelessWidget {
   const XiuXianMarketPage({super.key});
@@ -29,6 +30,13 @@ class XiuXianMarketPage extends StatelessWidget {
             child: Center(
               child: DuihuanLingshi(),
             ),
+          ),
+
+          // ✅ 武器图纸招牌（右下角位置，方便你改）
+          const Positioned(
+            bottom: 250,
+            right: 15,
+            child: ForgeBlueprintShop(),
           ),
 
           // ✅ 返回按钮浮在最上

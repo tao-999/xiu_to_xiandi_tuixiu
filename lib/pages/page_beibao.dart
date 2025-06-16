@@ -4,6 +4,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_grid_view.dart';
 import 'package:xiu_to_xiandi_tuixiu/data/beibao_resource_config.dart';
 
+import '../services/refine_blueprint_service.dart';
+
 class BeibaoPage extends StatefulWidget {
   const BeibaoPage({super.key});
 
@@ -23,8 +25,9 @@ class _BeibaoPageState extends State<BeibaoPage> {
   Future<void> _loadResources() async {
     List<BeibaoItem> newItems = [];
 
+    // 🔹 先加载通用资源（灵石、招募券等）
     for (final config in beibaoResourceList) {
-      final quantity = await ResourcesStorage.getValue(config.field); // ✅ 直接调你已有的封装
+      final quantity = await ResourcesStorage.getValue(config.field);
       newItems.add(BeibaoItem(
         name: config.name,
         imagePath: config.imagePath,

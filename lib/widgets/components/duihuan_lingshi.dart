@@ -1,10 +1,12 @@
+// 📂 widgets/jishi/duihuan_lingshi.dart
+
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/lingshi_util.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/lingshi_exchange_service.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
-
 import '../../utils/number_format.dart';
 import '../common/toast_tip.dart';
 
@@ -16,7 +18,7 @@ class DuihuanLingshi extends StatefulWidget {
 }
 
 class _DuihuanLingshiState extends State<DuihuanLingshi> {
-  int inputAmount = 0;
+  BigInt inputAmount = BigInt.zero;
   late Resources res;
   LingShiType fromType = LingShiType.lower;
   LingShiType toType = LingShiType.middle;
@@ -33,7 +35,6 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
     setState(() {});
   }
 
-  // 显示兑换弹窗
   void _showDuihuanDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -70,39 +71,35 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
     );
   }
 
-  // 选择灵石类型（From 或 To）
-  Widget _buildTypeSelector(bool isFrom, void Function(void Function()) setState) {
+  Widget _buildTypeSelector(bool isFrom, void Function(void Function()) setDialogState) {
     final LingShiType selected = isFrom ? fromType : toType;
     final LingShiType opposite = isFrom ? toType : fromType;
 
     return DropdownButton<LingShiType>(
       key: ValueKey(selected),
       value: selected,
-        onChanged: (value) {
-          if (value == null) return;
+      onChanged: (value) {
+        if (value == null) return;
+        FocusScope.of(context).unfocus();
 
-          // ✅ 干掉输入框的 focus
-          FocusScope.of(context).unfocus();
-
-          setState(() {
-            if (isFrom) {
-              fromType = value;
-              if (fromType == toType) {
-                toType = LingShiType.values.firstWhere((t) => t != fromType);
-              }
-            } else {
-              toType = value;
-              if (toType == fromType) {
-                fromType = LingShiType.values.firstWhere((t) => t != toType);
-              }
+        setDialogState(() {
+          if (isFrom) {
+            fromType = value;
+            if (fromType == toType) {
+              toType = LingShiType.values.firstWhere((t) => t != fromType);
             }
-
-            inputAmount = 0; // ✅ 清空输入框
-          });
-        },
-        items: LingShiType.values.map((type) {
+          } else {
+            toType = value;
+            if (toType == fromType) {
+              fromType = LingShiType.values.firstWhere((t) => t != toType);
+            }
+          }
+          inputAmount = BigInt.zero;
+          _inputController.clear();
+        });
+      },
+      items: LingShiType.values.map((type) {
         final isDisabled = type == opposite;
-
         return DropdownMenuItem<LingShiType>(
           value: type,
           enabled: !isDisabled,
@@ -111,6 +108,7 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
             child: Row(
               children: [
                 Image.asset(getLingShiImagePath(type), width: 16, height: 16),
+                const SizedBox(width: 4),
                 Text(
                   lingShiNames[type]!,
                   style: const TextStyle(fontSize: 12, color: Colors.black87),
@@ -123,13 +121,13 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
     );
   }
 
-  // 输入框
   Widget _buildInputSection(void Function(void Function()) setDialogState) {
     final BigInt fromRate = lingShiRates[fromType]!;
     final BigInt toRate = lingShiRates[toType]!;
-    final BigInt required = (toRate * BigInt.from(inputAmount) ~/ fromRate);
     final BigInt available = _getStoneValue(res, fromType);
-    final int maxAmount = (available * fromRate ~/ toRate).toInt();
+
+    final BigInt maxAmount = (available * fromRate) ~/ toRate;
+    final BigInt required = (inputAmount * toRate) ~/ fromRate;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,13 +137,13 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           onChanged: (val) {
-            final newAmount = int.tryParse(val) ?? 0;
+            final parsed = BigInt.tryParse(val) ?? BigInt.zero;
             setDialogState(() {
-              inputAmount = newAmount;
+              inputAmount = parsed;
             });
 
-            if (newAmount > maxAmount) {
-              ToastTip.show(context, '⚠️ 超出最大可兑换数量（最多 $maxAmount）');
+            if (parsed > maxAmount) {
+              ToastTip.show(context, '⚠️ 超出最大可兑换数量（最多 ${formatAnyNumber(maxAmount)}）');
             }
           },
           decoration: const InputDecoration(
@@ -169,18 +167,14 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
         const SizedBox(height: 12),
         GestureDetector(
           onTap: () async {
-            final int maxAllowed = (available * fromRate ~/ toRate).toInt();
-
-            if (inputAmount <= 0) {
+            if (inputAmount <= BigInt.zero) {
               ToastTip.show(context, '❌ 请输入兑换数量');
               return;
             }
-
-            if (inputAmount > maxAllowed) {
+            if (inputAmount > maxAmount) {
               ToastTip.show(context, '❌ 超出最大可兑换数量');
               return;
             }
-
             if (required > available) {
               ToastTip.show(context, '❌ 灵石不足，兑换失败');
               return;
@@ -194,12 +188,11 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
             );
 
             if (success) {
-              ToastTip.show(context, '✅ 成功兑换 $inputAmount ${lingShiNames[toType]}');
-
+              ToastTip.show(context, '✅ 成功兑换 ${formatAnyNumber(inputAmount)} ${lingShiNames[toType]}');
               final updated = await ResourcesStorage.load();
               setDialogState(() {
                 res = updated;
-                inputAmount = 0;
+                inputAmount = BigInt.zero;
                 _inputController.clear();
                 FocusScope.of(context).unfocus();
               });
@@ -222,7 +215,6 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
     );
   }
 
-  // 显示可用的灵石数量
   Widget _buildBalanceDisplay() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +234,6 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
     );
   }
 
-  // 获取当前灵石数量
   BigInt _getStoneValue(Resources res, LingShiType type) {
     switch (type) {
       case LingShiType.lower:
@@ -262,8 +253,8 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
       onTap: () => _showDuihuanDialog(context),
       child: Image.asset(
         'assets/images/jishi_duihuanlingshi.png',
-        width: 96,
-        height: 96,
+        width: 82,
+        height: 82,
       ),
     );
   }

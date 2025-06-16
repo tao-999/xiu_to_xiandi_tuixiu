@@ -96,14 +96,35 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
                       border: Border.all(color: Colors.white10),
                     ),
                     alignment: Alignment.center,
-                    child: Opacity(
-                      opacity: (item.quantity == 0 || item.quantity == BigInt.zero) ? 0.3 : 1.0,
-                      child: Image.asset(
-                        item.imagePath,
-                        width: 32,
-                        height: 32,
-                        fit: BoxFit.contain,
-                      ),
+                    child: Stack(
+                      children: [
+                        Opacity(
+                          opacity: (item.quantity == 0 || item.quantity == BigInt.zero) ? 0.3 : 1.0,
+                          child: Image.asset(
+                            item.imagePath,
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        // ✅ 隐藏非图纸类（我们规定阶数在 1~21 的为图纸）
+                        if (item.quantity is int && item.quantity >= 1 && item.quantity <= 21)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              child: Text(
+                                '${item.quantity}阶',
+                                style: const TextStyle(
+                                  fontSize: 8,
+                                  color: Colors.white,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 );

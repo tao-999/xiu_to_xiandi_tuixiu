@@ -7,10 +7,13 @@ class RefineBlueprint {
   final BlueprintType type;
   final List<String> materials;
 
-  /// 🔥 新增属性增幅字段（单位：百分比，整数，不含%符号）
+  /// 🔥 属性增幅字段（单位：百分比，整数，不含%符号）
   final int attackBoost;
   final int defenseBoost;
   final int healthBoost;
+
+  /// 🧱 图纸图标路径（如：'wuqi_gongji.png'）
+  final String? iconPath;
 
   RefineBlueprint({
     required this.name,
@@ -21,6 +24,7 @@ class RefineBlueprint {
     this.attackBoost = 0,
     this.defenseBoost = 0,
     this.healthBoost = 0,
+    this.iconPath,
   });
 
   Map<String, dynamic> toMap() => {
@@ -32,6 +36,7 @@ class RefineBlueprint {
     'attackBoost': attackBoost,
     'defenseBoost': defenseBoost,
     'healthBoost': healthBoost,
+    'iconPath': iconPath,
   };
 
   factory RefineBlueprint.fromMap(Map<String, dynamic> map) {
@@ -44,6 +49,7 @@ class RefineBlueprint {
       attackBoost: map['attackBoost'] ?? 0,
       defenseBoost: map['defenseBoost'] ?? 0,
       healthBoost: map['healthBoost'] ?? 0,
+      iconPath: map['iconPath'],
     );
   }
 }

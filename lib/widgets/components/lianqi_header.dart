@@ -88,12 +88,9 @@ class LianqiHeader extends StatelessWidget {
         top = margin;
       }
 
-      // 正确展示真实增幅
-      final effectShort = switch (blueprint.type) {
-        BlueprintType.weapon => '攻击 +${blueprint.attackBoost}%',
-        BlueprintType.armor => '防御 +${blueprint.defenseBoost}%',
-        BlueprintType.accessory => '血量 +${blueprint.healthBoost}%',
-      };
+      // ✅ 统一调用 RefineBlueprintService 提供的效果说明
+      final effect = RefineBlueprintService.getEffectMeta(blueprint);
+      final effectShort = '${effect['type']} +${effect['value']}%';
 
       tooltipEntry = OverlayEntry(
         builder: (_) => Positioned(
@@ -184,11 +181,6 @@ class LianqiHeader extends StatelessWidget {
                         Row(
                           children: blueprints.map((b) {
                             final key = GlobalKey();
-                            final iconName = switch (b.type) {
-                              BlueprintType.weapon => 'wuqi_gongji.png',
-                              BlueprintType.armor => 'wuqi_fangyu.png',
-                              BlueprintType.accessory => 'wuqi_xueliang.png',
-                            };
 
                             return Expanded(
                               child: GestureDetector(
@@ -207,7 +199,7 @@ class LianqiHeader extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Image.asset(
-                                      'assets/images/$iconName',
+                                      'assets/images/${b.iconPath ?? 'default_icon.png'}',
                                       width: 48,
                                       height: 48,
                                       fit: BoxFit.contain,

@@ -5,8 +5,13 @@ import '../../utils/aptitude_color_util.dart';
 
 class ZhushouDiscipleSlot extends StatefulWidget {
   final String roomName;
+  final VoidCallback? onChanged; // ✅ 回调用于通知外层刷新状态
 
-  const ZhushouDiscipleSlot({super.key, required this.roomName});
+  const ZhushouDiscipleSlot({
+    super.key,
+    required this.roomName,
+    this.onChanged,
+  });
 
   @override
   State<ZhushouDiscipleSlot> createState() => _ZhushouDiscipleSlotState();
@@ -41,6 +46,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
     if (_selected != null) {
       await ZongmenStorage.removeDiscipleFromRoom(_selected!.id, widget.roomName);
       setState(() => _selected = null);
+      widget.onChanged?.call(); // ✅ 通知外层组件更新状态
     }
   }
 
@@ -86,6 +92,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
                         await ZongmenStorage.setDiscipleAssignedRoom(d.id, widget.roomName);
                         setState(() => _selected = d);
                         Navigator.pop(context);
+                        widget.onChanged?.call(); // ✅ 通知外层组件更新状态
                       },
                       child: Stack(
                         children: [

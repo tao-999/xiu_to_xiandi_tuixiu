@@ -47,6 +47,9 @@ class ZongmenStorage {
 
       if (years > d.age) {
         final newD = d.copyWith(age: years);
+
+        print("🔥 年龄更新！${newD.name} → assignedRoom=${newD.assignedRoom}"); // 👈 看这里是不是 null 了
+
         await box.put(newD.id, newD);
         zongmenDisciples.add(newD);
       } else {

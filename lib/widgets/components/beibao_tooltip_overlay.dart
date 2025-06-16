@@ -53,13 +53,29 @@ class BeibaoTooltipOverlay {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name, style: const TextStyle(color: Colors.white)),
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12, // ✅ 主标题字号
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text('数量：${formatAnyNumber(quantity)}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(
+                        '数量：${formatAnyNumber(quantity)}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10, // ✅ 数量字号
+                        ),
+                      ),
                       const SizedBox(height: 4),
-                      Text(description,
-                          style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      Text(
+                        description,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10, // ✅ 描述字号
+                        ),
+                      ),
                     ],
                   ),
                 ),

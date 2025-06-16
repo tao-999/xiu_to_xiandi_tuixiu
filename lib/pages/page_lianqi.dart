@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:collection/collection.dart';
+
+import 'package:xiu_to_xiandi_tuixiu/models/refine_blueprint.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/refine_blueprint_service.dart';
+
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/lianqi_header.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zhushou_disciple_slot.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/refine_material_selector.dart'; // ⛏️ 后续封装组件
-import '../models/zongmen.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/refine_material_selector.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/blueprint_dropdown_selector.dart';
 
 class LianqiPage extends StatefulWidget {
   const LianqiPage({super.key});
@@ -15,11 +22,37 @@ class LianqiPage extends StatefulWidget {
 
 class _LianqiPageState extends State<LianqiPage> {
   late Future<Zongmen?> _zongmenFuture;
+  bool _hasZhushou = false;
+
+  List<RefineBlueprint> _ownedBlueprints = [];
+  RefineBlueprint? _selectedBlueprint;
 
   @override
   void initState() {
     super.initState();
-    _zongmenFuture = ZongmenStorage.loadZongmen();
+    _zongmenFuture = _loadZongmenAndCheckZhushou();
+    _loadBlueprints();
+  }
+
+  /// ✅ 拉 Hive 判断有没有驻守弟子
+  Future<Zongmen?> _loadZongmenAndCheckZhushou() async {
+    final zongmen = await ZongmenStorage.loadZongmen();
+    final disciples = await ZongmenStorage.getDisciplesByRoom('炼器房');
+    setState(() {
+      _hasZhushou = disciples.isNotEmpty;
+    });
+    return zongmen;
+  }
+
+  Future<void> _loadBlueprints() async {
+    final keys = await ResourcesStorage.getBlueprintKeys();
+    final all = RefineBlueprintService.generateAllBlueprints();
+    final owned = all.where((b) => keys.contains('${b.type.name}-${b.level}')).toList();
+
+    setState(() {
+      _ownedBlueprints = owned;
+      _selectedBlueprint ??= owned.firstWhereOrNull((b) => b.type == BlueprintType.weapon);
+    });
   }
 
   @override
@@ -55,7 +88,22 @@ class _LianqiPageState extends State<LianqiPage> {
 
                     const SizedBox(height: 24),
 
-                    /// 👇 特效区域空着，等锤子特效上场
+                    /// 🔥 图纸选择（禁用逻辑已加）
+                    BlueprintDropdownSelector(
+                      blueprintList: _ownedBlueprints,
+                      selected: _selectedBlueprint,
+                      onSelected: (val) {
+                        setState(() {
+                          _selectedBlueprint = val;
+                        });
+                      },
+                      isDisabled: !_hasZhushou,
+                      maxLevelAllowed: level, // ✅ 传入当前宗门等级
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    /// 👇 特效区域预留位
                     Center(
                       child: Container(
                         width: 200,
@@ -78,13 +126,16 @@ class _LianqiPageState extends State<LianqiPage> {
 
                     const SizedBox(height: 16),
 
-                    /// 材料选择组件
+                    /// 材料选择（后续可传入 _selectedBlueprint）
                     const RefineMaterialSelector(),
 
                     const SizedBox(height: 16),
 
                     /// 驻守弟子组件
-                    const ZhushouDiscipleSlot(roomName: '炼器房'),
+                    ZhushouDiscipleSlot(
+                      roomName: '炼器房',
+                      onChanged: _loadZongmenAndCheckZhushou, // 重新判断禁用状态
+                    ),
                   ],
                 ),
               ),
