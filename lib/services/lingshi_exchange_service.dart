@@ -1,6 +1,5 @@
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/bigint_extensions.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/lingshi_util.dart';
 
 class LingShiExchangeService {
