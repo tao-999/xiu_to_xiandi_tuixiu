@@ -41,9 +41,9 @@ class FloorInfoOverlay extends StatelessWidget {
                     if (showTranslation)
                       const Text(
                         '📜 沙雕译文：\n'
-                            '这是个怪物越深越强、宝藏越香越危险的副本。\n'
-                            '五层一套，掉落超棒，命悬一线但欧皇狂喜！\n'
-                            '谨慎探索，不然掉坑打不过别怪我没提醒你～',
+                            '这是个程序随机生成的无限副本。\n'
+                            '五层一个宝箱，掉落超棒，命悬一线但欧皇狂喜！\n'
+                            '友情提醒，如果你遇到角色卡在草丛或树木或火堆或蘑菇里面，退出游戏重新打开就能自由飞翔了～',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.black54,
