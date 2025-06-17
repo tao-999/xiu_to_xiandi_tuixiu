@@ -2,7 +2,8 @@ import 'dart:math';
 import 'package:xiu_to_xiandi_tuixiu/models/refine_blueprint.dart';
 import 'package:xiu_to_xiandi_tuixiu/data/all_refine_blueprints.dart';
 
-enum LingShiType { lower, middle, high, supreme }
+import '../utils/lingshi_util.dart';
+
 
 class BlueprintPrice {
   final BigInt amount;
@@ -21,13 +22,29 @@ class RefineBlueprintService {
 
       blueprintInfoMap.forEach((type, infoList) {
         for (final info in infoList) {
+          // ✅ 根据类型选专属材料
+          String specificMaterial;
+          switch (type) {
+            case BlueprintType.weapon:
+              specificMaterial = materials[2];
+              break;
+            case BlueprintType.armor:
+              specificMaterial = materials[3];
+              break;
+            case BlueprintType.accessory:
+              specificMaterial = materials[4];
+              break;
+          }
+
+          final materialSet = [materials[0], materials[1], specificMaterial];
+
           result.add(
             RefineBlueprint(
               name: '${info['prefix']} · ${level}阶',
               description: info['desc'] ?? '',
               level: level,
               type: type,
-              materials: materials.sublist(0, 3),
+              materials: materialSet,
               attackBoost: _getAttackBoost(type, level),
               defenseBoost: _getDefenseBoost(type, level),
               healthBoost: _getHealthBoost(type, level),
@@ -108,7 +125,7 @@ class RefineBlueprintService {
     } else if (level <= 15) {
       // 上品灵石（起价 2000，×2.5）
       final base = 2000 * pow(2.5, level - 11).toInt();
-      return BlueprintPrice(amount: BigInt.from(base), type: LingShiType.high);
+      return BlueprintPrice(amount: BigInt.from(base), type: LingShiType.upper);
     } else {
       // 极品灵石（起价 1000，×2.5）
       final base = 1000 * pow(2.5, level - 16).toInt();

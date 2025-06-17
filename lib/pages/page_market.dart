@@ -1,9 +1,8 @@
-// 📄 lib/pages/page_market.dart
-
 import 'package:flutter/material.dart';
 import '../widgets/components/back_button_overlay.dart';
 import '../widgets/components/duihuan_lingshi.dart';
 import '../widgets/components/forge_blueprint_shop.dart';
+import '../widgets/components/refine_material_shop.dart'; // ✅ 新增导入
 
 class XiuXianMarketPage extends StatelessWidget {
   const XiuXianMarketPage({super.key});
@@ -23,7 +22,7 @@ class XiuXianMarketPage extends StatelessWidget {
             ),
           ),
 
-          // ✅ 灵石兑换组件放在中间稍下方
+          // ✅ 灵石兑换组件放在中间稍下方（左侧）
           const Positioned(
             bottom: 300,
             left: 0,
@@ -32,7 +31,14 @@ class XiuXianMarketPage extends StatelessWidget {
             ),
           ),
 
-          // ✅ 武器图纸招牌（右下角位置，方便你改）
+          // ✅ 炼器材料招牌（中下方偏右一点）
+          const Positioned(
+            bottom: 120,
+            right: 110, // ✅ 调整位置别太靠边
+            child: RefineMaterialShop(),
+          ),
+
+          // ✅ 武器图纸招牌（右下角）
           const Positioned(
             bottom: 250,
             right: 15,

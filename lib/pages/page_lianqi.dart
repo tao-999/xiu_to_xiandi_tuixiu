@@ -20,26 +20,48 @@ class LianqiPage extends StatefulWidget {
   State<LianqiPage> createState() => _LianqiPageState();
 }
 
-class _LianqiPageState extends State<LianqiPage> {
+class _LianqiPageState extends State<LianqiPage> with TickerProviderStateMixin {
   late Future<Zongmen?> _zongmenFuture;
   bool _hasZhushou = false;
 
   List<RefineBlueprint> _ownedBlueprints = [];
   RefineBlueprint? _selectedBlueprint;
+  List<String> _selectedMaterials = [];
+
+  late AnimationController _floatController;
+  late Animation<double> _floatAnimation;
 
   @override
   void initState() {
     super.initState();
+
     _zongmenFuture = _loadZongmenAndCheckZhushou();
     _loadBlueprints();
+
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _floatAnimation = Tween<double>(begin: -6.0, end: 6.0).animate(
+      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
+    );
   }
 
-  /// ✅ 拉 Hive 判断有没有驻守弟子
+  @override
+  void dispose() {
+    _floatController.dispose();
+    super.dispose();
+  }
+
   Future<Zongmen?> _loadZongmenAndCheckZhushou() async {
     final zongmen = await ZongmenStorage.loadZongmen();
     final disciples = await ZongmenStorage.getDisciplesByRoom('炼器房');
     setState(() {
       _hasZhushou = disciples.isNotEmpty;
+      if (!_hasZhushou) {
+        _selectedMaterials.clear(); // ✅ 清空材料选择
+      }
     });
     return zongmen;
   }
@@ -82,59 +104,72 @@ class _LianqiPageState extends State<LianqiPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 40),
-
-                    /// 顶部标题 + 等级
                     LianqiHeader(level: level),
-
                     const SizedBox(height: 24),
 
-                    /// 🔥 图纸选择（禁用逻辑已加）
+                    /// 图纸选择
                     BlueprintDropdownSelector(
                       blueprintList: _ownedBlueprints,
                       selected: _selectedBlueprint,
                       onSelected: (val) {
                         setState(() {
                           _selectedBlueprint = val;
+                          _selectedMaterials.clear();
                         });
                       },
                       isDisabled: !_hasZhushou,
-                      maxLevelAllowed: level, // ✅ 传入当前宗门等级
+                      maxLevelAllowed: level,
                     ),
 
                     const SizedBox(height: 16),
 
-                    /// 👇 特效区域预留位
+                    /// 中心浮动展示图标
                     Center(
-                      child: Container(
-                        width: 200,
-                        height: 120,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white10,
-                          border: Border.all(color: Colors.white24),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          '（此处预留炼器特效）',
-                          style: TextStyle(
-                            color: Colors.white54,
-                            fontFamily: 'ZcoolCangEr',
-                          ),
-                        ),
+                      child: _selectedBlueprint == null
+                          ? const SizedBox.shrink()
+                          : AnimatedBuilder(
+                        animation: _floatAnimation,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(0, _floatAnimation.value),
+                            child: Image.asset(
+                              'assets/images/${_selectedBlueprint!.iconPath}',
+                              width: 256,
+                              height: 256,
+                            ),
+                          );
+                        },
                       ),
                     ),
 
                     const SizedBox(height: 16),
 
-                    /// 材料选择（后续可传入 _selectedBlueprint）
-                    const RefineMaterialSelector(),
+                    /// 材料选择器
+                    if (_selectedBlueprint != null)
+                      RefineMaterialSelector(
+                        blueprint: _selectedBlueprint!,
+                        selectedMaterials: _selectedMaterials,
+                        onMaterialSelected: (index, name) {
+                          setState(() {
+                            if (index < _selectedMaterials.length) {
+                              _selectedMaterials[index] = name;
+                            } else {
+                              // ✅ 补空位
+                              while (_selectedMaterials.length <= index) {
+                                _selectedMaterials.add('');
+                              }
+                              _selectedMaterials[index] = name;
+                            }
+                          });
+                        },
+                        isDisabled: !_hasZhushou, // ✅ 是否禁用
+                      ),
 
                     const SizedBox(height: 16),
 
-                    /// 驻守弟子组件
                     ZhushouDiscipleSlot(
                       roomName: '炼器房',
-                      onChanged: _loadZongmenAndCheckZhushou, // 重新判断禁用状态
+                      onChanged: _loadZongmenAndCheckZhushou,
                     ),
                   ],
                 ),

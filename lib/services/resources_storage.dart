@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
 import '../models/refine_blueprint.dart';
+import '../utils/lingshi_util.dart';
 
 class ResourcesStorage {
   static const _key = 'resourcesData';
@@ -93,6 +94,24 @@ class ResourcesStorage {
   static Future<Set<String>> getBlueprintKeys() async {
     final res = await load(); // 已有的读取 Resources 方法
     return res.ownedBlueprintKeys.toSet(); // 确保是 Set<String>
+  }
+
+  /// 获取某种灵石数量（支持下中上极品）
+  static BigInt getStoneAmount(Resources res, LingShiType type) {
+    final field = lingShiFieldMap[type];
+
+    switch (field) {
+      case 'spiritStoneLow':
+        return res.spiritStoneLow;
+      case 'spiritStoneMid':
+        return res.spiritStoneMid;
+      case 'spiritStoneHigh':
+        return res.spiritStoneHigh;
+      case 'spiritStoneSupreme':
+        return res.spiritStoneSupreme;
+      default:
+        return BigInt.zero;
+    }
   }
 
 }
