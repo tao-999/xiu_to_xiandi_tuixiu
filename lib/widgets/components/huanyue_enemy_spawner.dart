@@ -24,7 +24,7 @@ final List<String> _enemyPaths = [
   'enemies/enemy_stage7_5.png',
 ];
 
-class HuanyueEnemySpawner extends Component with HasGameRef {
+class HuanyueEnemySpawner extends Component with HasGameReference {
   final int rows;
   final int cols;
   final double tileSize;

@@ -136,7 +136,6 @@ class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
 
     player = HuanyuePlayerComponent(
       tileSize: tileSize,
-      grid: mapTileLayer.grid,
       position: startPos,
       onEnterDoor: _enterNextFloor,
       doorPosition: doorComponent.position,

@@ -4,7 +4,6 @@ import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/huanyue_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/huanyue_pathfinder.dart';
 import '../../services/global_event_bus.dart';
 import '../../services/resources_storage.dart';
 import '../../utils/number_format.dart';
@@ -15,35 +14,30 @@ import 'huanyue_door_component.dart';
 class HuanyuePlayerComponent extends SpriteComponent
     with CollisionCallbacks, HasGameReference {
   final double tileSize;
-  final List<List<int>> grid;
-
-  List<Vector2> _path = [];
-  int _currentStep = 0;
-  int playerPower = 1;
-
-  final VoidCallback? onEnterDoor;
   final Vector2 doorPosition;
   final int currentFloor;
   final TileManager tileManager;
 
+  Vector2? _target;
+  int playerPower = 1;
+  bool _isFacingLeft = false;
   bool hasTriggeredEnter = false;
   bool hintCooldown = false;
-  bool _isFacingLeft = false;
+
+  final VoidCallback? onEnterDoor;
 
   late TextComponent powerText;
   late final Future<void> Function() _onPowerUpdate;
 
-  // ✅ 新增速度逻辑
   double get _currentMoveSpeed => 200 + currentFloor * 0.1;
 
   HuanyuePlayerComponent({
     required this.tileSize,
-    required this.grid,
     required Vector2 position,
-    this.onEnterDoor,
     required this.doorPosition,
     required this.currentFloor,
     required this.tileManager,
+    this.onEnterDoor,
   }) : super(
     position: position,
     anchor: Anchor.center,
@@ -67,10 +61,7 @@ class HuanyuePlayerComponent extends SpriteComponent
       position: position - Vector2(0, size.y / 2 + 4),
       priority: 998,
       textRenderer: TextPaint(
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.cyanAccent,
-        ),
+        style: const TextStyle(fontSize: 12, color: Colors.cyanAccent),
       ),
     );
     parent?.add(powerText);
@@ -79,10 +70,8 @@ class HuanyuePlayerComponent extends SpriteComponent
       final player = await PlayerStorage.getPlayer();
       if (player == null || PlayerStorage.getHp(player) == 0) return;
 
-      final newPower = PlayerStorage.getPower(player);
-      playerPower = newPower;
+      playerPower = PlayerStorage.getPower(player);
       powerText.text = formatAnyNumber(playerPower);
-
       powerText.add(
         ScaleEffect.by(
           Vector2(1.3, 1.3),
@@ -93,42 +82,37 @@ class HuanyuePlayerComponent extends SpriteComponent
 
     EventBus.on('powerUpdated', _onPowerUpdate);
     Future.microtask(() async => await _onPowerUpdate());
-
-    final gridPos = gridPosition;
-    tileManager.occupy(gridPos.x.toInt(), gridPos.y.toInt(), 2, 2);
   }
 
   void moveTo(Vector2 destination) {
-    final start = gridPosition;
-    final end = Vector2(
-      (destination.x ~/ tileSize).toDouble(),
-      (destination.y ~/ tileSize).toDouble(),
-    );
+    _target = destination;
 
-    final rawPath = HuanyuePathfinder.findPath(
-      grid: grid,
-      start: start,
-      end: end,
-    );
+    final dx = _target!.x - position.x;
+    final shouldFaceLeft = dx < 0;
+    if (shouldFaceLeft != _isFacingLeft) {
+      flipHorizontally();
+      _isFacingLeft = shouldFaceLeft;
+    }
+  }
 
-    if (rawPath.isNotEmpty) {
-      _path = rawPath
-          .map((p) => p * tileSize + Vector2.all(tileSize / 2))
-          .toList();
-      _currentStep = 0;
+  @override
+  Future<void> update(double dt) async {
+    super.update(dt);
 
-      // ✅ 提前判断方向
-      for (int i = 0; i < _path.length; i++) {
-        final dir = _path[i] - position;
-        if (dir.x.abs() > 1e-3) {
-          final shouldFaceLeft = dir.x < 0;
-          if (shouldFaceLeft != _isFacingLeft) {
-            flipHorizontally();
-            _isFacingLeft = shouldFaceLeft;
-          }
-          break;
-        }
+    if (_target != null) {
+      final dir = _target! - position;
+      final distance = dir.length;
+      final move = dir.normalized() * _currentMoveSpeed * dt;
+
+      if (move.length >= distance) {
+        position = _target!;
+        _target = null;
+        await HuanyueStorage.savePlayerPosition(position);
+      } else {
+        position += move;
       }
+
+      powerText.position = position - Vector2(0, size.y / 2 + 4);
     }
   }
 
@@ -139,40 +123,8 @@ class HuanyuePlayerComponent extends SpriteComponent
   }
 
   @override
-  Future<void> update(double dt) async {
-    super.update(dt);
-
-    if (_path.isEmpty || _currentStep >= _path.length) return;
-
-    final target = _path[_currentStep];
-    final dir = target - position;
-    final distance = dir.length;
-    final move = dir.normalized() * _currentMoveSpeed * dt;
-
-    if (dir.x.abs() > 1e-3) {
-      final shouldFaceLeft = dir.x < 0;
-      if (shouldFaceLeft != _isFacingLeft) {
-        flipHorizontally();
-        _isFacingLeft = shouldFaceLeft;
-      }
-    }
-
-    if (move.length >= distance) {
-      position = target;
-      _currentStep++;
-      await HuanyueStorage.savePlayerPosition(position);
-    } else {
-      position += move;
-    }
-
-    powerText.position = position - Vector2(0, size.y / 2 + 4);
-  }
-
-  @override
   Future<void> onCollision(
-      Set<Vector2> intersectionPoints,
-      PositionComponent other,
-      ) async {
+      Set<Vector2> intersectionPoints, PositionComponent other) async {
     super.onCollision(intersectionPoints, other);
 
     if (other is HuanyueEnemyComponent) {
@@ -185,7 +137,6 @@ class HuanyuePlayerComponent extends SpriteComponent
       if (playerPower >= enemyPower) {
         _triggerExplosion(other.position);
         _showRewardText('+${other.reward} 下品灵石', other.position);
-
         await ResourcesStorage.add('spiritStoneLow', BigInt.from(other.reward));
         HuanyueStorage.markEnemyKilled(other.id);
         other.removeFromParent();
@@ -245,18 +196,15 @@ class HuanyuePlayerComponent extends SpriteComponent
         ),
       ),
     );
-
     component.add(
       MoveEffect.by(
         Vector2(0, -48),
         EffectController(duration: 1.2, curve: Curves.easeOut),
       ),
     );
-
     Future.delayed(const Duration(milliseconds: 1200), () {
       component.removeFromParent();
     });
-
     parent?.add(component);
   }
 
@@ -273,18 +221,15 @@ class HuanyuePlayerComponent extends SpriteComponent
         ),
       ),
     );
-
     hint.add(
       MoveEffect.by(
         Vector2(0, -32),
         EffectController(duration: 1.0, curve: Curves.easeOut),
       ),
     );
-
     Future.delayed(const Duration(milliseconds: 1000), () {
       hint.removeFromParent();
     });
-
     parent?.add(hint);
   }
 
@@ -295,10 +240,5 @@ class HuanyuePlayerComponent extends SpriteComponent
     ));
   }
 
-  Vector2 get gridPosition => Vector2(
-    (position.x / tileSize).floorToDouble(),
-    (position.y / tileSize).floorToDouble(),
-  );
-
-  bool get isMoving => _path.isNotEmpty;
+  bool get isMoving => _target != null;
 }

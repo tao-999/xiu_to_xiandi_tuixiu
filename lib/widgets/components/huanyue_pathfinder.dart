@@ -1,9 +1,10 @@
 // 📂 lib/widgets/components/huanyue_pathfinder.dart
 import 'package:collection/collection.dart';
 import 'package:flame/components.dart';
+import 'dart:math';
 
 class HuanyuePathfinder {
-  /// 通用寻路接口
+  /// 通用寻路接口（已支持八方向 + 斜向代价 √2）
   static List<Vector2> findPath({
     required List<List<int>> grid,
     required Vector2 start,
@@ -14,7 +15,10 @@ class HuanyuePathfinder {
     final cols = grid[0].length;
 
     bool isWalkable(int x, int y) =>
-        x >= 0 && y >= 0 && x < cols && y < rows &&
+        x >= 0 &&
+            y >= 0 &&
+            x < cols &&
+            y < rows &&
             (isWalkableOverride?.call(x, y) ?? grid[y][x] == 1);
 
     final startNode = _Node(start.x.toInt(), start.y.toInt());
@@ -40,7 +44,7 @@ class HuanyuePathfinder {
 
       closedSet.add(current.key);
 
-      for (final dir in _Node.directions) {
+      for (final dir in _Node.directions8) {
         final nx = current.x + dir[0];
         final ny = current.y + dir[1];
         if (!isWalkable(nx, ny)) continue;
@@ -48,7 +52,10 @@ class HuanyuePathfinder {
         final neighbor = _Node(nx, ny);
         if (closedSet.contains(neighbor.key)) continue;
 
-        final tentativeG = current.g + 1;
+        final isDiagonal = dir[0] != 0 && dir[1] != 0;
+        final cost = isDiagonal ? sqrt2 : 1.0;
+        final tentativeG = current.g + cost;
+
         if (!openSet.contains(neighbor) || tentativeG < neighbor.g) {
           cameFrom[neighbor.key] = current;
           neighbor.g = tentativeG;
@@ -79,12 +86,15 @@ class _Node {
   double g = double.infinity;
   double h = 0;
 
-  // ✅ 可扩展为八方向
-  static const directions = [
-    [1, 0],
-    [-1, 0],
-    [0, 1],
-    [0, -1],
+  static const directions8 = [
+    [1, 0],   // →
+    [-1, 0],  // ←
+    [0, 1],   // ↓
+    [0, -1],  // ↑
+    [1, 1],   // ↘
+    [-1, 1],  // ↙
+    [1, -1],  // ↗
+    [-1, -1], // ↖
   ];
 
   _Node(this.x, this.y);
@@ -93,7 +103,7 @@ class _Node {
   String get key => '$x,$y';
 
   double distanceTo(_Node other) =>
-      ((x - other.x).abs() + (y - other.y).abs()).toDouble();
+      sqrt(pow((x - other.x), 2) + pow((y - other.y), 2));
 
   @override
   bool operator ==(Object other) =>

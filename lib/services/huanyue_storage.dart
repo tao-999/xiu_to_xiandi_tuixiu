@@ -159,11 +159,16 @@ class HuanyueStorage {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('enemyPositions') ?? '{}';
     final allPos = Map<String, dynamic>.from(jsonDecode(raw));
-    final idsForFloor = allPos.keys.where((id) => id.startsWith('enemy-$floor-')).toList();
+
+    final idsForFloor = allPos.keys
+        .where((id) =>
+    id.startsWith('enemy-$floor-') || id == 'boss-floor-$floor')
+        .toList();
 
     for (final id in idsForFloor) {
       if (!await isEnemyKilled(id)) return false;
     }
+
     return true;
   }
 
