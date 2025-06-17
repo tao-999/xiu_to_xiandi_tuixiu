@@ -31,7 +31,7 @@ class RefineBlueprint {
     'name': name,
     'description': description,
     'level': level,
-    'type': type.name,
+    'type': type.name, // ✅ 枚举转字符串
     'materials': materials,
     'attackBoost': attackBoost,
     'defenseBoost': defenseBoost,

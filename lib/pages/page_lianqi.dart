@@ -13,6 +13,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/zhushou_disciple_slot.da
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/refine_material_selector.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/blueprint_dropdown_selector.dart';
 
+import '../services/refine_material_service.dart';
+
 class LianqiPage extends StatefulWidget {
   const LianqiPage({super.key});
 
@@ -20,16 +22,15 @@ class LianqiPage extends StatefulWidget {
   State<LianqiPage> createState() => _LianqiPageState();
 }
 
-class _LianqiPageState extends State<LianqiPage> with TickerProviderStateMixin {
+class _LianqiPageState extends State<LianqiPage> {
   late Future<Zongmen?> _zongmenFuture;
   bool _hasZhushou = false;
+  bool _isRefining = false;
+  DateTime? _refineEndTime;
 
   List<RefineBlueprint> _ownedBlueprints = [];
   RefineBlueprint? _selectedBlueprint;
   List<String> _selectedMaterials = [];
-
-  late AnimationController _floatController;
-  late Animation<double> _floatAnimation;
 
   @override
   void initState() {
@@ -37,21 +38,7 @@ class _LianqiPageState extends State<LianqiPage> with TickerProviderStateMixin {
 
     _zongmenFuture = _loadZongmenAndCheckZhushou();
     _loadBlueprints();
-
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _floatAnimation = Tween<double>(begin: -6.0, end: 6.0).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _floatController.dispose();
-    super.dispose();
+    _tryRestoreRefineState();
   }
 
   Future<Zongmen?> _loadZongmenAndCheckZhushou() async {
@@ -60,10 +47,45 @@ class _LianqiPageState extends State<LianqiPage> with TickerProviderStateMixin {
     setState(() {
       _hasZhushou = disciples.isNotEmpty;
       if (!_hasZhushou) {
-        _selectedMaterials.clear(); // ✅ 清空材料选择
+        _selectedMaterials.clear();
       }
     });
     return zongmen;
+  }
+
+  Future<void> _tryRestoreRefineState() async {
+    final state = await RefineMaterialService.loadRefineState();
+    if (state == null) return;
+
+    final type = BlueprintType.values.firstWhere((e) => e.name == state['blueprintType']);
+    final level = state['blueprintLevel'] as int;
+    final name = state['blueprintName'] as String;
+
+    final matchedBlueprint = _ownedBlueprints.firstWhere(
+          (b) => b.type == type && b.level == level && b.name == name,
+      orElse: () => _ownedBlueprints.first, // 找不到就默认第一个
+    );
+
+    final selectedMaterials = List<String>.from(state['materials']);
+    final startTime = DateTime.parse(state['startTime']);
+    final durationMinutes = state['durationMinutes'] as int;
+    final endTime = startTime.add(Duration(minutes: durationMinutes));
+    final now = DateTime.now();
+
+    if (endTime.isBefore(now)) {
+      // 如果时间已过 → 清除状态
+      await RefineMaterialService.clearRefineState();
+      return;
+    }
+
+    setState(() {
+      _selectedBlueprint = matchedBlueprint;     // ✅ 必须是 dropdown 列表里的引用！
+      _selectedMaterials = selectedMaterials;
+      _isRefining = true;
+      _refineEndTime = endTime;
+    });
+
+    // 🔥 如果你有炼制动画组件，可以在这里直接启动（比如调用 overlay 显示）
   }
 
   Future<void> _loadBlueprints() async {
@@ -117,63 +139,60 @@ class _LianqiPageState extends State<LianqiPage> with TickerProviderStateMixin {
                           _selectedMaterials.clear();
                         });
                       },
-                      isDisabled: !_hasZhushou,
+                      isDisabled: !_hasZhushou || _isRefining, // ✅ 加上炼制中禁用判断！
                       maxLevelAllowed: level,
+                      hasZhushou: _hasZhushou,
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
-                    /// 中心浮动展示图标
-                    Center(
-                      child: _selectedBlueprint == null
-                          ? const SizedBox.shrink()
-                          : AnimatedBuilder(
-                        animation: _floatAnimation,
-                        builder: (context, child) {
-                          return Transform.translate(
-                            offset: Offset(0, _floatAnimation.value),
-                            child: Image.asset(
-                              'assets/images/${_selectedBlueprint!.iconPath}',
-                              width: 256,
-                              height: 256,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    /// 材料选择器
+                    /// 整合后的武器图标 + 材料选择器
+                    /// 整合后的武器图标 + 材料选择器
                     if (_selectedBlueprint != null)
-                      RefineMaterialSelector(
-                        blueprint: _selectedBlueprint!,
-                        selectedMaterials: _selectedMaterials,
-                        onMaterialSelected: (index, name) {
-                          setState(() {
-                            if (index < _selectedMaterials.length) {
-                              _selectedMaterials[index] = name;
-                            } else {
-                              // ✅ 补空位
-                              while (_selectedMaterials.length <= index) {
-                                _selectedMaterials.add('');
+                      Center(
+                        child: RefineMaterialSelector(
+                          blueprint: _selectedBlueprint!,
+                          selectedMaterials: _selectedMaterials,
+                          onMaterialSelected: (index, name) {
+                            setState(() {
+                              if (index < _selectedMaterials.length) {
+                                _selectedMaterials[index] = name;
+                              } else {
+                                while (_selectedMaterials.length <= index) {
+                                  _selectedMaterials.add('');
+                                }
+                                _selectedMaterials[index] = name;
                               }
-                              _selectedMaterials[index] = name;
-                            }
-                          });
-                        },
-                        isDisabled: !_hasZhushou, // ✅ 是否禁用
+                            });
+                          },
+                          isDisabled: !_hasZhushou || _isRefining, // ✅ 别忘判断炼制状态！
+                          hasDisciple: _hasZhushou,
+                          onRefineCompleted: () async {
+                            await _loadZongmenAndCheckZhushou();
+                            await _loadBlueprints();
+                            setState(() {
+                              _selectedMaterials.clear();
+                              _isRefining = false;
+                            });
+                          },
+                        ),
                       ),
-
-                    const SizedBox(height: 16),
-
-                    ZhushouDiscipleSlot(
-                      roomName: '炼器房',
-                      onChanged: _loadZongmenAndCheckZhushou,
-                    ),
                   ],
                 ),
               ),
+
+              /// 驻守弟子
+              Positioned(
+                bottom: 150,
+                right: 20,
+                child: ZhushouDiscipleSlot(
+                  roomName: '炼器房',
+                  onChanged: _loadZongmenAndCheckZhushou,
+                  allowRemove: !_isRefining, // ✅ 炼制中不允许任何操作
+                ),
+              ),
+
+              /// 返回按钮
               const BackButtonOverlay(),
             ],
           );

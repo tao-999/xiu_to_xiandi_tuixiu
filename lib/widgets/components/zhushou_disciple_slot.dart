@@ -5,12 +5,14 @@ import '../../utils/aptitude_color_util.dart';
 
 class ZhushouDiscipleSlot extends StatefulWidget {
   final String roomName;
-  final VoidCallback? onChanged; // ✅ 回调用于通知外层刷新状态
+  final VoidCallback? onChanged;
+  final bool allowRemove; // ✅ 新增参数：控制是否允许交互
 
   const ZhushouDiscipleSlot({
     super.key,
     required this.roomName,
     this.onChanged,
+    this.allowRemove = true, // 默认允许
   });
 
   @override
@@ -46,7 +48,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
     if (_selected != null) {
       await ZongmenStorage.removeDiscipleFromRoom(_selected!.id, widget.roomName);
       setState(() => _selected = null);
-      widget.onChanged?.call(); // ✅ 通知外层组件更新状态
+      widget.onChanged?.call();
     }
   }
 
@@ -55,7 +57,8 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
     final list = all.where((d) =>
     d.assignedRoom == null ||
         d.assignedRoom == widget.roomName ||
-        d.id == _selected?.id).toList();
+        d.id == _selected?.id
+    ).toList();
 
     showDialog(
       context: context,
@@ -92,7 +95,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
                         await ZongmenStorage.setDiscipleAssignedRoom(d.id, widget.roomName);
                         setState(() => _selected = d);
                         Navigator.pop(context);
-                        widget.onChanged?.call(); // ✅ 通知外层组件更新状态
+                        widget.onChanged?.call();
                       },
                       child: Stack(
                         children: [
@@ -195,7 +198,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
     return Stack(
       children: [
         GestureDetector(
-          onTap: _showSelectDialog,
+          onTap: widget.allowRemove ? _showSelectDialog : null, // ✅ 禁用点击
           child: Container(
             width: 72,
             height: 72,
@@ -213,7 +216,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
             ),
           ),
         ),
-        if (_selected != null)
+        if (_selected != null && widget.allowRemove) // ✅ 禁用移除按钮
           Positioned(
             top: 0,
             right: 0,

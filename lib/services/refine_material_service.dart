@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/refine_material.dart';
 import 'package:xiu_to_xiandi_tuixiu/data/all_refine_blueprints.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 
+import '../models/refine_blueprint.dart';
 import '../utils/lingshi_util.dart';
 
 class RefineMaterialService {
@@ -85,6 +87,60 @@ class RefineMaterialService {
   static Future<int> getCount(String name) async {
     final inv = await _loadInventory();
     return inv[name] ?? 0;
+  }
+
+  /// ⏱ 获取炼制时间（分钟），如果没弟子就返回 null
+  static Future<Duration?> getRefineDuration(int level) async {
+    final disciples = await ZongmenStorage.getDisciplesByRoom('炼器房');
+
+    if (disciples.isEmpty) return null;
+
+    final d = disciples.first;
+    final totalAptitude = d.aptitude;
+
+    final baseMinutes = 30 + (level - 1) * 10;
+    const reductionPerPoint = 0.05;
+    final reduction = totalAptitude * reductionPerPoint;
+
+    final finalMinutes = (baseMinutes - reduction).clamp(5, double.infinity);
+
+    return Duration(minutes: finalMinutes.round());
+  }
+
+  // 🔐 持久化炼制状态键名
+  static const _refineStateKey = 'refine_state';
+
+  /// 🧪 保存炼制状态
+  static Future<void> saveRefineState({
+    required DateTime startTime,
+    required int durationMinutes,
+    required RefineBlueprint blueprint,
+    required List<String> selectedMaterials,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = {
+      'startTime': startTime.toIso8601String(),
+      'durationMinutes': durationMinutes,
+      'blueprintName': blueprint.name,
+      'blueprintLevel': blueprint.level,
+      'blueprintType': blueprint.type.name, // ✅ 关键修复点
+      'materials': selectedMaterials,
+    };
+    await prefs.setString(_refineStateKey, jsonEncode(data));
+  }
+
+  /// 🧪 读取炼制状态（若无则返回 null）
+  static Future<Map<String, dynamic>?> loadRefineState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_refineStateKey);
+    if (raw == null) return null;
+    return jsonDecode(raw);
+  }
+
+  /// 🧪 清除炼制状态
+  static Future<void> clearRefineState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_refineStateKey);
   }
 
   static Future<Map<String, int>> loadInventory() => _loadInventory();

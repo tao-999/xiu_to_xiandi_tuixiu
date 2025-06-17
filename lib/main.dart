@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/effects/touch_effect_overlay.dart';
 import 'models/disciple.dart';
+import 'models/weapon.dart';
 import 'pages/page_create_role.dart';
 import 'pages/page_root.dart';
 import 'models/character.dart';
@@ -31,6 +32,7 @@ void main() async {
   await Hive.initFlutter();
 
   Hive.registerAdapter(DiscipleAdapter());
+  Hive.registerAdapter(WeaponAdapter());
 
   // ✅ 判断是否已创建角色
   final prefs = await SharedPreferences.getInstance();

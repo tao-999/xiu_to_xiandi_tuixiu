@@ -8,6 +8,7 @@ class BlueprintDropdownSelector extends StatelessWidget {
   final ValueChanged<RefineBlueprint> onSelected;
   final bool isDisabled;
   final int maxLevelAllowed; // ✅ 新增：最高允许炼制阶数
+  final bool hasZhushou;
 
   const BlueprintDropdownSelector({
     super.key,
@@ -16,14 +17,18 @@ class BlueprintDropdownSelector extends StatelessWidget {
     required this.onSelected,
     required this.maxLevelAllowed,
     this.isDisabled = false,
+    this.hasZhushou = true,
   });
 
   @override
   Widget build(BuildContext context) {
     if (blueprintList.isEmpty) {
       return const Text(
-        '暂无可用图纸，请先前往图纸商店获取。',
-        style: TextStyle(color: Colors.white60),
+        '炼器可不能光靠想象～先去商店看看，挑一张合心意的图纸再来操作噢。',
+        style: TextStyle(
+          color: Colors.white60,
+          fontSize: 10, // ✅ 字号设置为10
+        ),
       );
     }
 
@@ -136,12 +141,12 @@ class BlueprintDropdownSelector extends StatelessWidget {
             );
           }).toList(),
         ),
-        if (isDisabled)
+        if (!hasZhushou)
           const Padding(
             padding: EdgeInsets.only(top: 6),
             child: Text(
-              '请先派遣弟子驻守炼器房后再选择图纸',
-              style: TextStyle(color: Colors.redAccent, fontSize: 12),
+              '主人，炼器房还空着呢～不派个小可爱去看着，器灵都不敢现身呀！',
+              style: TextStyle(color: Colors.redAccent, fontSize: 10),
             ),
           ),
       ],

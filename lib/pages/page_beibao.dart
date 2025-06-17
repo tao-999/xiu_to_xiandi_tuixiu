@@ -4,7 +4,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_grid_view.dart';
 import 'package:xiu_to_xiandi_tuixiu/data/beibao_resource_config.dart';
 
-import '../services/refine_blueprint_service.dart';
+import '../services/weapons_storage.dart';
 
 class BeibaoPage extends StatefulWidget {
   const BeibaoPage({super.key});
@@ -25,7 +25,7 @@ class _BeibaoPageState extends State<BeibaoPage> {
   Future<void> _loadResources() async {
     List<BeibaoItem> newItems = [];
 
-    // 🔹 先加载通用资源（灵石、招募券等）
+    // 🔹 1. 先加载通用资源（灵石、招募券等）
     for (final config in beibaoResourceList) {
       final quantity = await ResourcesStorage.getValue(config.field);
       newItems.add(BeibaoItem(
@@ -33,6 +33,25 @@ class _BeibaoPageState extends State<BeibaoPage> {
         imagePath: config.imagePath,
         quantity: quantity,
         description: config.description,
+      ));
+    }
+
+    // 🔹 2. 加载炼制武器
+    final weapons = await WeaponsStorage.loadAllWeapons();
+
+    // ✅ 打印调试日志
+    print('🧱 [背包] 加载到 ${weapons.length} 件武器');
+    for (final w in weapons) {
+      print('⚔️ 武器：${w.name} | 阶数：${w.level} | 类型：${w.type} | 效果：${w.specialEffects}');
+    }
+
+    for (final weapon in weapons) {
+      final effect = weapon.specialEffects.isNotEmpty ? weapon.specialEffects.first : '';
+      newItems.add(BeibaoItem(
+        name: weapon.name,
+        imagePath: 'assets/images/${weapon.type}.png',
+        quantity: 1,
+        description: '阶数：${weapon.level}，效果：$effect',
       ));
     }
 
