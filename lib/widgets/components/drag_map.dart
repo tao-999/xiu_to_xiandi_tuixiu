@@ -4,7 +4,7 @@ import 'package:flame/collisions.dart';
 import 'package:flutter/cupertino.dart';
 
 class DragMap extends PositionComponent
-    with DragCallbacks, HasGameRef, GestureHitboxes {
+    with DragCallbacks, HasGameReference, GestureHitboxes {
   final void Function(Vector2 delta) onDragged;
   final void Function(Vector2 position)? onTap;
   final ValueNotifier<bool>? isTapLocked; // ✅ 可选锁

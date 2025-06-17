@@ -3,7 +3,7 @@ import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 
 /// 真·发光组件：落子闪一圈灵气扩散圆环
-class GlowEffectComponent extends PositionComponent with HasGameRef {
+class GlowEffectComponent extends PositionComponent with HasGameReference {
   final Color glowColor;
 
   GlowEffectComponent({

@@ -9,7 +9,7 @@ import 'package:xiu_to_xiandi_tuixiu/utils/tile_manager.dart';
 typedef VoidCallback = void Function();
 
 class HuanyueDoorComponent extends SpriteComponent
-    with CollisionCallbacks, HasGameRef {
+    with CollisionCallbacks, HasGameReference {
   final double tileSize;
   final VoidCallback? onEnterDoor;
   final List<List<int>> grid;
@@ -32,7 +32,7 @@ class HuanyueDoorComponent extends SpriteComponent
 
   @override
   Future<void> onLoad() async {
-    sprite = await gameRef.loadSprite('tietu_men.png');
+    sprite = await game.loadSprite('tietu_men.png');
     await _spawnDoor();
 
     add(RectangleHitbox()..collisionType = CollisionType.passive);
