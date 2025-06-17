@@ -56,7 +56,7 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector> {
         .where((name) => tempInventory.containsKey(name))
         .toList();
 
-    // ✅ 如果一个都不能用，直接弹骚话
+    // 如果一个都不能用，弹骚话
     if (usable.isEmpty) {
       showDialog(
         context: context,
@@ -80,7 +80,7 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector> {
       return;
     }
 
-    // ✅ 弹材料选择框
+    // 弹材料选择框
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -158,9 +158,26 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector> {
             ? RefineMaterialService.getByName(materialName)
             : null;
 
+        final isSelected = material != null;
+
         return GestureDetector(
           onTap: () => _selectMaterial(i),
-          child: Container(
+          child: isSelected
+              ? SizedBox(
+            width: 64,
+            height: 64,
+            child: Center(
+              child: Image.asset(
+                material!.image,
+                width: 40,
+                height: 40,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) =>
+                const Icon(Icons.image_not_supported, size: 20),
+              ),
+            ),
+          )
+              : Container(
             width: 64,
             height: 64,
             decoration: BoxDecoration(
@@ -171,17 +188,8 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector> {
                 width: 2,
               ),
             ),
-            child: Center(
-              child: material != null
-                  ? Image.asset(
-                material.image,
-                width: 40,
-                height: 40,
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) =>
-                const Icon(Icons.image_not_supported, size: 20),
-              )
-                  : const Text(
+            child: const Center(
+              child: Text(
                 '＋',
                 style: TextStyle(fontSize: 24, color: Colors.white),
               ),
