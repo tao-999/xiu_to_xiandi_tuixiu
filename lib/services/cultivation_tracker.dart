@@ -38,7 +38,14 @@ class CultivationTracker {
     final aptitude = PlayerStorage.calculateTotalElement(player.elements);
     final maxExp = getMaxExpByAptitude(aptitude);
 
+    final oldLayer = calculateCultivationLevel(player.cultivation).totalLayer;
     player.cultivation = (player.cultivation + added).clamp(BigInt.zero, maxExp);
+    final newLayer = calculateCultivationLevel(player.cultivation).totalLayer;
+
+    // ✅ 判断是否补算过程中发生了突破
+    if (newLayer > oldLayer) {
+      PlayerStorage.calculateBaseAttributes(player);
+    }
 
     await prefs.setInt(_loginTimeKey, now);
     await _updateCultivationOnly(player.cultivation);
