@@ -5,14 +5,14 @@ import '../../utils/aptitude_color_util.dart';
 
 class ZhushouDiscipleSlot extends StatefulWidget {
   final String roomName;
-  final VoidCallback? onChanged;
-  final bool allowRemove; // ✅ 新增参数：控制是否允许交互
+  final void Function(String actionType)? onChanged;
+  final bool isRefining;
 
   const ZhushouDiscipleSlot({
     super.key,
     required this.roomName,
     this.onChanged,
-    this.allowRemove = true, // 默认允许
+    this.isRefining = true, // 默认允许
   });
 
   @override
@@ -48,7 +48,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
     if (_selected != null) {
       await ZongmenStorage.removeDiscipleFromRoom(_selected!.id, widget.roomName);
       setState(() => _selected = null);
-      widget.onChanged?.call();
+      widget.onChanged?.call('remove');
     }
   }
 
@@ -95,7 +95,7 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
                         await ZongmenStorage.setDiscipleAssignedRoom(d.id, widget.roomName);
                         setState(() => _selected = d);
                         Navigator.pop(context);
-                        widget.onChanged?.call();
+                        widget.onChanged?.call('switch');
                       },
                       child: Stack(
                         children: [
@@ -195,10 +195,12 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
       border: Border.fromBorderSide(BorderSide(color: Colors.white24)),
     );
 
+    final bool isDisabled = widget.isRefining;
+
     return Stack(
       children: [
         GestureDetector(
-          onTap: widget.allowRemove ? _showSelectDialog : null, // ✅ 禁用点击
+          onTap: isDisabled ? null : _showSelectDialog,
           child: Container(
             width: 72,
             height: 72,
@@ -216,7 +218,9 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
             ),
           ),
         ),
-        if (_selected != null && widget.allowRemove) // ✅ 禁用移除按钮
+
+        // ❌ 炼制中禁用删除按钮
+        if (_selected != null && !isDisabled)
           Positioned(
             top: 0,
             right: 0,

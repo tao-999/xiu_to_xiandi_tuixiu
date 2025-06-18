@@ -32,7 +32,16 @@ class WeaponsStorage {
       specialEffects: [
         '${effect['type']} +${effect['value']}',
       ],
+      iconPath: 'assets/images/${blueprint.iconPath}',
     );
+
+    print('🧱 [新建武器] => ${weapon.name}');
+    print('📊 等级: ${weapon.level}');
+    print('🛡️ 类型: ${weapon.type}');
+    print('💥 攻击: ${weapon.attackBoost}, 防御: ${weapon.defenseBoost}, 血量: ${weapon.hpBoost}');
+    print('✨ 特效: ${weapon.specialEffects.join(', ')}');
+    print('🖼️ 图标路径: ${weapon.iconPath}');
+    print('🕒 时间: ${weapon.createdAt}');
 
     await addWeapon(weapon);
   }

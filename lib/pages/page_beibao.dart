@@ -25,7 +25,7 @@ class _BeibaoPageState extends State<BeibaoPage> {
   Future<void> _loadResources() async {
     List<BeibaoItem> newItems = [];
 
-    // 🔹 1. 先加载通用资源（灵石、招募券等）
+    // 🔹 1. 加载通用资源（灵石、招募券等）
     for (final config in beibaoResourceList) {
       final quantity = await ResourcesStorage.getValue(config.field);
       newItems.add(BeibaoItem(
@@ -39,17 +39,24 @@ class _BeibaoPageState extends State<BeibaoPage> {
     // 🔹 2. 加载炼制武器
     final weapons = await WeaponsStorage.loadAllWeapons();
 
-    // ✅ 打印调试日志
+    // ✅ 打印详细武器信息
     print('🧱 [背包] 加载到 ${weapons.length} 件武器');
     for (final w in weapons) {
-      print('⚔️ 武器：${w.name} | 阶数：${w.level} | 类型：${w.type} | 效果：${w.specialEffects}');
+      print('⚔️ 武器详情：');
+      print('   📛 名称：${w.name}');
+      print('   🎚️ 阶数：${w.level}');
+      print('   🧱 类型：${w.type}');
+      print('   💥 攻击：${w.attackBoost}，🛡️ 防御：${w.defenseBoost}，❤️ 血量：${w.hpBoost}');
+      print('   ✨ 特效：${w.specialEffects.join('，')}');
+      print('   🖼️ 图标路径：${w.iconPath}');
+      print('   🕒 炼制时间：${w.createdAt}');
     }
 
     for (final weapon in weapons) {
       final effect = weapon.specialEffects.isNotEmpty ? weapon.specialEffects.first : '';
       newItems.add(BeibaoItem(
         name: weapon.name,
-        imagePath: 'assets/images/${weapon.type}.png',
+        imagePath: weapon.iconPath, // ✅ 用真实图标路径
         quantity: 1,
         description: '阶数：${weapon.level}，效果：$effect',
       ));

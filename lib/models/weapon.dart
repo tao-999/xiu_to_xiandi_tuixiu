@@ -28,6 +28,9 @@ class Weapon extends HiveObject {
   @HiveField(7)
   List<String> specialEffects;
 
+  @HiveField(8)
+  String iconPath; // ✅ 图标路径
+
   Weapon({
     required this.name,
     required this.level,
@@ -37,5 +40,6 @@ class Weapon extends HiveObject {
     this.defenseBoost = 0,
     this.hpBoost = 0,
     this.specialEffects = const [],
+    this.iconPath = '',
   });
 }

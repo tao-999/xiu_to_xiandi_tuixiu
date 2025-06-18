@@ -25,9 +25,10 @@ class LianqiPage extends StatefulWidget {
 class _LianqiPageState extends State<LianqiPage> {
   late Future<Zongmen?> _zongmenFuture;
   bool _hasZhushou = false;
+
+  // 这几个状态只由 _initBlueprintAndRefineState 控制
   bool _isRefining = false;
   DateTime? _refineEndTime;
-
   List<RefineBlueprint> _ownedBlueprints = [];
   RefineBlueprint? _selectedBlueprint;
   List<String> _selectedMaterials = [];
@@ -35,10 +36,8 @@ class _LianqiPageState extends State<LianqiPage> {
   @override
   void initState() {
     super.initState();
-
     _zongmenFuture = _loadZongmenAndCheckZhushou();
-    _loadBlueprints();
-    _tryRestoreRefineState();
+    _initBlueprintAndRefineState();
   }
 
   Future<Zongmen?> _loadZongmenAndCheckZhushou() async {
@@ -53,49 +52,56 @@ class _LianqiPageState extends State<LianqiPage> {
     return zongmen;
   }
 
-  Future<void> _tryRestoreRefineState() async {
-    final state = await RefineMaterialService.loadRefineState();
-    if (state == null) return;
-
-    final type = BlueprintType.values.firstWhere((e) => e.name == state['blueprintType']);
-    final level = state['blueprintLevel'] as int;
-    final name = state['blueprintName'] as String;
-
-    final matchedBlueprint = _ownedBlueprints.firstWhere(
-          (b) => b.type == type && b.level == level && b.name == name,
-      orElse: () => _ownedBlueprints.first, // 找不到就默认第一个
-    );
-
-    final selectedMaterials = List<String>.from(state['materials']);
-    final startTime = DateTime.parse(state['startTime']);
-    final durationMinutes = state['durationMinutes'] as int;
-    final endTime = startTime.add(Duration(minutes: durationMinutes));
-    final now = DateTime.now();
-
-    if (endTime.isBefore(now)) {
-      // 如果时间已过 → 清除状态
-      await RefineMaterialService.clearRefineState();
-      return;
-    }
-
-    setState(() {
-      _selectedBlueprint = matchedBlueprint;     // ✅ 必须是 dropdown 列表里的引用！
-      _selectedMaterials = selectedMaterials;
-      _isRefining = true;
-      _refineEndTime = endTime;
-    });
-
-    // 🔥 如果你有炼制动画组件，可以在这里直接启动（比如调用 overlay 显示）
-  }
-
-  Future<void> _loadBlueprints() async {
+  Future<void> _initBlueprintAndRefineState() async {
+    // 1. 加载已拥有图纸
     final keys = await ResourcesStorage.getBlueprintKeys();
     final all = RefineBlueprintService.generateAllBlueprints();
     final owned = all.where((b) => keys.contains('${b.type.name}-${b.level}')).toList();
 
+    // 2. 加载炼制状态
+    final state = await RefineMaterialService.loadRefineState();
+
+    RefineBlueprint? restoredBlueprint;
+    List<String> restoredMaterials = [];
+    DateTime? refineEndTime;
+
+    if (state != null) {
+      try {
+        final typeName = state['blueprintType'];
+        final level = state['blueprintLevel'];
+        final name = state['blueprintName'];
+        final endTimeStr = state['endTime'];
+        final materials = state['materials'];
+
+        if (typeName is String &&
+            level is int &&
+            name is String &&
+            endTimeStr is String &&
+            materials is List) {
+          final type = BlueprintType.values.firstWhere(
+                (e) => e.name == typeName,
+            orElse: () => BlueprintType.weapon,
+          );
+
+          refineEndTime = DateTime.parse(endTimeStr);
+          restoredMaterials = List<String>.from(materials);
+          restoredBlueprint = owned.firstWhereOrNull(
+                (b) => b.type == type && b.level == level && b.name == name,
+          );
+        } else {
+          print('⚠️ 状态字段类型异常，放弃恢复');
+        }
+      } catch (e) {
+        print('❌ 恢复炼制状态异常: $e');
+      }
+    }
+
     setState(() {
       _ownedBlueprints = owned;
-      _selectedBlueprint ??= owned.firstWhereOrNull((b) => b.type == BlueprintType.weapon);
+      _selectedBlueprint = restoredBlueprint;
+      _selectedMaterials = restoredMaterials;
+      _refineEndTime = refineEndTime;
+      _isRefining = refineEndTime != null && refineEndTime.isAfter(DateTime.now()); // ✅ 修复核心BUG
     });
   }
 
@@ -139,15 +145,14 @@ class _LianqiPageState extends State<LianqiPage> {
                           _selectedMaterials.clear();
                         });
                       },
-                      isDisabled: !_hasZhushou || _isRefining, // ✅ 加上炼制中禁用判断！
+                      isDisabled: !_hasZhushou || _isRefining,
                       maxLevelAllowed: level,
                       hasZhushou: _hasZhushou,
                     ),
 
                     const SizedBox(height: 24),
 
-                    /// 整合后的武器图标 + 材料选择器
-                    /// 整合后的武器图标 + 材料选择器
+                    /// 材料选择器 + 炼制逻辑
                     if (_selectedBlueprint != null)
                       Center(
                         child: RefineMaterialSelector(
@@ -165,18 +170,19 @@ class _LianqiPageState extends State<LianqiPage> {
                               }
                             });
                           },
-                          isDisabled: !_hasZhushou || _isRefining, // ✅ 别忘判断炼制状态！
+                          isDisabled: !_hasZhushou || _isRefining,
                           hasDisciple: _hasZhushou,
+                          onRefineStarted: () async {
+                            await _loadZongmenAndCheckZhushou();
+                            await _initBlueprintAndRefineState(); // ✅ 主动刷新状态，UI立即更新
+                          },
                           onRefineCompleted: () async {
                             await _loadZongmenAndCheckZhushou();
-                            await _loadBlueprints();
-                            setState(() {
-                              _selectedMaterials.clear();
-                              _isRefining = false;
-                            });
+                            await _initBlueprintAndRefineState(); // ✅ 完成后也要刷新一次
                           },
                         ),
                       ),
+
                   ],
                 ),
               ),
@@ -187,9 +193,17 @@ class _LianqiPageState extends State<LianqiPage> {
                 right: 20,
                 child: ZhushouDiscipleSlot(
                   roomName: '炼器房',
-                  onChanged: _loadZongmenAndCheckZhushou,
-                  allowRemove: !_isRefining, // ✅ 炼制中不允许任何操作
+                  onChanged: (actionType) async {
+                    await _loadZongmenAndCheckZhushou();
+
+                    if (actionType == 'remove') {
+                      // 弟子移除，重置炼制状态
+                      await _initBlueprintAndRefineState();
+                    }
+                  },
+                  isRefining: _isRefining,
                 ),
+
               ),
 
               /// 返回按钮

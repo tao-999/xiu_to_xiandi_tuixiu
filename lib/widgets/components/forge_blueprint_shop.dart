@@ -112,7 +112,7 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
           children: [
             const Text(
               '武器图纸商店',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
+              style: TextStyle(fontSize: 15, color: Colors.black87),
             ),
             const SizedBox(height: 12),
             for (final entry in grouped.entries) ...[
@@ -120,69 +120,71 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Text('${entry.key}阶', style: const TextStyle(fontSize: 12)),
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: entry.value.map((bp) {
-                  final owned = ownedKeys.contains('${bp.type.name}-${bp.level}');
-                  final price = RefineBlueprintService.getBlueprintPrice(bp.level);
-                  final balance = ResourcesStorage.getStoneAmount(res, price.type);
-                  final affordable = balance >= price.amount;
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: entry.value.map((bp) {
+                    final owned = ownedKeys.contains('${bp.type.name}-${bp.level}');
+                    final price = RefineBlueprintService.getBlueprintPrice(bp.level);
+                    final balance = ResourcesStorage.getStoneAmount(res, price.type);
+                    final affordable = balance >= price.amount;
 
-                  return GestureDetector(
-                    onTap: owned ? null : () => _buy(bp),
-                    child: Container(
-                      width: 90,
-                      margin: const EdgeInsets.only(right: 1),
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        border: const Border(
-                          right: BorderSide(color: Colors.black12),
-                          bottom: BorderSide(color: Colors.black12),
+                    return GestureDetector(
+                      onTap: owned ? null : () => _buy(bp),
+                      child: Container(
+                        width: 80,
+                        margin: const EdgeInsets.only(right: 4),
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          border: const Border(
+                            right: BorderSide(color: Colors.black12),
+                            bottom: BorderSide(color: Colors.black12),
+                          ),
+                          color: owned ? Colors.grey.shade300 : Colors.white,
                         ),
-                        color: owned ? Colors.grey.shade300 : Colors.white,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (bp.iconPath != null)
-                            Opacity(
-                              opacity: owned ? 0.4 : 1.0,
-                              child: Image.asset(
-                                'assets/images/${bp.iconPath!}',
-                                width: 32,
-                                height: 32,
-                                errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.image_not_supported, size: 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (bp.iconPath != null)
+                              Opacity(
+                                opacity: owned ? 0.4 : 1.0,
+                                child: Image.asset(
+                                  'assets/images/${bp.iconPath!}',
+                                  width: 32,
+                                  height: 32,
+                                  errorBuilder: (_, __, ___) =>
+                                  const Icon(Icons.image_not_supported, size: 24),
+                                ),
                               ),
+                            const SizedBox(height: 2),
+                            Text(
+                              bp.name.split('·').first,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: owned ? Colors.grey : Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
                             ),
-                          const SizedBox(height: 2),
-                          Text(
-                            bp.name.split('·').first,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: owned ? Colors.grey : Colors.black87,
+                            const SizedBox(height: 2),
+                            Text(
+                              owned
+                                  ? '已拥有'
+                                  : '${formatAnyNumber(price.amount)} ${lingShiNames[price.type]}',
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: owned
+                                    ? Colors.grey
+                                    : (affordable ? Colors.green : Colors.red),
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            owned
-                                ? '已拥有'
-                                : '${formatAnyNumber(price.amount)} ${lingShiNames[price.type]}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: owned
-                                  ? Colors.grey
-                                  : (affordable ? Colors.green : Colors.red),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
               const SizedBox(height: 6),
             ],

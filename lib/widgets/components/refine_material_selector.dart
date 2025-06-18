@@ -14,6 +14,7 @@ class RefineMaterialSelector extends StatefulWidget {
   final bool isDisabled;
   final bool hasDisciple;
   final VoidCallback? onRefineCompleted;
+  final VoidCallback? onRefineStarted;
 
   const RefineMaterialSelector({
     super.key,
@@ -23,15 +24,14 @@ class RefineMaterialSelector extends StatefulWidget {
     this.isDisabled = false,
     this.hasDisciple = true,
     this.onRefineCompleted,
+    this.onRefineStarted,
   });
 
   @override
-  State<RefineMaterialSelector> createState() =>
-      _RefineMaterialSelectorState();
+  State<RefineMaterialSelector> createState() => _RefineMaterialSelectorState();
 }
 
-class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
-    with SingleTickerProviderStateMixin {
+class _RefineMaterialSelectorState extends State<RefineMaterialSelector> with SingleTickerProviderStateMixin {
   Map<String, int> ownedMaterials = {};
   final double stackSize = 300;
   final double weaponSize = 200;
@@ -39,7 +39,7 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
 
   bool _isRefining = false;
   int _remainingSeconds = 0;
-  late Timer _refineTimer;
+  Timer? _refineTimer;
 
   late Ticker _ticker;
   double _rotationAngle = 0;
@@ -58,11 +58,9 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
       Offset(center.dx + r * cos(5 * pi / 6), center.dy + r * sin(5 * pi / 6)),
     ];
 
-    _ticker = createTicker((Duration elapsed) {
+    _ticker = createTicker((elapsed) {
       if (_isRefining) {
-        setState(() {
-          _rotationAngle += 0.05;
-        });
+        setState(() => _rotationAngle += 0.05);
       }
     })..start();
   }
@@ -70,34 +68,52 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
   @override
   void dispose() {
     _ticker.dispose();
-    _refineTimer.cancel();
+    _refineTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _restoreRefineState() async {
     final state = await RefineMaterialService.loadRefineState();
-    if (state == null) return;
+    if (state == null) {
+      print('📦 没有炼制状态，跳过恢复');
+      return;
+    }
+
+    print('📦 读取炼制状态：$state');
 
     final blueprintName = state['blueprintName'];
     final blueprintLevel = state['blueprintLevel'];
     final blueprintType = state['blueprintType'];
+    final endTimeStr = state['endTime'];
 
-    // ✅ 判断是否为当前组件正在使用的 blueprint
     if (widget.blueprint.name != blueprintName ||
         widget.blueprint.level != blueprintLevel ||
         widget.blueprint.type.name != blueprintType) {
+      print('⚠️ 炼制状态不属于当前蓝图，跳过恢复');
       return;
     }
 
-    final startTime = DateTime.parse(state['startTime']);
-    final durationMinutes = state['durationMinutes'] as int;
-    final endTime = startTime.add(Duration(minutes: durationMinutes));
-    final now = DateTime.now();
+    if (endTimeStr == null) {
+      print('❌ 缺少 endTime 字段，无法恢复');
+      return;
+    }
 
+    final endTime = DateTime.tryParse(endTimeStr);
+    if (endTime == null) {
+      print('❌ endTime 无法解析');
+      return;
+    }
+
+    final now = DateTime.now();
     final remaining = endTime.difference(now).inSeconds;
 
+    // 🧾 打印核心数据
+    print('🔧 当前时间: $now');
+    print('🔧 应结束时间: $endTime');
+    print('🔧 剩余秒数: $remaining');
+
     if (remaining <= 0) {
-      // ✅ 已完成 → 自动发放武器
+      print('✅ 已过期 → 自动领取武器');
       await RefineMaterialService.clearRefineState();
       await WeaponsStorage.createFromBlueprint(widget.blueprint, createdAt: endTime);
       if (widget.onRefineCompleted != null) {
@@ -107,7 +123,8 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
       return;
     }
 
-    // ✅ 炼制进行中 → 恢复倒计时
+    // 🔄 正常恢复倒计时
+    print('⏳ 炼制仍在进行中，开始倒计时');
     setState(() {
       _isRefining = true;
       _remainingSeconds = remaining;
@@ -115,6 +132,7 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
 
     _refineTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (_remainingSeconds <= 1) {
+        print('🧨 倒计时结束，发放武器');
         timer.cancel();
         setState(() {
           _isRefining = false;
@@ -124,11 +142,18 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
         await RefineMaterialService.clearRefineState();
         await WeaponsStorage.createFromBlueprint(widget.blueprint);
         ToastTip.show(context, '🎉 炼制完成！武器已入库！');
+
+        setState(() {
+          widget.selectedMaterials.clear(); // ✅ 清空材料状态
+        });
+
         if (widget.onRefineCompleted != null) {
           widget.onRefineCompleted!();
         }
       } else {
-        setState(() => _remainingSeconds--);
+        _remainingSeconds--;
+        print('⏱️ 还剩 $_remainingSeconds 秒');
+        setState(() {});
       }
     });
   }
@@ -141,27 +166,23 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
   }
 
   Future<void> _startRefining() async {
-    final duration =
-    await RefineMaterialService.getRefineDuration(widget.blueprint.level);
-
+    final duration = await RefineMaterialService.getRefineDuration(widget.blueprint.level);
     if (duration == null) {
       ToastTip.show(context, '炼器房空空如也，没弟子还想炼器？先派一个吧～');
       return;
     }
 
-    // ✅ 扣除材料
     for (final name in widget.selectedMaterials) {
       if (name.trim().isNotEmpty) {
-        await RefineMaterialService.add(name, -1); // 🔥 数量减1
+        await RefineMaterialService.add(name, -1);
       }
     }
 
     final now = DateTime.now();
+    final endTime = now.add(duration);
 
-    // ✅ 保存炼制状态
     await RefineMaterialService.saveRefineState(
-      startTime: now,
-      durationMinutes: duration.inMinutes,
+      endTime: endTime,
       blueprint: widget.blueprint,
       selectedMaterials: widget.selectedMaterials,
     );
@@ -171,15 +192,27 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
       _remainingSeconds = duration.inSeconds;
     });
 
-    _refineTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    // ✅ 通知父组件：炼制开始啦
+    widget.onRefineStarted?.call();
+
+    _refineTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (_remainingSeconds <= 1) {
         timer.cancel();
         setState(() {
           _isRefining = false;
           _rotationAngle = 0;
         });
-        ToastTip.show(context, '🎉 炼制完成！');
-        RefineMaterialService.clearRefineState(); // ✅ 炼完清除状态
+
+        // ✅ 发放武器
+        await WeaponsStorage.createFromBlueprint(widget.blueprint);
+
+        ToastTip.show(context, '🎉 炼制完成！武器已入库！');
+
+        // ✅ 清除状态
+        await RefineMaterialService.clearRefineState();
+
+        // ✅ 通知父组件
+        widget.onRefineCompleted?.call();
       } else {
         setState(() => _remainingSeconds--);
       }
@@ -188,33 +221,26 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
 
   void _onWeaponTapped() {
     if (_isRefining || !widget.hasDisciple || widget.isDisabled) return;
-
-    if (widget.selectedMaterials.any((m) => m.trim().isEmpty)) {
+    if (widget.selectedMaterials.length != 3 || widget.selectedMaterials.any((m) => m.trim().isEmpty)) {
       ToastTip.show(context, '三种材料都选好才能开始炼器哦！');
       return;
     }
-
     _startRefining();
   }
 
   void _selectMaterial(int index) async {
     if (widget.isDisabled || !widget.hasDisciple || _isRefining) return;
 
-    final Map<String, int> tempInventory = Map.from(ownedMaterials);
+    final tempInventory = Map<String, int>.from(ownedMaterials);
     for (final name in widget.selectedMaterials) {
       if (name.trim().isEmpty) continue;
       if (tempInventory.containsKey(name)) {
         tempInventory[name] = tempInventory[name]! - 1;
-        if (tempInventory[name]! <= 0) {
-          tempInventory.remove(name);
-        }
+        if (tempInventory[name]! <= 0) tempInventory.remove(name);
       }
     }
 
-    final usable = widget.blueprint.materials
-        .where((name) => tempInventory.containsKey(name))
-        .toList();
-
+    final usable = widget.blueprint.materials.where((m) => tempInventory.containsKey(m)).toList();
     if (usable.isEmpty) {
       showDialog(
         context: context,
@@ -223,15 +249,7 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           child: const Padding(
             padding: EdgeInsets.all(16),
-            child: Text(
-              '你身无分文，一块炼器材料都没有…\n还想炼器？先去搬砖吧。',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.brown,
-                fontFamily: 'ZcoolCangEr',
-              ),
-            ),
+            child: Text('你身无分文，一块炼器材料都没有…\n还想炼器？先去搬砖吧。', textAlign: TextAlign.center),
           ),
         ),
       );
@@ -251,46 +269,24 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
             children: usable.map((name) {
               final mat = RefineMaterialService.getByName(name);
               final count = tempInventory[name] ?? 0;
-
               return GestureDetector(
                 onTap: () {
-                  final isDuplicate = widget.selectedMaterials
-                      .asMap()
-                      .entries
-                      .any((entry) =>
-                  entry.key != index && entry.value == name);
-
-                  if (isDuplicate) {
+                  if (widget.selectedMaterials.asMap().entries.any((e) => e.key != index && e.value == name)) {
                     Navigator.pop(context);
                     ToastTip.show(context, '你已经选过这个材料了，不能重复使用～');
                     return;
                   }
-
                   Navigator.pop(context);
                   widget.onMaterialSelected(index, name);
                 },
-                child: Container(
+                child: SizedBox(
                   width: 72,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.asset(
-                        mat?.image ?? '',
-                        width: 32,
-                        height: 32,
-                        errorBuilder: (_, __, ___) =>
-                        const Icon(Icons.image_not_supported, size: 20),
-                      ),
+                      Image.asset(mat?.image ?? '', width: 32, height: 32),
                       const SizedBox(height: 4),
-                      Text(
-                        '$name × $count',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 8,
-                          fontFamily: 'ZcoolCangEr',
-                          color: Color(0xFF5D4037),
-                        ),
-                      ),
+                      Text('$name × $count', textAlign: TextAlign.center, style: const TextStyle(fontSize: 8)),
                     ],
                   ),
                 ),
@@ -303,45 +299,24 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
   }
 
   Widget _buildMaterialIcon(int i) {
-    if (!widget.hasDisciple) return const SizedBox.shrink();
-
-    final isValid = i < widget.selectedMaterials.length &&
-        widget.selectedMaterials[i].trim().isNotEmpty;
-
+    final isValid = i < widget.selectedMaterials.length && widget.selectedMaterials[i].trim().isNotEmpty;
     final name = isValid ? widget.selectedMaterials[i] : null;
     final mat = name != null ? RefineMaterialService.getByName(name) : null;
 
-    Widget icon = mat != null
-        ? Image.asset(
-      mat.image,
-      width: 48,
-      height: 48,
-      fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) =>
-      const Icon(Icons.image_not_supported, size: 20),
-    )
-        : Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white24,
-        border: Border.all(
-          color: widget.isDisabled ? Colors.grey : Colors.white,
-          width: 2,
-        ),
-      ),
-      child: const Center(
-        child: Text(
-          '＋',
-          style: TextStyle(fontSize: 24, color: Colors.white),
-        ),
-      ),
-    );
-
     return Transform.rotate(
       angle: _isRefining ? _rotationAngle : 0,
-      child: icon,
+      child: mat != null
+          ? Image.asset(mat.image, width: 48, height: 48)
+          : Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white24,
+          border: Border.all(color: widget.isDisabled ? Colors.grey : Colors.white, width: 2),
+        ),
+        child: const Center(child: Text('＋', style: TextStyle(fontSize: 24, color: Colors.white))),
+      ),
     );
   }
 
@@ -370,25 +345,19 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector>
             ),
           ),
           if (widget.hasDisciple)
-            ...List.generate(3, (i) {
-              return Positioned(
-                left: _materialOffsets[i].dx,
-                top: _materialOffsets[i].dy,
-                child: GestureDetector(
-                  onTap: () => _selectMaterial(i),
-                  child: _buildMaterialIcon(i),
-                ),
-              );
-            }),
+            ...List.generate(3, (i) => Positioned(
+              left: _materialOffsets[i].dx,
+              top: _materialOffsets[i].dy,
+              child: GestureDetector(
+                onTap: () => _selectMaterial(i),
+                child: _buildMaterialIcon(i),
+              ),
+            )),
           if (_isRefining)
             Center(
               child: Text(
                 _formatCountdown(_remainingSeconds),
-                style: const TextStyle(
-                  fontSize: 32,
-                  fontFamily: 'ZcoolCangEr',
-                  color: Colors.yellow,
-                ),
+                style: const TextStyle(fontSize: 32, color: Colors.yellow),
               ),
             ),
         ],

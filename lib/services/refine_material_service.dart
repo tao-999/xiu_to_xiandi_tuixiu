@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/refine_material.dart';
 import 'package:xiu_to_xiandi_tuixiu/data/all_refine_blueprints.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 
 import '../models/refine_blueprint.dart';
 import '../utils/lingshi_util.dart';
@@ -91,20 +90,10 @@ class RefineMaterialService {
 
   /// ⏱ 获取炼制时间（分钟），如果没弟子就返回 null
   static Future<Duration?> getRefineDuration(int level) async {
-    final disciples = await ZongmenStorage.getDisciplesByRoom('炼器房');
+    // 这里直接用几秒钟的固定值
+    const int fixedDurationInSeconds = 30; // 固定炼制时间为 5 秒
 
-    if (disciples.isEmpty) return null;
-
-    final d = disciples.first;
-    final totalAptitude = d.aptitude;
-
-    final baseMinutes = 30 + (level - 1) * 10;
-    const reductionPerPoint = 0.05;
-    final reduction = totalAptitude * reductionPerPoint;
-
-    final finalMinutes = (baseMinutes - reduction).clamp(5, double.infinity);
-
-    return Duration(minutes: finalMinutes.round());
+    return Duration(seconds: fixedDurationInSeconds);
   }
 
   // 🔐 持久化炼制状态键名
@@ -112,21 +101,22 @@ class RefineMaterialService {
 
   /// 🧪 保存炼制状态
   static Future<void> saveRefineState({
-    required DateTime startTime,
-    required int durationMinutes,
+    required DateTime endTime,
     required RefineBlueprint blueprint,
     required List<String> selectedMaterials,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+
     final data = {
-      'startTime': startTime.toIso8601String(),
-      'durationMinutes': durationMinutes,
+      'endTime': endTime.toIso8601String(), // ✅ 直接存结束时间
       'blueprintName': blueprint.name,
       'blueprintLevel': blueprint.level,
-      'blueprintType': blueprint.type.name, // ✅ 关键修复点
+      'blueprintType': blueprint.type.name,
       'materials': selectedMaterials,
     };
+
     await prefs.setString(_refineStateKey, jsonEncode(data));
+    print('💾 已保存炼器状态：$data');
   }
 
   /// 🧪 读取炼制状态（若无则返回 null）

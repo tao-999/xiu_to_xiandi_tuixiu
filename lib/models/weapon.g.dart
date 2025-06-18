@@ -25,13 +25,14 @@ class WeaponAdapter extends TypeAdapter<Weapon> {
       defenseBoost: fields[5] as int,
       hpBoost: fields[6] as int,
       specialEffects: (fields[7] as List).cast<String>(),
+      iconPath: fields[8] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, Weapon obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.name)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class WeaponAdapter extends TypeAdapter<Weapon> {
       ..writeByte(6)
       ..write(obj.hpBoost)
       ..writeByte(7)
-      ..write(obj.specialEffects);
+      ..write(obj.specialEffects)
+      ..writeByte(8)
+      ..write(obj.iconPath);
   }
 
   @override

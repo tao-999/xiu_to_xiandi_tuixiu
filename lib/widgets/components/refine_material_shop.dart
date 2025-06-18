@@ -178,7 +178,7 @@ class _RefineMaterialDialogContentState
           children: [
             const Text(
               '炼器材料商店',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
+              style: TextStyle(fontSize: 15, color: Colors.black87),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -202,7 +202,7 @@ class _RefineMaterialDialogContentState
                           return GestureDetector(
                             onTap: () => _buy(mat),
                             child: Container(
-                              width: 64,
+                              width: 72,
                               margin: const EdgeInsets.only(right: 2), // 控制得很紧
                               padding: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
@@ -228,13 +228,13 @@ class _RefineMaterialDialogContentState
                                   ),
                                   Text(
                                     '${formatAnyNumber(mat.priceAmount)} ${lingShiNames[mat.priceType]}',
-                                    style: const TextStyle(fontSize: 9),
+                                    style: const TextStyle(fontSize: 8),
                                     textAlign: TextAlign.center,
                                   ),
                                   Text(
                                     '拥有：$count',
                                     style: const TextStyle(
-                                      fontSize: 9,
+                                      fontSize: 8,
                                       color: Colors.grey,
                                     ),
                                   ),
