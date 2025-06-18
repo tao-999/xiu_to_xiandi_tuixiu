@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/refine_material.dart';
 import 'package:xiu_to_xiandi_tuixiu/data/all_refine_blueprints.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 
+import '../models/disciple.dart';
 import '../models/refine_blueprint.dart';
 import '../utils/lingshi_util.dart';
 
@@ -89,12 +91,32 @@ class RefineMaterialService {
   }
 
   /// ⏱ 获取炼制时间（分钟），如果没弟子就返回 null
-  static Future<Duration?> getRefineDuration(int level) async {
-    // 这里直接用几秒钟的固定值
-    const int fixedDurationInSeconds = 30; // 固定炼制时间为 5 秒
+  static Future<Duration?> getRefineDuration(int level, {Disciple? zhushou}) async {
+    // 🧱 基础时间：300秒 + 每阶60秒，随着阶数增长
+    final int baseSeconds = 300 + level * 60;
 
-    return Duration(seconds: fixedDurationInSeconds);
+    if (zhushou == null) return null; // 没弟子？你想屁吃
+
+    // ✅ 只限制最低资质为30，最高不设限
+    final int aptitude = zhushou.aptitude < 30 ? 30 : zhushou.aptitude;
+
+    // 🎯 资质越高，时间越短（无限上升，但保持正数）
+    final double reductionFactor = 1 / (aptitude / 30); // 资质越高，分母越大 → 趋近于0
+
+    // ⏱️ 最终时间（控制最短60秒，最长3600秒）
+    final int finalSeconds = (baseSeconds * reductionFactor).clamp(60, 3600).round();
+
+    // 🧾 打印骚日志
+    print('🧪 [炼制时间计算 - 无上限模式]');
+    print('📊 阶数: $level');
+    print('🧬 资质: $aptitude');
+    print('⏳ 基础时间: $baseSeconds 秒');
+    print('⚡ 缩减比例: ${reductionFactor.toStringAsFixed(3)}');
+    print('⏱️ 最终时间: $finalSeconds 秒');
+
+    return Duration(seconds: finalSeconds);
   }
+
 
   // 🔐 持久化炼制状态键名
   static const _refineStateKey = 'refine_state';

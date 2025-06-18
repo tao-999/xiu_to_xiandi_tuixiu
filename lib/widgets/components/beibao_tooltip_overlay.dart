@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-
 import '../../utils/number_format.dart';
+import '../../models/beibao_item_type.dart'; // ✅ 确保你有这个 enum
 
 class BeibaoTooltipOverlay {
   static OverlayEntry show({
     required BuildContext context,
     required Offset position,
     required String name,
-    required dynamic quantity,
+    required BeibaoItemType type, // ✅ 新增参数
+    dynamic quantity,
     required String description,
     required VoidCallback onDismiss,
   }) {
@@ -57,23 +58,25 @@ class BeibaoTooltipOverlay {
                         name,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 12, // ✅ 主标题字号
+                          fontSize: 12,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '数量：${formatAnyNumber(quantity)}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 10, // ✅ 数量字号
+                      if (type != BeibaoItemType.weapon && quantity != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '数量：${formatAnyNumber(quantity)}',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                          ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 4),
                       Text(
                         description,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 10, // ✅ 描述字号
+                          fontSize: 10,
                         ),
                       ),
                     ],

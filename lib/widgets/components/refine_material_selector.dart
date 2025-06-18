@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/refine_blueprint.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/refine_material_service.dart';
 import '../../services/weapons_storage.dart';
+import '../../services/zongmen_storage.dart';
 import '../common/toast_tip.dart';
 
 class RefineMaterialSelector extends StatefulWidget {
@@ -166,7 +167,14 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector> with Si
   }
 
   Future<void> _startRefining() async {
-    final duration = await RefineMaterialService.getRefineDuration(widget.blueprint.level);
+    final disciples = await ZongmenStorage.getDisciplesByRoom('炼器房');
+    final zhushou = disciples.isNotEmpty ? disciples.first : null;
+
+    final duration = await RefineMaterialService.getRefineDuration(
+      widget.blueprint.level,
+      zhushou: zhushou,
+    );
+
     if (duration == null) {
       ToastTip.show(context, '炼器房空空如也，没弟子还想炼器？先派一个吧～');
       return;

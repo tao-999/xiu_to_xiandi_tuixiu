@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_tooltip_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 
+import '../../models/beibao_item_type.dart';
+
 class BeibaoItem {
   final String name;
   final String imagePath;
-  final dynamic quantity;
+  final BigInt? quantity; // ✅ 改成 BigInt 专门表示资源类数量
+  final int? level; // ✅ 新增，专门表示武器阶数
   final String description;
+  final BeibaoItemType type;
 
   const BeibaoItem({
     required this.name,
     required this.imagePath,
-    required this.quantity,
+    this.quantity,
+    this.level,
     required this.description,
+    required this.type,
   });
 }
 
@@ -53,7 +59,15 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
         _tooltipEntry?.remove();
         _tooltipEntry = null;
       },
+      type: item.type,
     );
+  }
+
+  bool _shouldShowQuantity(BeibaoItem item) {
+    // ✅ 仅图纸类资源显示数量
+    // 判断标准：图纸通常命名为 "xxx · 1阶" 且图片路径非武器图标
+    final isBlueprint = item.name.contains('·') && item.imagePath.contains('wuqi_');
+    return isBlueprint;
   }
 
   @override
@@ -107,15 +121,15 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
                             fit: BoxFit.contain,
                           ),
                         ),
-                        // ✅ 隐藏非图纸类（我们规定阶数在 1~21 的为图纸）
-                        if (item.quantity is int && item.quantity >= 1 && item.quantity <= 21)
+
+                        if (item.type == BeibaoItemType.weapon)
                           Positioned(
                             top: 0,
                             right: 0,
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                               child: Text(
-                                '${item.quantity}阶',
+                                '${item.level}阶', // ✅ 就它！纯纯的 int → “几阶”
                                 style: const TextStyle(
                                   fontSize: 8,
                                   color: Colors.white,
