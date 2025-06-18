@@ -109,12 +109,13 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
           ...tempElements.keys.map(_buildAptitudeRow).toList(),
           const SizedBox(height: 12),
           Center(
-            child: GestureDetector(
+            child: InkWell(
               onTap: tempUsed == 0
                   ? null
                   : () async {
                 await ResourcesStorage.subtract('fateRecruitCharm', BigInt.from(tempUsed));
                 widget.player.elements = tempElements;
+
                 PlayerStorage.calculateBaseAttributes(widget.player);
 
                 await PlayerStorage.updateFields({
@@ -124,36 +125,19 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
                   'baseDef': widget.player.baseDef,
                 });
 
+                await PlayerStorage.applyAllEquippedAttributesWith();
+
                 if (context.mounted) Navigator.of(context).pop();
                 widget.onUpdated?.call();
               },
-              child: InkWell(
-                onTap: tempUsed == 0
-                    ? null
-                    : () async {
-                  await ResourcesStorage.subtract('fateRecruitCharm', BigInt.from(tempUsed));
-                  widget.player.elements = tempElements;
-                  PlayerStorage.calculateBaseAttributes(widget.player);
-
-                  await PlayerStorage.updateFields({
-                    'elements': widget.player.elements,
-                    'baseHp': widget.player.baseHp,
-                    'baseAtk': widget.player.baseAtk,
-                    'baseDef': widget.player.baseDef,
-                  });
-
-                  if (context.mounted) Navigator.of(context).pop();
-                  widget.onUpdated?.call();
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Text(
-                    '☯️ 确认提升',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontFamily: 'ZcoolCangEr',
-                      color: tempUsed == 0 ? Colors.black38 : Colors.orange,
-                    ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  '☯️ 确认提升',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontFamily: 'ZcoolCangEr',
+                    color: tempUsed == 0 ? Colors.black38 : Colors.orange,
                   ),
                 ),
               ),

@@ -31,6 +31,9 @@ class Weapon extends HiveObject {
   @HiveField(8)
   String iconPath; // ✅ 图标路径
 
+  @HiveField(9)
+  String? equippedById; // ✅ 当前装备者的 ID（可为角色ID或宗门弟子ID）
+
   Weapon({
     required this.name,
     required this.level,
@@ -41,5 +44,6 @@ class Weapon extends HiveObject {
     this.hpBoost = 0,
     this.specialEffects = const [],
     this.iconPath = '',
+    this.equippedById, // ✅ 新增字段默认 null 表示未装备
   });
 }

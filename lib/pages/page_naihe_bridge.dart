@@ -9,7 +9,9 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/typewriter_poem_section.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/mengpo_soup_dialog.dart';
 
+import '../services/cultivation_tracker.dart';
 import '../services/disciple_storage.dart';
+import '../services/weapons_storage.dart';
 import '../widgets/components/naihe_info_icon.dart';
 
 class NaiheBridgePage extends StatefulWidget {
@@ -84,6 +86,9 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
 
     // ✅ 清空 弟子
     await DiscipleStorage.clear(); // 清除所有弟子
+
+    // 清空武器
+    await WeaponsStorage.clearAllWeapons();
 
     // ✅ 停止修炼 tick、清除赤炎谷数据
     CultivationTracker.stopTick();

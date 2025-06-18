@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/weapons_storage.dart';
+import '../models/weapon.dart';
 import '../utils/cultivation_level.dart';
 import 'cultivation_tracker.dart';
 
@@ -154,10 +156,10 @@ class PlayerStorage {
     if (afterLayer > beforeLayer) {
       debugPrint('🎉 玩家突破成功！层数 $beforeLayer → $afterLayer');
 
-      // ✅ 重新计算属性
+      // ✅ 重新计算基础属性
       calculateBaseAttributes(player);
 
-      // ✅ 精准保存基础属性字段
+      // ✅ 保存基础属性字段
       await updateFields({
         'baseHp': player.baseHp,
         'baseAtk': player.baseAtk,
@@ -177,16 +179,22 @@ class PlayerStorage {
     return 1 + total / 100;
   }
 
-  /// 🔰 获取玩家当前总气血
-  static int getHp(Character player) => player.baseHp + player.extraHp;
+  /// 🔰 获取玩家基础气血 / 攻击 / 防御
+  static int getBaseHp(Character player) => player.baseHp;
+  static int getBaseAtk(Character player) => player.baseAtk;
+  static int getBaseDef(Character player) => player.baseDef;
 
-  /// 🔰 获取玩家当前总攻击
-  static int getAtk(Character player) => player.baseAtk + player.extraAtk;
+  /// 🔰 获取玩家额外气血 / 攻击 / 防御
+  static int getExtraHp(Character player) => player.extraHp;
+  static int getExtraAtk(Character player) => player.extraAtk;
+  static int getExtraDef(Character player) => player.extraDef;
 
-  /// 🔰 获取玩家当前总防御
-  static int getDef(Character player) => player.baseDef + player.extraDef;
+  /// 🔰 获取总气血 / 攻击 / 防御（仅用于战力计算或合并展示）
+  static int getHp(Character player) => getBaseHp(player) + getExtraHp(player);
+  static int getAtk(Character player) => getBaseAtk(player) + getExtraAtk(player);
+  static int getDef(Character player) => getBaseDef(player) + getExtraDef(player);
 
-  /// 🔰 获取战力（统一从这里算）
+  /// 🔰 获取战力（统一从这里算，内部合并）
   static int getPower(Character player) {
     return calculatePower(
       hp: getHp(player),
@@ -224,6 +232,36 @@ class PlayerStorage {
 
     debugPrint('📊 calculateBaseAttributes() → 层=$totalLayer 倍率=${factor.toStringAsFixed(2)} → '
         'HP=${player.baseHp}, ATK=${player.baseAtk}, DEF=${player.baseDef}');
+  }
+
+  /// 🧙‍♂️ 穿戴武器后，根据武器属性（百分比）更新 extra 属性
+  static Future<void> applyAllEquippedAttributesWith() async {
+    final player = await getPlayer();
+    if (player == null) return;
+
+    final equipped = await WeaponsStorage.loadWeaponsEquippedBy(player.id);
+
+    int totalExtraHp = 0;
+    int totalExtraAtk = 0;
+    int totalExtraDef = 0;
+
+    for (final weapon in equipped) {
+      totalExtraHp += (player.baseHp * weapon.hpBoost / 100).round();
+      totalExtraAtk += (player.baseAtk * weapon.attackBoost / 100).round();
+      totalExtraDef += (player.baseDef * weapon.defenseBoost / 100).round();
+    }
+
+    player.extraHp = totalExtraHp;
+    player.extraAtk = totalExtraAtk;
+    player.extraDef = totalExtraDef;
+
+    debugPrint('🧮 [属性加成更新] 装备数=${equipped.length} → HP +$totalExtraHp, ATK +$totalExtraAtk, DEF +$totalExtraDef');
+
+    await updateFields({
+      'extraHp': totalExtraHp,
+      'extraAtk': totalExtraAtk,
+      'extraDef': totalExtraDef,
+    });
   }
 
 }

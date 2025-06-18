@@ -17,7 +17,7 @@ class WeaponsStorage {
     await box.add(weapon);
   }
 
-  /// ✅ 直接通过蓝图构建并保存武器（统一发放）
+  /// ✅ 根据蓝图创建新武器
   static Future<void> createFromBlueprint(RefineBlueprint blueprint, {DateTime? createdAt}) async {
     final effect = RefineBlueprintService.getEffectMeta(blueprint);
 
@@ -29,19 +29,9 @@ class WeaponsStorage {
       attackBoost: blueprint.attackBoost,
       defenseBoost: blueprint.defenseBoost,
       hpBoost: blueprint.healthBoost,
-      specialEffects: [
-        '${effect['type']} +${effect['value']}',
-      ],
+      specialEffects: ['${effect['type']} +${effect['value']}'],
       iconPath: 'assets/images/${blueprint.iconPath}',
     );
-
-    print('🧱 [新建武器] => ${weapon.name}');
-    print('📊 等级: ${weapon.level}');
-    print('🛡️ 类型: ${weapon.type}');
-    print('💥 攻击: ${weapon.attackBoost}, 防御: ${weapon.defenseBoost}, 血量: ${weapon.hpBoost}');
-    print('✨ 特效: ${weapon.specialEffects.join(', ')}');
-    print('🖼️ 图标路径: ${weapon.iconPath}');
-    print('🕒 时间: ${weapon.createdAt}');
 
     await addWeapon(weapon);
   }
@@ -52,28 +42,61 @@ class WeaponsStorage {
     return box.values.toList();
   }
 
-  // ✅ 删除某个武器（通过 Hive 的 key）
-  static Future<void> deleteWeaponByKey(dynamic key) async {
-    final box = await _openBox();
-    await box.delete(key);
-  }
-
-  // ✅ 清空所有武器（慎用）
-  static Future<void> clearAllWeapons() async {
-    final box = await _openBox();
-    await box.clear();
-  }
-
-  // ✅ 获取带 Hive key 的所有武器（用于 UI 渲染）
+  // ✅ 获取带 Hive key 的所有武器
   static Future<Map<dynamic, Weapon>> loadWeaponsWithKeys() async {
     final box = await _openBox();
     return box.toMap();
   }
 
-  // ✅ 按创建时间倒序排列（最新的排前面）
+  // ✅ 删除某个武器
+  static Future<void> deleteWeaponByKey(dynamic key) async {
+    final box = await _openBox();
+    await box.delete(key);
+  }
+
+  // ✅ 清空所有武器
+  static Future<void> clearAllWeapons() async {
+    final box = await _openBox();
+    await box.clear();
+  }
+
+  // ✅ 按创建时间排序
   static Future<List<Weapon>> loadSortedByTimeDesc() async {
     final list = await loadAllWeapons();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
+
+  // ✅ 设置武器装备给某人
+  static Future<void> equipWeapon(Weapon weapon, String targetId) async {
+    final box = await _openBox();
+    final key = weapon.key;
+    if (key != null) {
+      weapon.equippedById = targetId;
+      await weapon.save();
+    }
+  }
+
+  // ✅ 解除武器装备
+  static Future<void> unequipWeapon(Weapon weapon) async {
+    final box = await _openBox();
+    final key = weapon.key;
+    if (key != null) {
+      weapon.equippedById = null;
+      await weapon.save();
+    }
+  }
+
+  // ✅ 根据持有者ID查找装备的武器
+  static Future<List<Weapon>> loadWeaponsEquippedBy(String ownerId) async {
+    final box = await _openBox();
+    return box.values.where((w) => w.equippedById == ownerId).toList();
+  }
+
+  // ✅ 获取未被装备的所有武器
+  static Future<List<Weapon>> loadUnEquippedWeapons() async {
+    final box = await _openBox();
+    return box.values.where((w) => w.equippedById == null).toList();
+  }
 }
+

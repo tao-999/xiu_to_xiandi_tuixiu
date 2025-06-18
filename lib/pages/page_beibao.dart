@@ -42,7 +42,12 @@ class _BeibaoPageState extends State<BeibaoPage> {
     final weapons = await WeaponsStorage.loadAllWeapons();
 
     print('🧱 [背包] 加载到 ${weapons.length} 件武器');
-    for (final w in weapons) {
+
+    // ✅ 过滤掉已装备的武器
+    final unequippedWeapons = weapons.where((w) => w.equippedById == null).toList();
+    print('🎒 未装备武器数量：${unequippedWeapons.length}');
+
+    for (final w in unequippedWeapons) {
       print('⚔️ 武器详情：');
       print('   📛 名称：${w.name}');
       print('   🎚️ 阶数：${w.level}');
@@ -51,24 +56,23 @@ class _BeibaoPageState extends State<BeibaoPage> {
       print('   ✨ 特效：${w.specialEffects.join('，')}');
       print('   🖼️ 图标路径：${w.iconPath}');
       print('   🕒 炼制时间：${w.createdAt}');
-    }
 
-    for (final weapon in weapons) {
       String attrText = '';
-      if (weapon.attackBoost > 0) attrText += '攻击 +${weapon.attackBoost}% ';
-      if (weapon.defenseBoost > 0) attrText += '防御 +${weapon.defenseBoost}% ';
-      if (weapon.hpBoost > 0) attrText += '血量 +${weapon.hpBoost}%';
+      if (w.attackBoost > 0) attrText += '攻击 +${w.attackBoost}% ';
+      if (w.defenseBoost > 0) attrText += '防御 +${w.defenseBoost}% ';
+      if (w.hpBoost > 0) attrText += '血量 +${w.hpBoost}%';
 
       newItems.add(BeibaoItem(
-        name: weapon.name,
-        imagePath: weapon.iconPath,
-        level: weapon.level, // ✅ 真·几阶武器
-        quantity: null,      // ✅ 武器不需要数量，干脆 null
+        name: w.name,
+        imagePath: w.iconPath,
+        level: w.level,
+        quantity: null, // ✅ 武器不需要数量，干脆 null
         description: '效果：$attrText',
         type: BeibaoItemType.weapon,
       ));
     }
 
+    // ✅ 刷新 UI
     setState(() {
       items = newItems;
     });

@@ -61,8 +61,8 @@ class _XiudiRootState extends State<XiudiRoot> {
 
       game = AutoBattleGame(
         playerEmojiOrIconPath: newGender == 'female'
-            ? 'icon_dazuo_female_256.png'
-            : 'icon_dazuo_male_256.png',
+            ? 'dazuo_female.png'
+            : 'dazuo_male.png',
         isAssetImage: true,
         currentMapStage: savedStage,
       );

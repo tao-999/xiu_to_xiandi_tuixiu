@@ -132,6 +132,8 @@ class CultivationTracker {
       'cultivation': newCultivation.toString(), // ⚠️ BigInt → String
     };
 
+    bool breakthroughHappened = false;
+
     if (newLayer > oldLayer) {
       PlayerStorage.calculateBaseAttributes(player);
 
@@ -142,10 +144,19 @@ class CultivationTracker {
       });
 
       debugPrint('🎉 safeAddExp → 突破成功！层数 $oldLayer → $newLayer');
+      breakthroughHappened = true;
     }
 
-    await PlayerStorage.updateFields(updatedFields); // ✅ 精准保存修为 + 属性
+    // ✅ 先保存新修为与基础属性（如果有变动）
+    await PlayerStorage.updateFields(updatedFields);
+
+    // ✅ 再基于最新 base 属性计算装备附加属性
+    if (breakthroughHappened) {
+      await PlayerStorage.applyAllEquippedAttributesWith();
+    }
+
     startGlobalTick();
     onUpdate?.call();
   }
+
 }

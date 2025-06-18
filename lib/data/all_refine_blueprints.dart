@@ -31,24 +31,23 @@ const List<List<String>> levelForgeMaterials = [
 const Map<BlueprintType, List<Map<String, String>>> blueprintInfoMap = {
   BlueprintType.weapon: [
     {
-      'prefix': '赤焰神兵',
-      'desc': '可大幅提升攻击力的神兵图纸',
+      'prefix': '九霄仙剑',
+      'desc': '传自天外仙域的九柄灵剑，可破万法，斩妖邪',
       'icon': 'wuqi_gongji.png',
     },
   ],
   BlueprintType.armor: [
     {
-      'prefix': '赤鳞战甲',
-      'desc': '可显著提升防御的战甲图纸',
+      'prefix': '太清羽裳',
+      'desc': '由九色仙羽织就，御风御法，攻防一体',
       'icon': 'wuqi_fangyu.png',
     },
   ],
   BlueprintType.accessory: [
     {
-      'prefix': '赤曜神印',
-      'desc': '增强灵识与火属性的神秘饰品',
+      'prefix': '碧落灵莲',
+      'desc': '莲心藏神识，佩之可凝神通玄，心火不动',
       'icon': 'wuqi_xueliang.png',
     },
   ],
 };
-

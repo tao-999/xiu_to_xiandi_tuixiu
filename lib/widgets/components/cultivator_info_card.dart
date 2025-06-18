@@ -54,7 +54,7 @@ class CultivatorInfoCard extends StatelessWidget {
               style: const TextStyle(
                 color: Colors.black,
                 fontWeight: FontWeight.w500,
-                fontSize: 14,
+                fontSize: 12,
               ),
             ),
           ),
@@ -72,7 +72,7 @@ class CultivatorInfoCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.black45,
-                  fontSize: 14,
+                  fontSize: 10,
                 ),
               ),
             ),
@@ -86,9 +86,14 @@ class CultivatorInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalElement = PlayerStorage.calculateTotalElement(profile.elements);
     final power = PlayerStorage.getPower(profile);
-    final hp = PlayerStorage.getHp(profile);
-    final atk = PlayerStorage.getAtk(profile);
-    final def = PlayerStorage.getDef(profile);
+
+    // ✅ 拆分属性
+    final baseHp = PlayerStorage.getBaseHp(profile);
+    final extraHp = PlayerStorage.getExtraHp(profile);
+    final baseAtk = PlayerStorage.getBaseAtk(profile);
+    final extraAtk = PlayerStorage.getExtraAtk(profile);
+    final baseDef = PlayerStorage.getBaseDef(profile);
+    final extraDef = PlayerStorage.getExtraDef(profile);
 
     return Column(
       children: [
@@ -98,17 +103,17 @@ class CultivatorInfoCard extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFE5D7B8).withOpacity(0.6), // 60% 不透明
+            color: const Color(0xFFE5D7B8).withOpacity(0.6),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('${profile.name} · ${profile.career}',
-                  style: const TextStyle(color: Colors.black, fontSize: 14)),
+                  style: const TextStyle(color: Colors.black, fontSize: 12)),
               const SizedBox(height: 4),
               Text(
                 '战力：${formatAnyNumber(power)}',
-                style: const TextStyle(color: Colors.black, fontSize: 14),
+                style: const TextStyle(color: Colors.black, fontSize: 12),
               ),
               const SizedBox(height: 4),
               Text(
@@ -117,12 +122,12 @@ class CultivatorInfoCard extends StatelessWidget {
                         .where((e) => e.value > 0)
                         .map((e) => '${elementLabels[e.key] ?? e.key}${e.value}')
                         .join('  '),
-                style: const TextStyle(color: Colors.black, fontSize: 14),
+                style: const TextStyle(color: Colors.black, fontSize: 12),
               ),
               const SizedBox(height: 4),
               Text(
                 '资质：$totalElement（${_getAptitudeLabel(totalElement)}）',
-                style: const TextStyle(color: Colors.black, fontSize: 14),
+                style: const TextStyle(color: Colors.black, fontSize: 12),
               ),
             ],
           ),
@@ -134,14 +139,19 @@ class CultivatorInfoCard extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFE5D7B8).withOpacity(0.6), // 60% 不透明
+            color: const Color(0xFFE5D7B8).withOpacity(0.6),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAttributeRow('气血：${formatAnyNumber(hp)}', '攻击：${formatAnyNumber(atk)}'),
-              _buildAttributeRow('防御：${formatAnyNumber(def)}', '攻速：${profile.atkSpeed.toStringAsFixed(2)}秒'),
-              _buildAttributeRow('暴击率：${formatPercent(profile.critRate)}', '暴击伤害：${formatPercent(profile.critDamage)}'),
+              _buildAttributeRow(
+                '气血：${formatAnyNumber(baseHp)}（+${formatAnyNumber(extraHp)}）',
+                '攻击：${formatAnyNumber(baseAtk)}（+${formatAnyNumber(extraAtk)}）',
+              ),
+              _buildAttributeRow(
+                '防御：${formatAnyNumber(baseDef)}（+${formatAnyNumber(extraDef)}）',
+                '',
+              ),
             ],
           ),
         ),
