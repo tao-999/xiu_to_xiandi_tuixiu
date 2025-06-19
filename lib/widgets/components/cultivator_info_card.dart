@@ -20,16 +20,10 @@ class CultivatorInfoCard extends StatelessWidget {
     '金': '金', '木': '木', '水': '水', '火': '火', '土': '土',
   };
 
-  Widget _buildAttributeRow(String labelLeft, String labelRight) {
+  Widget _buildAttributeRow(String fullText) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Expanded(child: _buildStyledText(labelLeft)),
-          const SizedBox(width: 16),
-          Expanded(child: _buildStyledText(labelRight)),
-        ],
-      ),
+      child: _buildStyledText(fullText),
     );
   }
 
@@ -44,38 +38,28 @@ class CultivatorInfoCard extends StatelessWidget {
 
     return Row(
       children: [
-        Expanded(
-          flex: 1,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              label,
-              textAlign: TextAlign.left,
-              style: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
-              ),
+        SizedBox(
+          width: 48, // ✅ 控制 label 宽度（你可以调）
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 12,
             ),
           ),
         ),
-        Expanded(
-          flex: 1,
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.black45,
-                  fontSize: 10,
-                ),
-              ),
+        const SizedBox(width: 4), // ✅ label 和 value 之间留一点间距
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 11,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            softWrap: false,
           ),
         ),
       ],
@@ -144,14 +128,9 @@ class CultivatorInfoCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAttributeRow(
-                '气血：${formatAnyNumber(baseHp)}（+${formatAnyNumber(extraHp)}）',
-                '攻击：${formatAnyNumber(baseAtk)}（+${formatAnyNumber(extraAtk)}）',
-              ),
-              _buildAttributeRow(
-                '防御：${formatAnyNumber(baseDef)}（+${formatAnyNumber(extraDef)}）',
-                '',
-              ),
+              _buildAttributeRow('气血：${formatAnyNumber(baseHp)}（+${formatAnyNumber(extraHp)}）'),
+              _buildAttributeRow('攻击：${formatAnyNumber(baseAtk)}（+${formatAnyNumber(extraAtk)}）'),
+              _buildAttributeRow('防御：${formatAnyNumber(baseDef)}（+${formatAnyNumber(extraDef)}）'),
             ],
           ),
         ),

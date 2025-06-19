@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/herb_material.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/danfang_service.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/pill_blueprint.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/herb_material_service.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 
 class AlchemyMaterialSelector extends StatelessWidget {
-  const AlchemyMaterialSelector({super.key});
+  final PillBlueprint? selectedBlueprint;
 
-  void _showMaterialDialog(BuildContext context) async {
-    final List<HerbMaterial> herbs = await DanfangService.loadHerbs();
+  const AlchemyMaterialSelector({super.key, required this.selectedBlueprint});
+
+  void _showMaterialDialog(BuildContext context) {
+    final blueprint = selectedBlueprint;
+    if (blueprint == null) {
+      ToastTip.show(context, '请先选择一个丹方！');
+      return;
+    }
+
+    final herbs = HerbMaterialService.getMaterialsByBlueprint(
+      blueprint.level,
+      blueprint.type,
+    );
 
     showDialog(
       context: context,
@@ -19,31 +31,26 @@ class AlchemyMaterialSelector extends StatelessWidget {
             width: 300,
             height: 320,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  '选择材料',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+                const Text('选择材料', style: TextStyle(fontSize: 18)),
                 const SizedBox(height: 12),
                 Expanded(
                   child: herbs.isEmpty
-                      ? const Center(child: Text('你还没有任何草药~'))
+                      ? const Center(child: Text('你还没有任何可用草药~'))
                       : ListView.builder(
                     itemCount: herbs.length,
                     itemBuilder: (_, i) {
                       final herb = herbs[i];
                       return ListTile(
                         leading: Image.asset(
-                          herb.imagePath,
+                          herb.image,
                           width: 32,
                           height: 32,
                           errorBuilder: (_, __, ___) => const Icon(Icons.grass),
                         ),
-                        title: Text('${herb.name} ×${herb.quantity}'),
-                        subtitle: Text(herb.description),
+                        title: Text('${herb.name} ×'),
                         onTap: () {
-                          // TODO: 选择逻辑（下阶段）
+                          // TODO: 草药选择逻辑
                           Navigator.pop(context);
                         },
                       );

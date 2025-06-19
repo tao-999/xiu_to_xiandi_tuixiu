@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/pills_service.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/pill_blueprint_service.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/pillInfo_bubble.dart';
+import '../../models/pill_blueprint.dart';
 import '../../models/pill_recipe.dart';
 
 class DanfangHeader extends StatelessWidget {
@@ -41,7 +42,7 @@ class DanfangHeader extends StatelessWidget {
   void _showDescriptionDialog(BuildContext context) {
     OverlayEntry? tooltipEntry;
 
-    void showTooltip(BuildContext context, PillRecipe pill, RenderBox renderBox) {
+    void showTooltip(BuildContext context, PillBlueprint pill, RenderBox renderBox) {
       final overlay = Overlay.of(context);
       final position = renderBox.localToGlobal(Offset.zero);
       final screenSize = MediaQuery.of(context).size;
@@ -95,8 +96,8 @@ class DanfangHeader extends StatelessWidget {
       tooltipEntry = null;
     }
 
-    final allPills = PillsService.generateAllPillRecipes();
-    final Map<int, List<PillRecipe>> grouped = {};
+    final allPills = PillBlueprintService.generateAllBlueprints();
+    final Map<int, List<PillBlueprint>> grouped = {};
     for (final pill in allPills) {
       grouped.putIfAbsent(pill.level, () => []).add(pill);
     }
@@ -146,9 +147,9 @@ class DanfangHeader extends StatelessWidget {
                             final key = GlobalKey();
 
                             final imagePath = switch (pill.type) {
-                              PillType.attack => 'assets/images/danyao_gongji.png',
-                              PillType.defense => 'assets/images/danyao_fangyu.png',
-                              PillType.health => 'assets/images/danyao_xueliang.png',
+                              PillBlueprintType.attack => 'assets/images/danyao_gongji.png',
+                              PillBlueprintType.defense => 'assets/images/danyao_fangyu.png',
+                              PillBlueprintType.health => 'assets/images/danyao_xueliang.png',
                             };
 
                             return GestureDetector(

@@ -1,51 +1,19 @@
-class HerbMaterial {
-  final String id;           // 唯一 ID，例如 'youmingcao'
-  final String name;         // 名称，例如 '幽冥草'
-  final String imagePath;    // 图标路径
-  final String description;  // 描述
-  final int quantity;        // 拥有数量
+import 'package:xiu_to_xiandi_tuixiu/utils/lingshi_util.dart';
 
-  const HerbMaterial({
+class HerbMaterial {
+  final String id;         // 唯一 ID，如 yunmengcao
+  final String name;       // 显示名称，如 云梦草
+  final int level;         // 材料阶数（1~21）
+  final String image;      // 图标路径，如 'assets/images/herbs/yunmengcao.png'
+  final int priceAmount;   // 单价
+  final LingShiType priceType; // 价格类型（下品/中品/上品灵石）
+
+  HerbMaterial({
     required this.id,
     required this.name,
-    required this.imagePath,
-    required this.description,
-    required this.quantity,
+    required this.level,
+    required this.image,
+    required this.priceAmount,
+    required this.priceType,
   });
-
-  HerbMaterial copyWith({
-    String? id,
-    String? name,
-    String? imagePath,
-    String? description,
-    int? quantity,
-  }) {
-    return HerbMaterial(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      imagePath: imagePath ?? this.imagePath,
-      description: description ?? this.description,
-      quantity: quantity ?? this.quantity,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'imagePath': imagePath,
-      'description': description,
-      'quantity': quantity,
-    };
-  }
-
-  factory HerbMaterial.fromMap(Map<String, dynamic> map) {
-    return HerbMaterial(
-      id: map['id'],
-      name: map['name'],
-      imagePath: map['imagePath'],
-      description: map['description'],
-      quantity: map['quantity'],
-    );
-  }
 }

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../widgets/components/back_button_overlay.dart';
 import '../widgets/components/duihuan_lingshi.dart';
 import '../widgets/components/forge_blueprint_shop.dart';
-import '../widgets/components/refine_material_shop.dart'; // ✅ 新增导入
+import '../widgets/components/refine_material_shop.dart';
+import '../widgets/components/herb_material_shop.dart';
+import '../widgets/components/pill_blueprint_shop.dart'; // ✅ 新加
 
 class XiuXianMarketPage extends StatelessWidget {
   const XiuXianMarketPage({super.key});
@@ -22,7 +24,7 @@ class XiuXianMarketPage extends StatelessWidget {
             ),
           ),
 
-          // ✅ 灵石兑换组件放在中间稍下方（左侧）
+          // ✅ 灵石兑换组件（左中下）
           const Positioned(
             bottom: 300,
             left: 0,
@@ -31,10 +33,10 @@ class XiuXianMarketPage extends StatelessWidget {
             ),
           ),
 
-          // ✅ 炼器材料招牌（中下方偏右一点）
+          // ✅ 炼器材料招牌（中下右）
           const Positioned(
             bottom: 120,
-            right: 110, // ✅ 调整位置别太靠边
+            right: 80,
             child: RefineMaterialShop(),
           ),
 
@@ -45,7 +47,21 @@ class XiuXianMarketPage extends StatelessWidget {
             child: ForgeBlueprintShop(),
           ),
 
-          // ✅ 返回按钮浮在最上
+          // ✅ 丹药草药商店招牌（左下角）
+          const Positioned(
+            bottom: 120,
+            left: 20,
+            child: HerbMaterialShop(),
+          ),
+
+          // ✅ 丹方图纸招牌（左上中）
+          const Positioned(
+            top: 80,
+            right: 100,
+            child: PillBlueprintShop(),
+          ),
+
+          // ✅ 返回按钮
           const BackButtonOverlay(),
         ],
       ),

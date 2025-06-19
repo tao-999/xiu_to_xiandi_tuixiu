@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/pill_recipe.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/pill_blueprint.dart';
 
 class PillInfoBubble extends StatelessWidget {
-  final PillRecipe pill;
+  final PillBlueprint pill;
 
   const PillInfoBubble({super.key, required this.pill});
 
   @override
   Widget build(BuildContext context) {
     final effectType = switch (pill.type) {
-      PillType.attack => '攻击',
-      PillType.defense => '防御',
-      PillType.health => '血气',
+      PillBlueprintType.attack => '攻击',
+      PillBlueprintType.defense => '防御',
+      PillBlueprintType.health => '血气',
     };
 
     return Material(
@@ -34,7 +34,7 @@ class PillInfoBubble extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("材料：${pill.requirements.join('、')}",
+            Text("材料：${pill.name}",
                 style: const TextStyle(fontSize: 10, color: Colors.brown)),
             const SizedBox(height: 2),
             Text("效果：$effectType +${pill.effectValue}",

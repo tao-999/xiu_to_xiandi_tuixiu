@@ -4,6 +4,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/danfang_header.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zhushou_disciple_slot.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/alchemy_material_selector.dart'; // ✅ 引入新组件
+import '../widgets/components/danfang_main_content.dart';
 import '../widgets/effects/five_star_danfang_array.dart';
 import '../models/zongmen.dart';
 
@@ -39,46 +40,27 @@ class _DanfangPageState extends State<DanfangPage> {
 
           return Stack(
             children: [
+              // 背景
               Positioned.fill(
                 child: Image.asset(
                   'assets/images/zongmen_bg_liandanfang.webp',
                   fit: BoxFit.cover,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 40),
 
-                    /// 顶部标题 + 等级
-                    DanfangHeader(level: level),
+              // 页面内容
+              DanfangMainContent(level: level, arrayKey: _arrayKey),
 
-                    const SizedBox(height: 24),
-
-                    /// 阵法组件
-                    Center(
-                      child: FiveStarAlchemyArray(
-                        key: _arrayKey,
-                        radius: 150,
-                        bigDanluSize: 200,
-                        smallDanluSize: 100,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    /// 材料选择组件（替换原按钮）
-                    const AlchemyMaterialSelector(),
-
-                    const SizedBox(height: 16),
-
-                    /// 驻守弟子组件
-                    const ZhushouDiscipleSlot(roomName: '炼丹房'),
-                  ],
+              /// ✅ 驻守弟子头像（右上角）
+              const Positioned(
+                bottom: 128,
+                right: 24,
+                child: ZhushouDiscipleSlot(
+                  roomName: '炼丹房',
+                  isRefining: false, // ✅ 如果你要支持切换
                 ),
               ),
+
               const BackButtonOverlay(),
             ],
           );

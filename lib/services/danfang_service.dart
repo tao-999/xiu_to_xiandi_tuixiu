@@ -1,115 +1,102 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../models/herb_material.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/pill_blueprint.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/herb_material.dart';
 
 class DanfangService {
-  static const String _key = 'danfang_status';
-  static const String _herbKey = 'herb_materials';
+  static const _selectedBlueprintKey = 'danfang_selected_blueprint';
+  static const _cooldownKey = 'danfang_cooldown_time';
+  static const _herbInventoryKey = 'herb_material_inventory';
 
-  static Future<void> saveStatus({
-    required DateTime lastCollectTime,
-    required int outputLevel,
-    required int outputPerHour,
-    required int cooldownSeconds,
-  }) async {
+  // 🌿================ 选中丹方相关 ====================
+
+  /// ✅ 保存当前选中的丹方
+  static Future<void> saveSelectedBlueprint(PillBlueprint blueprint) async {
     final prefs = await SharedPreferences.getInstance();
     final data = {
-      'lastCollectTime': lastCollectTime.toIso8601String(),
-      'outputLevel': outputLevel,
-      'outputPerHour': outputPerHour,
-      'cooldownSeconds': cooldownSeconds,
+      'name': blueprint.name,
+      'level': blueprint.level,
+      'type': blueprint.type.name,
+      'description': blueprint.description,
+      'effectValue': blueprint.effectValue,
+      'iconPath': blueprint.iconPath,
     };
-    await prefs.setString(_key, jsonEncode(data));
+    await prefs.setString(_selectedBlueprintKey, jsonEncode(data));
   }
 
-  static Future<DanfangStatus> loadStatus() async {
+  /// ✅ 读取当前选中的丹方（若没有则返回 null）
+  static Future<PillBlueprint?> loadSelectedBlueprint() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
-    if (raw == null) return DanfangStatus.initial();
+    final raw = prefs.getString(_selectedBlueprintKey);
+    if (raw == null) return null;
 
-    final map = jsonDecode(raw);
-    return DanfangStatus(
-      lastCollectTime: DateTime.parse(map['lastCollectTime']),
-      outputLevel: map['outputLevel'],
-      outputPerHour: map['outputPerHour'],
-      cooldownSeconds: map['cooldownSeconds'],
-    );
-  }
-
-  static Future<void> clearStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_key);
-  }
-
-  // 🌿 草药背包持久化 =====================
-
-  static Future<List<HerbMaterial>> loadHerbs() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonStr = prefs.getString(_herbKey);
-    if (jsonStr == null) return [];
-
-    final List decoded = json.decode(jsonStr);
-    return decoded.map((e) => HerbMaterial.fromMap(e)).toList();
-  }
-
-  static Future<void> saveHerbs(List<HerbMaterial> herbs) async {
-    final prefs = await SharedPreferences.getInstance();
-    final encoded = json.encode(herbs.map((e) => e.toMap()).toList());
-    await prefs.setString(_herbKey, encoded);
-  }
-
-  static Future<void> addHerb(String id, int count) async {
-    final herbs = await loadHerbs();
-    final index = herbs.indexWhere((e) => e.id == id);
-
-    if (index >= 0) {
-      herbs[index] = herbs[index].copyWith(quantity: herbs[index].quantity + count);
-    } else {
-      herbs.add(HerbMaterial(
-        id: id,
-        name: '未知草药',
-        imagePath: '',
-        description: '',
-        quantity: count,
-      ));
+    try {
+      final map = jsonDecode(raw);
+      return PillBlueprint(
+        name: map['name'],
+        level: map['level'],
+        type: PillBlueprintType.values.firstWhere((e) => e.name == map['type']),
+        description: map['description'] ?? '',
+        effectValue: map['effectValue'] ?? 0,
+        iconPath: map['iconPath'],
+      );
+    } catch (e) {
+      print('❌ 读取丹方失败: $e');
+      return null;
     }
-
-    await saveHerbs(herbs);
   }
 
-  static Future<bool> consumeHerb(String id, int count) async {
-    final herbs = await loadHerbs();
-    final index = herbs.indexWhere((e) => e.id == id);
+  // 🕒================ 冷却时间相关 ====================
 
-    if (index >= 0 && herbs[index].quantity >= count) {
-      herbs[index] = herbs[index].copyWith(quantity: herbs[index].quantity - count);
-      await saveHerbs(herbs);
-      return true;
-    }
-
-    return false;
+  /// ✅ 保存炼丹冷却结束时间
+  static Future<void> saveCooldown(DateTime endTime) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_cooldownKey, endTime.toIso8601String());
   }
-}
 
-class DanfangStatus {
-  final DateTime lastCollectTime;
-  final int outputLevel;
-  final int outputPerHour;
-  final int cooldownSeconds;
-
-  DanfangStatus({
-    required this.lastCollectTime,
-    required this.outputLevel,
-    required this.outputPerHour,
-    required this.cooldownSeconds,
-  });
-
-  factory DanfangStatus.initial() {
-    return DanfangStatus(
-      lastCollectTime: DateTime.now().subtract(const Duration(hours: 1)),
-      outputLevel: 1,
-      outputPerHour: 5,
-      cooldownSeconds: 3600,
-    );
+  /// ✅ 读取冷却结束时间
+  static Future<DateTime?> loadCooldown() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_cooldownKey);
+    if (raw == null) return null;
+    return DateTime.tryParse(raw);
   }
+
+  // 🧹================ 清理状态 ====================
+
+  /// ✅ 清除所有炼丹状态
+  static Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_selectedBlueprintKey);
+    await prefs.remove(_cooldownKey);
+    await prefs.remove(_herbInventoryKey);
+  }
+
+  // 📦================ 草药背包相关 ====================
+
+  /// ✅ 加载草药持有情况
+  static Future<Map<String, int>> _loadInventory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_herbInventoryKey);
+    if (raw == null) return {};
+    final map = Map<String, dynamic>.from(jsonDecode(raw));
+    return map.map((k, v) => MapEntry(k, v as int));
+  }
+
+  /// ✅ 获取某种草药的持有数量
+  static Future<int> getCount(String herbName) async {
+    final inv = await _loadInventory();
+    return inv[herbName] ?? 0;
+  }
+
+  /// ✅ 添加草药
+  static Future<void> addHerb(String herbName, int count) async {
+    final inv = await _loadInventory();
+    inv[herbName] = (inv[herbName] ?? 0) + count;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_herbInventoryKey, jsonEncode(inv));
+  }
+
+  /// ✅ 获取全部草药数量（Map）
+  static Future<Map<String, int>> getAllHerbCounts() => _loadInventory();
 }

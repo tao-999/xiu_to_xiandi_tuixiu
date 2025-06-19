@@ -1,71 +1,72 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/refine_blueprint.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/refine_blueprint_service.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/pill_blueprint.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/pill_blueprint_service.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/lingshi_util.dart';
 
-import '../../models/resources.dart';
+import '../../services/resources_storage.dart';
 import '../common/toast_tip.dart';
 
-class ForgeBlueprintShop extends StatelessWidget {
-  const ForgeBlueprintShop({super.key});
+class PillBlueprintShop extends StatelessWidget {
+  const PillBlueprintShop({super.key});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _showBlueprintShopDialog(context),
+      onTap: () => _showDialog(context),
       child: Image.asset(
-        'assets/images/sign_weapon_shop.png',
-        width: 80,
-        height: 80,
+        'assets/images/sign_pill_shop.png',
+        width: 120,
+        height: 120,
       ),
     );
   }
 
-  void _showBlueprintShopDialog(BuildContext context) {
+  void _showDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
         backgroundColor: const Color(0xFFF9F5E3),
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        child: const _BlueprintDialogContent(),
+        child: const _PillBlueprintDialogContent(),
       ),
     );
   }
 }
 
-class _BlueprintDialogContent extends StatefulWidget {
-  const _BlueprintDialogContent({super.key});
+class _PillBlueprintDialogContent extends StatefulWidget {
+  const _PillBlueprintDialogContent({super.key});
 
   @override
-  State<_BlueprintDialogContent> createState() => _BlueprintDialogContentState();
+  State<_PillBlueprintDialogContent> createState() => _PillBlueprintDialogContentState();
 }
 
-class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
-  late List<RefineBlueprint> all;
-  late Resources res;
+class _PillBlueprintDialogContentState extends State<_PillBlueprintDialogContent> {
+  late List<PillBlueprint> all;
   Set<String> ownedKeys = {};
 
   @override
   void initState() {
     super.initState();
-    all = RefineBlueprintService.generateAllBlueprints();
+    all = PillBlueprintService.generateAllBlueprints();
     _load();
   }
 
   Future<void> _load() async {
-    res = await ResourcesStorage.load();
-    ownedKeys = await ResourcesStorage.getBlueprintKeys();
+    ownedKeys = await PillBlueprintService.getPillBlueprintKeys();
     setState(() {});
   }
 
-  Future<void> _buy(RefineBlueprint bp) async {
-    final price = RefineBlueprintService.getBlueprintPrice(bp.level);
-    final field = lingShiFieldMap[price.type]!;
+  Future<void> _buy(PillBlueprint bp) async {
+    final price = PillBlueprintService.getBlueprintPrice(bp.level);
+
+    // ✅ 正确读取资源对象
+    final res = await ResourcesStorage.load();
+
+    // ✅ 使用你封装的 getStoneAmount 方法
     final balance = ResourcesStorage.getStoneAmount(res, price.type);
 
-    if (balance < price.amount) {
+    if (balance < BigInt.from(price.amount)) {
       ToastTip.show(context, '${lingShiNames[price.type]}不足，无法购买');
       return;
     }
@@ -89,8 +90,12 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
 
     if (confirmed != true) return;
 
-    await ResourcesStorage.subtract(field, price.amount);
-    await ResourcesStorage.addBlueprintKey(bp);
+    // ✅ 正确扣除灵石
+    final field = lingShiFieldMap[price.type]!;
+    await ResourcesStorage.subtract(field, BigInt.from(price.amount));
+
+    // ✅ 添加图纸记录
+    await PillBlueprintService.addPillBlueprintKey(bp);
 
     ToastTip.show(context, '成功购买「${bp.name}」');
     await _load();
@@ -98,7 +103,7 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
 
   @override
   Widget build(BuildContext context) {
-    final grouped = <int, List<RefineBlueprint>>{};
+    final grouped = <int, List<PillBlueprint>>{};
     for (final bp in all) {
       grouped.putIfAbsent(bp.level, () => []).add(bp);
     }
@@ -110,10 +115,7 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            const Text(
-              '装备图纸商店',
-              style: TextStyle(fontSize: 15, color: Colors.black87),
-            ),
+            const Text('丹方图纸商店', style: TextStyle(fontSize: 15, color: Colors.black87)),
             const SizedBox(height: 12),
             for (final entry in grouped.entries) ...[
               Padding(
@@ -124,10 +126,8 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: entry.value.map((bp) {
-                    final owned = ownedKeys.contains('${bp.type.name}-${bp.level}');
-                    final price = RefineBlueprintService.getBlueprintPrice(bp.level);
-                    final balance = ResourcesStorage.getStoneAmount(res, price.type);
-                    final affordable = balance >= price.amount;
+                    final owned = ownedKeys.contains(bp.uniqueKey);
+                    final price = PillBlueprintService.getBlueprintPrice(bp.level);
 
                     return GestureDetector(
                       onTap: owned ? null : () => _buy(bp),
@@ -145,17 +145,16 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (bp.iconPath != null)
-                              Opacity(
-                                opacity: owned ? 0.4 : 1.0,
-                                child: Image.asset(
-                                  'assets/images/${bp.iconPath!}',
-                                  width: 32,
-                                  height: 32,
-                                  errorBuilder: (_, __, ___) =>
-                                  const Icon(Icons.image_not_supported, size: 24),
-                                ),
+                            Opacity(
+                              opacity: owned ? 0.4 : 1.0,
+                              child: Image.asset(
+                                'assets/images/${bp.iconPath}',
+                                width: 32,
+                                height: 32,
+                                errorBuilder: (_, __, ___) =>
+                                const Icon(Icons.image_not_supported, size: 24),
                               ),
+                            ),
                             const SizedBox(height: 2),
                             Text(
                               bp.name.split('·').first,
@@ -173,9 +172,7 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
                                   : '${formatAnyNumber(price.amount)} ${lingShiNames[price.type]}',
                               style: TextStyle(
                                 fontSize: 8,
-                                color: owned
-                                    ? Colors.grey
-                                    : (affordable ? Colors.green : Colors.red),
+                                color: owned ? Colors.grey : Colors.black87,
                               ),
                               textAlign: TextAlign.center,
                             ),
