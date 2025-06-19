@@ -12,7 +12,7 @@ class GiftButtonOverlay extends StatefulWidget {
   State<GiftButtonOverlay> createState() => _GiftButtonOverlayState();
 }
 
-class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
+class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindingObserver {
   DateTime? _lastClaimed;
   Timer? _countdownTimer;
   Duration _remaining = Duration.zero;
@@ -21,7 +21,23 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // ✅ 添加生命周期监听
     _loadGiftTime();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // ✅ 注销监听
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  /// ✅ 监听 App 回到前台时刷新倒计时
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadGiftTime(); // ⏰ 回到前台时刷新倒计时
+    }
   }
 
   Future<void> _loadGiftTime() async {
@@ -29,7 +45,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
     _updateRemaining();
     _checking = false;
     _startCountdown();
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   void _updateRemaining() {
@@ -48,12 +64,6 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> {
       _updateRemaining();
       if (mounted) setState(() {});
     });
-  }
-
-  @override
-  void dispose() {
-    _countdownTimer?.cancel();
-    super.dispose();
   }
 
   bool get _canClaim => _remaining == Duration.zero;

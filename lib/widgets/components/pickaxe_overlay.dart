@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/chiyangu_storage.dart';
 
 class PickaxeOverlay extends StatefulWidget {
@@ -9,7 +10,7 @@ class PickaxeOverlay extends StatefulWidget {
   State<PickaxeOverlay> createState() => _PickaxeOverlayState();
 }
 
-class _PickaxeOverlayState extends State<PickaxeOverlay> {
+class _PickaxeOverlayState extends State<PickaxeOverlay> with WidgetsBindingObserver {
   int pickaxeCount = 0;
   Duration timeLeft = Duration.zero;
   Timer? _timer;
@@ -17,8 +18,24 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // ✅ 添加生命周期监听
     _startTimer();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // ✅ 移除监听
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  /// ✅ 生命周期回到前台时刷新
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadData(); // 👈 切回来刷新数据
+    }
   }
 
   void _startTimer() {
@@ -29,10 +46,9 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> {
     final now = DateTime.now();
     final lastRefill = await ChiyanguStorage.getLastPickaxeRefillTime();
 
-    // ✅ 检测时间倒退 —— 直接停机！
     if (now.isBefore(lastRefill)) {
       print('❌ 本地时间被篡改，锄头恢复系统暂停');
-      _timer?.cancel(); // 🔥 直接停掉定时器！
+      _timer?.cancel();
       return;
     }
 
@@ -44,8 +60,8 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> {
       int refillAmount = passed.inMinutes ~/ 5;
       if (refillAmount > 0) {
         currentCount = (currentCount + refillAmount).clamp(0, ChiyanguStorage.maxPickaxe);
-        await ChiyanguStorage.setPickaxeCount(currentCount);
         final newTime = lastRefill.add(ChiyanguStorage.refillCooldown * refillAmount);
+        await ChiyanguStorage.setPickaxeCount(currentCount);
         await ChiyanguStorage.setLastPickaxeRefillTime(newTime);
         passed = now.difference(newTime);
       }
@@ -53,16 +69,12 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> {
 
     final remaining = ChiyanguStorage.refillCooldown - passed;
 
-    setState(() {
-      pickaxeCount = currentCount;
-      timeLeft = currentCount >= ChiyanguStorage.maxPickaxe ? Duration.zero : remaining;
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+    if (mounted) {
+      setState(() {
+        pickaxeCount = currentCount;
+        timeLeft = currentCount >= ChiyanguStorage.maxPickaxe ? Duration.zero : remaining;
+      });
+    }
   }
 
   @override

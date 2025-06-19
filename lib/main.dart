@@ -2,24 +2,23 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:hive_flutter/adapters.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/effects/touch_effect_overlay.dart';
 import 'models/disciple.dart';
 import 'models/weapon.dart';
+import 'models/character.dart';
 import 'pages/page_create_role.dart';
 import 'pages/page_root.dart';
-import 'models/character.dart';
+import 'widgets/effects/touch_effect_overlay.dart';
+import 'services/cultivation_tracker.dart';
+import 'utils/app_lifecycle_manager.dart'; // ✅ 引入生命周期监听器
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ 沉浸式全屏（系统UI自动隐藏，滑动出现再自动隐藏）
+  // ✅ 沉浸式 + 白色图标
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
-  // ✅ 透明状态栏和导航栏 + 白色图标
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -30,11 +29,9 @@ void main() async {
   );
 
   await Hive.initFlutter();
-
   Hive.registerAdapter(DiscipleAdapter());
   Hive.registerAdapter(WeaponAdapter());
 
-  // ✅ 判断是否已创建角色
   final prefs = await SharedPreferences.getInstance();
   final playerStr = prefs.getString('playerData');
 
@@ -50,13 +47,17 @@ void main() async {
     }
   }
 
-  // ✅ 启动修为增长 Tracker（只在此处注册一次，全局通用）
+  // ✅ 修为系统初始化
   if (hasCreatedRole && player != null) {
-    await CultivationTracker.initWithPlayer(player); // 💤 离线修为补算
-    CultivationTracker.startGlobalTick();            // ⏱️ 每秒 tick，更新缓存
+    await CultivationTracker.initWithPlayer(player);
+    CultivationTracker.startGlobalTick();
   }
 
-  runApp(XiudiApp(hasCreatedRole: hasCreatedRole));
+  runApp(
+    AppLifecycleManager( // ✅ 外层包裹
+      child: XiudiApp(hasCreatedRole: hasCreatedRole),
+    ),
+  );
 }
 
 class XiudiApp extends StatelessWidget {
@@ -75,25 +76,18 @@ class XiudiApp extends StatelessWidget {
         ),
       ),
       home: Scaffold(
-        body: Builder(
-          builder: (context) {
-            return Stack(
-              children: [
-                hasCreatedRole ? const XiudiRoot() : const CreateRolePage(),
-
-                // ✅ 全局触摸特效（点击光圈）
-                const TouchEffectOverlay(),
-
-                const Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 40,
-                  child: ColoredBox(color: Colors.transparent),
-                ),
-              ],
-            );
-          },
+        body: Stack(
+          children: [
+            hasCreatedRole ? const XiudiRoot() : const CreateRolePage(),
+            const TouchEffectOverlay(),
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 40,
+              child: ColoredBox(color: Colors.transparent),
+            ),
+          ],
         ),
       ),
     );

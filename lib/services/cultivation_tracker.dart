@@ -42,9 +42,9 @@ class CultivationTracker {
     player.cultivation = (player.cultivation + added).clamp(BigInt.zero, maxExp);
     final newLayer = calculateCultivationLevel(player.cultivation).totalLayer;
 
-    // ✅ 判断是否补算过程中发生了突破
     if (newLayer > oldLayer) {
       PlayerStorage.calculateBaseAttributes(player);
+      await PlayerStorage.applyAllEquippedAttributesWith(); // ✅ 补算附加属性
     }
 
     await prefs.setInt(_loginTimeKey, now);
@@ -73,12 +73,17 @@ class CultivationTracker {
       final oldLayer = calculateCultivationLevel(oldExp).totalLayer;
       final newLayer = calculateCultivationLevel(player.cultivation).totalLayer;
 
+      debugPrint('📌 [修为检测]');
+      debugPrint('🥚 oldExp: $oldExp');
+      debugPrint('🔼 oldLayer: $oldLayer');
+      debugPrint('🔥 newLayer: $newLayer');
+
       if (newLayer > oldLayer) {
         PlayerStorage.calculateBaseAttributes(player);
+        await PlayerStorage.applyAllEquippedAttributesWith(); // ✅ 更新装备附加属性
       }
 
       await prefs.setString('playerData', jsonEncode(player.toJson()));
-
       for (final listener in _listeners) {
         listener();
       }

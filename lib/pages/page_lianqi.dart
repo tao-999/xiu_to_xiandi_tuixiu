@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:collection/collection.dart';
 
@@ -6,14 +7,13 @@ import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/refine_blueprint_service.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/refine_material_service.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/lianqi_header.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zhushou_disciple_slot.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/refine_material_selector.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/blueprint_dropdown_selector.dart';
-
-import '../services/refine_material_service.dart';
 
 class LianqiPage extends StatefulWidget {
   const LianqiPage({super.key});
@@ -22,11 +22,10 @@ class LianqiPage extends StatefulWidget {
   State<LianqiPage> createState() => _LianqiPageState();
 }
 
-class _LianqiPageState extends State<LianqiPage> {
+class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
   late Future<Zongmen?> _zongmenFuture;
   bool _hasZhushou = false;
 
-  // 这几个状态只由 _initBlueprintAndRefineState 控制
   bool _isRefining = false;
   DateTime? _refineEndTime;
   List<RefineBlueprint> _ownedBlueprints = [];
@@ -36,8 +35,22 @@ class _LianqiPageState extends State<LianqiPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // ✅ 注册生命周期监听
     _zongmenFuture = _loadZongmenAndCheckZhushou();
     _initBlueprintAndRefineState();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _initBlueprintAndRefineState(); // ✅ 切换回前台时刷新状态
+    }
   }
 
   Future<Zongmen?> _loadZongmenAndCheckZhushou() async {
@@ -53,14 +66,11 @@ class _LianqiPageState extends State<LianqiPage> {
   }
 
   Future<void> _initBlueprintAndRefineState() async {
-    // 1. 加载已拥有图纸
     final keys = await ResourcesStorage.getBlueprintKeys();
     final all = RefineBlueprintService.generateAllBlueprints();
     final owned = all.where((b) => keys.contains('${b.type.name}-${b.level}')).toList();
 
-    // 2. 加载炼制状态
     final state = await RefineMaterialService.loadRefineState();
-
     RefineBlueprint? restoredBlueprint;
     List<String> restoredMaterials = [];
     DateTime? refineEndTime;
@@ -79,15 +89,12 @@ class _LianqiPageState extends State<LianqiPage> {
             endTimeStr is String &&
             materials is List) {
           final type = BlueprintType.values.firstWhere(
-                (e) => e.name == typeName,
-            orElse: () => BlueprintType.weapon,
-          );
-
+                  (e) => e.name == typeName,
+              orElse: () => BlueprintType.weapon);
           refineEndTime = DateTime.parse(endTimeStr);
           restoredMaterials = List<String>.from(materials);
           restoredBlueprint = owned.firstWhereOrNull(
-                (b) => b.type == type && b.level == level && b.name == name,
-          );
+                  (b) => b.type == type && b.level == level && b.name == name);
         } else {
           print('⚠️ 状态字段类型异常，放弃恢复');
         }
@@ -101,7 +108,8 @@ class _LianqiPageState extends State<LianqiPage> {
       _selectedBlueprint = restoredBlueprint;
       _selectedMaterials = restoredMaterials;
       _refineEndTime = refineEndTime;
-      _isRefining = refineEndTime != null && refineEndTime.isAfter(DateTime.now()); // ✅ 修复核心BUG
+      _isRefining =
+          refineEndTime != null && refineEndTime.isAfter(DateTime.now());
     });
   }
 
@@ -134,8 +142,6 @@ class _LianqiPageState extends State<LianqiPage> {
                     const SizedBox(height: 40),
                     LianqiHeader(level: level),
                     const SizedBox(height: 24),
-
-                    /// 图纸选择
                     BlueprintDropdownSelector(
                       blueprintList: _ownedBlueprints,
                       selected: _selectedBlueprint,
@@ -149,10 +155,7 @@ class _LianqiPageState extends State<LianqiPage> {
                       maxLevelAllowed: level,
                       hasZhushou: _hasZhushou,
                     ),
-
                     const SizedBox(height: 24),
-
-                    /// 材料选择器 + 炼制逻辑
                     if (_selectedBlueprint != null)
                       Center(
                         child: RefineMaterialSelector(
@@ -174,20 +177,17 @@ class _LianqiPageState extends State<LianqiPage> {
                           hasDisciple: _hasZhushou,
                           onRefineStarted: () async {
                             await _loadZongmenAndCheckZhushou();
-                            await _initBlueprintAndRefineState(); // ✅ 主动刷新状态，UI立即更新
+                            await _initBlueprintAndRefineState();
                           },
                           onRefineCompleted: () async {
                             await _loadZongmenAndCheckZhushou();
-                            await _initBlueprintAndRefineState(); // ✅ 完成后也要刷新一次
+                            await _initBlueprintAndRefineState();
                           },
                         ),
                       ),
-
                   ],
                 ),
               ),
-
-              /// 驻守弟子
               Positioned(
                 bottom: 150,
                 right: 20,
@@ -195,18 +195,13 @@ class _LianqiPageState extends State<LianqiPage> {
                   roomName: '炼器房',
                   onChanged: (actionType) async {
                     await _loadZongmenAndCheckZhushou();
-
                     if (actionType == 'remove') {
-                      // 弟子移除，重置炼制状态
                       await _initBlueprintAndRefineState();
                     }
                   },
                   isRefining: _isRefining,
                 ),
-
               ),
-
-              /// 返回按钮
               const BackButtonOverlay(),
             ],
           );

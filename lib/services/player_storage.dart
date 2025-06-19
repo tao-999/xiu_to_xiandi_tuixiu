@@ -204,11 +204,10 @@ class PlayerStorage {
   }
 
   /// 🧬 统一属性计算（支持每10层翻倍 + 资质成长倍率）
-  static void calculateBaseAttributes(Character player) {
+  static Future<void> calculateBaseAttributes(Character player) async {
     final totalLayer = calculateCultivationLevel(player.cultivation).totalLayer;
     final factor = calculateGrowthMultiplier(player.elements);
 
-    // 🎯 初始基础值（角色创建时设定）
     const baseHpInit = 100;
     const baseAtkInit = 20;
     const baseDefInit = 10;
@@ -232,6 +231,12 @@ class PlayerStorage {
 
     debugPrint('📊 calculateBaseAttributes() → 层=$totalLayer 倍率=${factor.toStringAsFixed(2)} → '
         'HP=${player.baseHp}, ATK=${player.baseAtk}, DEF=${player.baseDef}');
+
+    await updateFields({
+      'baseHp': player.baseHp,
+      'baseAtk': player.baseAtk,
+      'baseDef': player.baseDef,
+    });
   }
 
   /// 🧙‍♂️ 穿戴武器后，根据武器属性（百分比）更新 extra 属性
