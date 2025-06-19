@@ -32,10 +32,12 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
   RefineBlueprint? _selectedBlueprint;
   List<String> _selectedMaterials = [];
 
+  int _refineStateVersion = 0; // ✅ 强制刷新 RefineMaterialSelector 的 key
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // ✅ 注册生命周期监听
+    WidgetsBinding.instance.addObserver(this);
     _zongmenFuture = _loadZongmenAndCheckZhushou();
     _initBlueprintAndRefineState();
   }
@@ -49,7 +51,7 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _initBlueprintAndRefineState(); // ✅ 切换回前台时刷新状态
+      _initBlueprintAndRefineState(); // ✅ 切换回前台时刷新炼制状态
     }
   }
 
@@ -89,12 +91,14 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
             endTimeStr is String &&
             materials is List) {
           final type = BlueprintType.values.firstWhere(
-                  (e) => e.name == typeName,
-              orElse: () => BlueprintType.weapon);
+                (e) => e.name == typeName,
+            orElse: () => BlueprintType.weapon,
+          );
           refineEndTime = DateTime.parse(endTimeStr);
           restoredMaterials = List<String>.from(materials);
           restoredBlueprint = owned.firstWhereOrNull(
-                  (b) => b.type == type && b.level == level && b.name == name);
+                (b) => b.type == type && b.level == level && b.name == name,
+          );
         } else {
           print('⚠️ 状态字段类型异常，放弃恢复');
         }
@@ -108,8 +112,8 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
       _selectedBlueprint = restoredBlueprint;
       _selectedMaterials = restoredMaterials;
       _refineEndTime = refineEndTime;
-      _isRefining =
-          refineEndTime != null && refineEndTime.isAfter(DateTime.now());
+      _isRefining = refineEndTime != null && refineEndTime.isAfter(DateTime.now());
+      _refineStateVersion++; // ✅ 每次刷新炼制状态都触发 Selector 重建
     });
   }
 
@@ -159,6 +163,7 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
                     if (_selectedBlueprint != null)
                       Center(
                         child: RefineMaterialSelector(
+                          key: ValueKey('selector-$_refineStateVersion'), // ✅ 重建关键点
                           blueprint: _selectedBlueprint!,
                           selectedMaterials: _selectedMaterials,
                           onMaterialSelected: (index, name) {
