@@ -84,7 +84,6 @@ class _PillBlueprintDialog extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
 
-                      /// ✅ 横向滚动处理
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -92,13 +91,6 @@ class _PillBlueprintDialog extends StatelessWidget {
                             final notOwned = !ownedKeys.contains(bp.uniqueKey);
                             final levelTooHigh = bp.level > currentSectLevel;
                             final isDisabled = levelTooHigh || notOwned;
-
-                            String? hint;
-                            if (levelTooHigh) {
-                              hint = '（未解锁）';
-                            } else if (notOwned) {
-                              hint = '（未拥有）';
-                            }
 
                             return Padding(
                               padding: const EdgeInsets.only(right: 12),
@@ -116,10 +108,18 @@ class _PillBlueprintDialog extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        bp.name + (hint ?? ''),
+                                        bp.name,
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(
                                           fontSize: 10,
+                                          color: Colors.black,
+                                          height: 1.2,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${bp.typeLabel} +${bp.effectValue}',
+                                        style: const TextStyle(
+                                          fontSize: 9,
                                           color: Colors.black,
                                           height: 1.2,
                                         ),
