@@ -166,7 +166,18 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 2),
+                            if (bp.attackBoost > 0 || bp.defenseBoost > 0 || bp.healthBoost > 0)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Text(
+                                  _buildBoostText(bp),
+                                  style: const TextStyle(
+                                    fontSize: 8,
+                                    color: Colors.black,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             Text(
                               owned
                                   ? '已拥有'
@@ -192,5 +203,13 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
         ),
       ),
     );
+  }
+
+  String _buildBoostText(RefineBlueprint bp) {
+    final parts = <String>[];
+    if (bp.attackBoost > 0) parts.add('+${bp.attackBoost}% 攻击');
+    if (bp.defenseBoost > 0) parts.add('+${bp.defenseBoost}% 防御');
+    if (bp.healthBoost > 0) parts.add('+${bp.healthBoost}% 血量');
+    return parts.join('  ');
   }
 }

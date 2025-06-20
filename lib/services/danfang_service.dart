@@ -1,30 +1,32 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/pill_blueprint.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/herb_material.dart';
+
+import 'herb_material_service.dart';
 
 class DanfangService {
   static const _selectedBlueprintKey = 'danfang_selected_blueprint';
   static const _cooldownKey = 'danfang_cooldown_time';
   static const _herbInventoryKey = 'herb_material_inventory';
+  static const _selectedMaterialsKey = 'danfang_selected_materials';
 
-  // 🌿================ 选中丹方相关 ====================
+  // =================== 🌿 丹方逻辑 ===================
 
-  /// ✅ 保存当前选中的丹方
+  /// ✅ 保存选中的丹方
   static Future<void> saveSelectedBlueprint(PillBlueprint blueprint) async {
     final prefs = await SharedPreferences.getInstance();
     final data = {
       'name': blueprint.name,
       'level': blueprint.level,
       'type': blueprint.type.name,
-      'description': blueprint.description,
-      'effectValue': blueprint.effectValue,
+      'description': blueprint.description ?? '',
+      'effectValue': blueprint.effectValue ?? 0,
       'iconPath': blueprint.iconPath,
     };
     await prefs.setString(_selectedBlueprintKey, jsonEncode(data));
   }
 
-  /// ✅ 读取当前选中的丹方（若没有则返回 null）
+  /// ✅ 读取选中的丹方（若没有则返回 null）
   static Future<PillBlueprint?> loadSelectedBlueprint() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_selectedBlueprintKey);
@@ -46,15 +48,37 @@ class DanfangService {
     }
   }
 
-  // 🕒================ 冷却时间相关 ====================
+  static Future<void> clearSelectedBlueprint() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_selectedBlueprintKey);
+  }
 
-  /// ✅ 保存炼丹冷却结束时间
+  // =================== 🍀 草药选中逻辑 ===================
+
+  static Future<void> saveSelectedMaterials(List<String> mats) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedMaterialsKey, jsonEncode(mats));
+  }
+
+  static Future<List<String>?> loadSelectedMaterials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_selectedMaterialsKey);
+    if (raw == null) return null;
+    return List<String>.from(jsonDecode(raw));
+  }
+
+  static Future<void> clearSelectedMaterials() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_selectedMaterialsKey);
+  }
+
+  // =================== ⏳ 冷却时间 ===================
+
   static Future<void> saveCooldown(DateTime endTime) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_cooldownKey, endTime.toIso8601String());
   }
 
-  /// ✅ 读取冷却结束时间
   static Future<DateTime?> loadCooldown() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_cooldownKey);
@@ -62,19 +86,20 @@ class DanfangService {
     return DateTime.tryParse(raw);
   }
 
-  // 🧹================ 清理状态 ====================
-
-  /// ✅ 清除所有炼丹状态
-  static Future<void> clearAll() async {
+  static Future<void> clearCooldown() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_selectedBlueprintKey);
     await prefs.remove(_cooldownKey);
-    await prefs.remove(_herbInventoryKey);
   }
 
-  // 📦================ 草药背包相关 ====================
+  /// 【修仙派】炼丹时间计算：1阶 300秒起步，每阶+60秒，资质越高越快（最多75%缩短）
+  static int calculateRefineDuration(int level, int totalAptitude) {
+    final baseTime = 300 + (level - 1) * 60;
+    final aptitudeFactor = (1 - (totalAptitude / 210) * 0.75).clamp(0.25, 1.0);
+    return (baseTime * aptitudeFactor).round();
+  }
 
-  /// ✅ 加载草药持有情况
+  // =================== 📦 草药背包 ===================
+
   static Future<Map<String, int>> _loadInventory() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_herbInventoryKey);
@@ -83,13 +108,11 @@ class DanfangService {
     return map.map((k, v) => MapEntry(k, v as int));
   }
 
-  /// ✅ 获取某种草药的持有数量
   static Future<int> getCount(String herbName) async {
     final inv = await _loadInventory();
     return inv[herbName] ?? 0;
   }
 
-  /// ✅ 添加草药
   static Future<void> addHerb(String herbName, int count) async {
     final inv = await _loadInventory();
     inv[herbName] = (inv[herbName] ?? 0) + count;
@@ -97,6 +120,58 @@ class DanfangService {
     await prefs.setString(_herbInventoryKey, jsonEncode(inv));
   }
 
-  /// ✅ 获取全部草药数量（Map）
   static Future<Map<String, int>> getAllHerbCounts() => _loadInventory();
+
+  static Future<void> clearInventory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_herbInventoryKey);
+  }
+
+  // =================== 🧹 状态清理 ===================
+
+  /// ✅ 全部清除（慎用！）
+  static Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_selectedBlueprintKey);
+    await prefs.remove(_cooldownKey);
+    await prefs.remove(_herbInventoryKey);
+    await prefs.remove(_selectedMaterialsKey);
+  }
+
+  static const String _refineCountKey = 'danfangRefineCount';
+
+  static Future<void> saveRefineCount(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_refineCountKey, count);
+  }
+
+  static Future<int> loadRefineCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_refineCountKey) ?? 1; // 默认炼1颗
+  }
+
+  static Future<void> clearRefineCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_refineCountKey);
+  }
+
+  /// ✅ 消耗草药（炼制 N 个丹药）
+  static Future<void> consumeHerbs(List<String> materialNames, int count) async {
+    for (final name in materialNames) {
+      final old = await HerbMaterialService.getCount(name);
+      final newCount = (old - count).clamp(0, double.infinity).toInt();
+      await HerbMaterialService.add(name, newCount - old); // 减法是 add 负值
+    }
+  }
+
+  /// ✅ 获取最多可炼制数量（取草药最少那个）
+  static Future<int> getMaxAlchemyCount(List<String> selectedMaterials) async {
+    if (selectedMaterials.length < 3 || selectedMaterials.any((e) => e.isEmpty)) return 1;
+
+    final counts = await Future.wait(
+      selectedMaterials.map((name) => HerbMaterialService.getCount(name)),
+    );
+
+    return counts.reduce((a, b) => a < b ? a : b); // 取最小
+  }
 }

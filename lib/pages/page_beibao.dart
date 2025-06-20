@@ -5,6 +5,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_grid_view.dart';
 import 'package:xiu_to_xiandi_tuixiu/data/beibao_resource_config.dart';
 
 import '../models/beibao_item_type.dart';
+import '../models/pill.dart';
+import '../services/pill_storage_service.dart';
 import '../services/weapons_storage.dart';
 
 class BeibaoPage extends StatefulWidget {
@@ -69,6 +71,42 @@ class _BeibaoPageState extends State<BeibaoPage> {
         quantity: null, // ✅ 武器不需要数量，干脆 null
         description: '效果：$attrText',
         type: BeibaoItemType.weapon,
+      ));
+    }
+
+    // 🔥 3. 加载炼制丹药
+    final pills = await PillStorageService.loadAllPills();
+    print('🥚 [背包] 加载到 ${pills.length} 枚丹药');
+
+    for (final p in pills) {
+      print('🥚 丹药详情：');
+      print('   📛 名称：${p.name}');
+      print('   🎚️ 阶数：${p.level}');
+      print('   🏷️ 类型：${p.type}');
+      print('   💊 数量：${p.count}');
+      print('   🔥 属性加成：+${p.bonusAmount}');
+      print('   🕒 炼制时间：${p.createdAt}');
+
+      String effect = '';
+      switch (p.type) {
+        case PillType.attack:
+          effect = '攻击 +${p.bonusAmount}';
+          break;
+        case PillType.defense:
+          effect = '防御 +${p.bonusAmount}';
+          break;
+        case PillType.health:
+          effect = '血气 +${p.bonusAmount}';
+          break;
+      }
+
+      newItems.add(BeibaoItem(
+        name: p.name,
+        imagePath: p.iconPath, // 你可以自定义丹药图标路径
+        level: p.level,
+        quantity: BigInt.from(p.count),
+        description: '效果：$effect',
+        type: BeibaoItemType.pill, // 你要加这个类型
       ));
     }
 

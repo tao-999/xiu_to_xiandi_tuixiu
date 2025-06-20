@@ -5,17 +5,21 @@ import 'package:xiu_to_xiandi_tuixiu/services/pill_blueprint_service.dart';
 class SelectPillBlueprintButton extends StatelessWidget {
   final void Function(PillBlueprint blueprint) onSelected;
   final int currentSectLevel;
+  final bool isDisabled; // ✅ 新增：是否禁用状态
 
   const SelectPillBlueprintButton({
     super.key,
     required this.onSelected,
     required this.currentSectLevel,
+    this.isDisabled = false, // ✅ 默认允许点击
   });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () async {
+    return GestureDetector(
+      onTap: isDisabled
+          ? null
+          : () async {
         final result = await showDialog<PillBlueprint>(
           context: context,
           builder: (_) => _PillBlueprintDialog(currentSectLevel: currentSectLevel),
@@ -24,12 +28,14 @@ class SelectPillBlueprintButton extends StatelessWidget {
           onSelected(result);
         }
       },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFFE5D7B8),
-        foregroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      child: Text(
+        '选择丹方',
+        style: TextStyle(
+          fontSize: 14,
+          color: isDisabled ? Colors.grey : Colors.white, // ✅ 灰色表示不可点击
+          decoration: isDisabled ? null : TextDecoration.underline,
+        ),
       ),
-      child: const Text('选择丹方'),
     );
   }
 }

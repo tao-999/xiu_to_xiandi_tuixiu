@@ -19,7 +19,6 @@ class Zongmen {
   final int spiritStoneHigh;
   final int spiritStoneSupreme;
 
-  final List<Pill> pills;
   final List<Technique> techniques;
 
   // ❗改动：不再包含 disciples，而是通过 Hive 独立持久化
@@ -36,7 +35,6 @@ class Zongmen {
     this.spiritStoneMid = 0,
     this.spiritStoneHigh = 0,
     this.spiritStoneSupreme = 0,
-    this.pills = const [],
     this.techniques = const [],
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -53,7 +51,6 @@ class Zongmen {
     int? spiritStoneMid,
     int? spiritStoneHigh,
     int? spiritStoneSupreme,
-    List<Pill>? pills,
     List<Technique>? techniques,
   }) {
     return Zongmen(
@@ -69,7 +66,6 @@ class Zongmen {
       spiritStoneMid: spiritStoneMid ?? this.spiritStoneMid,
       spiritStoneHigh: spiritStoneHigh ?? this.spiritStoneHigh,
       spiritStoneSupreme: spiritStoneSupreme ?? this.spiritStoneSupreme,
-      pills: pills ?? this.pills,
       techniques: techniques ?? this.techniques,
     );
   }
@@ -88,7 +84,6 @@ class Zongmen {
       spiritStoneMid: map['spiritStoneMid'] ?? 0,
       spiritStoneHigh: map['spiritStoneHigh'] ?? 0,
       spiritStoneSupreme: map['spiritStoneSupreme'] ?? 0,
-      pills: (map['pills'] as List? ?? []).map((e) => Pill.fromMap(e)).toList(),
       techniques: (map['techniques'] as List? ?? [])
           .map((e) => Technique.fromMap(e))
           .toList(),
@@ -110,7 +105,6 @@ class Zongmen {
       'spiritStoneMid': spiritStoneMid,
       'spiritStoneHigh': spiritStoneHigh,
       'spiritStoneSupreme': spiritStoneSupreme,
-      'pills': pills.map((e) => e.toMap()).toList(),
       'techniques': techniques.map((e) => e.toMap()).toList(),
       // ❌ 不再保存 disciples
     };

@@ -7,12 +7,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models/disciple.dart';
 import 'models/weapon.dart';
+import 'models/pill.dart'; // ✅ 新增
 import 'models/character.dart';
 import 'pages/page_create_role.dart';
 import 'pages/page_root.dart';
 import 'widgets/effects/touch_effect_overlay.dart';
+import 'services/pill_storage_service.dart'; // ✅ 新增
 import 'services/cultivation_tracker.dart';
-import 'utils/app_lifecycle_manager.dart'; // ✅ 引入生命周期监听器
+import 'utils/app_lifecycle_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +33,8 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(DiscipleAdapter());
   Hive.registerAdapter(WeaponAdapter());
+  Hive.registerAdapter(PillAdapter()); // ✅ 注册丹药适配器
+  Hive.registerAdapter(PillTypeAdapter()); // ✅ 注册丹药类型适配器
 
   final prefs = await SharedPreferences.getInstance();
   final playerStr = prefs.getString('playerData');

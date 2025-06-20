@@ -13,8 +13,8 @@ enum AlchemyPhase {
 
 class FiveStarAlchemyArray extends StatefulWidget {
   final double radius;
-  final double bigDanluSize;   // ✅ 中心丹炉大小
-  final double smallDanluSize; // ✅ 飞出丹炉大小
+  final double bigDanluSize;
+  final double smallDanluSize;
 
   const FiveStarAlchemyArray({
     super.key,
@@ -40,6 +40,8 @@ class FiveStarAlchemyArrayState extends State<FiveStarAlchemyArray>
   AlchemyPhase phase = AlchemyPhase.idle;
   List<Animation<Offset>>? flyAnimations;
   bool hasFiredDanlu = false;
+
+  VoidCallback? onAnimationComplete;
 
   @override
   void initState() {
@@ -77,21 +79,32 @@ class FiveStarAlchemyArrayState extends State<FiveStarAlchemyArray>
       phase = AlchemyPhase.drawingStarPath;
       hasFiredDanlu = false;
     });
+    debugPrint('🚀 开始绘制五角星');
 
     await starController.forward(from: 0);
+    debugPrint('✅ 五角星完成');
     setState(() => phase = AlchemyPhase.drawingInnerArc);
 
     await arcController.forward(from: 0);
+    debugPrint('✅ 内圈完成');
     setState(() => phase = AlchemyPhase.drawingRunes);
 
     await runeController.forward(from: 0);
+    debugPrint('✅ 符文完成');
     setState(() => phase = AlchemyPhase.drawingOuterArc);
 
     await outerController.forward(from: 0);
+    debugPrint('✅ 外圈完成');
     setState(() => phase = AlchemyPhase.done);
 
     _launchSmallDanlus();
     await flyController.forward(from: 0);
+    debugPrint('✅ 小丹炉飞出完成');
+
+    if (onAnimationComplete != null) {
+      debugPrint('✨ 动画流程结束，调用 onAnimationComplete');
+      onAnimationComplete!();
+    }
   }
 
   Future<void> stop() async {
@@ -118,6 +131,34 @@ class FiveStarAlchemyArrayState extends State<FiveStarAlchemyArray>
     hasFiredDanlu = true;
   }
 
+  // ✅ 提供外部恢复终态的方法（冷却状态恢复使用）
+  void setFinalStateManually() {
+    setState(() {
+      phase = AlchemyPhase.done;
+      starController.value = 1.0;
+      arcController.value = 1.0;
+      runeController.value = 1.0;
+      outerController.value = 1.0;
+      if (flyAnimations == null || flyAnimations!.isEmpty) {
+        _launchSmallDanlus();
+      }
+      flyController.value = 1.0;
+      hasFiredDanlu = true;
+    });
+  }
+
+  void resetToIdle() {
+    setState(() {
+      phase = AlchemyPhase.idle;
+      starController.value = 0.0;
+      arcController.value = 0.0;
+      runeController.value = 0.0;
+      outerController.value = 0.0;
+      flyController.value = 0.0;
+      hasFiredDanlu = false;
+    });
+  }
+
   @override
   void dispose() {
     starController.dispose();
@@ -131,6 +172,13 @@ class FiveStarAlchemyArrayState extends State<FiveStarAlchemyArray>
 
   @override
   Widget build(BuildContext context) {
+    final starProgress = starController.value;
+    final arcProgress = arcController.value;
+    final runeProgress = runeController.value;
+    final outerProgress = outerController.value;
+    final showBigDanlu = !hasFiredDanlu || phase == AlchemyPhase.reversing;
+    final showSmallDanlu = hasFiredDanlu && flyAnimations != null;
+
     return SizedBox(
       width: widget.radius * 2,
       height: widget.radius * 2,
@@ -141,24 +189,20 @@ class FiveStarAlchemyArrayState extends State<FiveStarAlchemyArray>
             painter: _AlchemyPainter(
               radius: widget.radius,
               phase: phase,
-              starProgress: starController.value,
-              arcProgress: arcController.value,
-              runeProgress: runeController.value,
-              outerProgress: outerController.value,
+              starProgress: starProgress,
+              arcProgress: arcProgress,
+              runeProgress: runeProgress,
+              outerProgress: outerProgress,
             ),
             size: Size.square(widget.radius * 2),
           ),
-
-          // 🏺 中心大丹炉
-          if (!hasFiredDanlu || phase == AlchemyPhase.reversing)
+          if (showBigDanlu)
             Image.asset(
               'assets/images/zongmen_liandanlu.png',
               width: widget.bigDanluSize,
               height: widget.bigDanluSize,
             ),
-
-          // 🏺 小丹炉（上下浮动）
-          if (hasFiredDanlu && flyAnimations != null)
+          if (showSmallDanlu)
             ...List.generate(5, (i) {
               final anim = flyAnimations![i].value;
               final offset = Offset(anim.dx, anim.dy + floatAnimation.value);
