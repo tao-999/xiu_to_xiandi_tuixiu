@@ -3,7 +3,7 @@ import 'package:xiu_to_xiandi_tuixiu/models/pill_blueprint.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/pill_blueprint_service.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/lingshi_util.dart';
-
+import '../../models/resources.dart';
 import '../../services/resources_storage.dart';
 import '../common/toast_tip.dart';
 
@@ -44,6 +44,7 @@ class _PillBlueprintDialogContent extends StatefulWidget {
 class _PillBlueprintDialogContentState extends State<_PillBlueprintDialogContent> {
   late List<PillBlueprint> all;
   Set<String> ownedKeys = {};
+  Resources? _cachedResources;
 
   @override
   void initState() {
@@ -54,17 +55,13 @@ class _PillBlueprintDialogContentState extends State<_PillBlueprintDialogContent
 
   Future<void> _load() async {
     ownedKeys = await PillBlueprintService.getPillBlueprintKeys();
+    _cachedResources = await ResourcesStorage.load();
     setState(() {});
   }
 
   Future<void> _buy(PillBlueprint bp) async {
     final price = PillBlueprintService.getBlueprintPrice(bp.level);
-
-    // ✅ 正确读取资源对象
-    final res = await ResourcesStorage.load();
-
-    // ✅ 使用你封装的 getStoneAmount 方法
-    final balance = ResourcesStorage.getStoneAmount(res, price.type);
+    final balance = ResourcesStorage.getStoneAmount(_cachedResources!, price.type);
 
     if (balance < BigInt.from(price.amount)) {
       ToastTip.show(context, '${lingShiNames[price.type]}不足，无法购买');
@@ -90,19 +87,24 @@ class _PillBlueprintDialogContentState extends State<_PillBlueprintDialogContent
 
     if (confirmed != true) return;
 
-    // ✅ 正确扣除灵石
     final field = lingShiFieldMap[price.type]!;
     await ResourcesStorage.subtract(field, BigInt.from(price.amount));
-
-    // ✅ 添加图纸记录
     await PillBlueprintService.addPillBlueprintKey(bp);
 
     ToastTip.show(context, '成功购买「${bp.name}」');
     await _load();
   }
 
+  String _buildEffectText(PillBlueprint bp) {
+    return '${bp.typeLabel} +${formatAnyNumber(bp.effectValue)}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_cachedResources == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     final grouped = <int, List<PillBlueprint>>{};
     for (final bp in all) {
       grouped.putIfAbsent(bp.level, () => []).add(bp);
@@ -128,9 +130,19 @@ class _PillBlueprintDialogContentState extends State<_PillBlueprintDialogContent
                   children: entry.value.map((bp) {
                     final owned = ownedKeys.contains(bp.uniqueKey);
                     final price = PillBlueprintService.getBlueprintPrice(bp.level);
+                    final balance = ResourcesStorage.getStoneAmount(_cachedResources!, price.type);
+                    final affordable = balance >= BigInt.from(price.amount);
+                    final canBuy = !owned && affordable;
 
                     return GestureDetector(
-                      onTap: owned ? null : () => _buy(bp),
+                      onTap: () {
+                        if (owned) return;
+                        if (!affordable) {
+                          ToastTip.show(context, '${lingShiNames[price.type]}不足，无法购买');
+                          return;
+                        }
+                        _buy(bp);
+                      },
                       child: Container(
                         width: 80,
                         margin: const EdgeInsets.only(right: 4),
@@ -172,10 +184,20 @@ class _PillBlueprintDialogContentState extends State<_PillBlueprintDialogContent
                                   : '${formatAnyNumber(price.amount)} ${lingShiNames[price.type]}',
                               style: TextStyle(
                                 fontSize: 8,
-                                color: owned ? Colors.grey : Colors.black87,
+                                color: owned
+                                    ? Colors.grey
+                                    : (affordable ? Colors.green : Colors.redAccent),
                               ),
                               textAlign: TextAlign.center,
                             ),
+                            if (!owned) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                _buildEffectText(bp),
+                                style: const TextStyle(fontSize: 8, color: Colors.black),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ],
                         ),
                       ),

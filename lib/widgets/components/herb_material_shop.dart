@@ -44,7 +44,7 @@ class _HerbShopContent extends StatefulWidget {
 
 class _HerbShopContentState extends State<_HerbShopContent> {
   late List<HerbMaterial> herbs;
-  late Map<String, int> owned;
+  Map<String, int>? owned; // ✅ 改为可空
   late Resources res;
 
   @override
@@ -162,6 +162,10 @@ class _HerbShopContentState extends State<_HerbShopContent> {
 
   @override
   Widget build(BuildContext context) {
+    if (owned == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SizedBox(
       width: 360,
       height: 480,
@@ -188,7 +192,7 @@ class _HerbShopContentState extends State<_HerbShopContent> {
                         children: herbs
                             .where((h) => h.level == level)
                             .map((herb) {
-                          final count = owned[herb.name] ?? 0;
+                          final count = owned?[herb.name] ?? 0;
                           return GestureDetector(
                             onTap: () => _buy(herb),
                             child: Container(
