@@ -43,4 +43,44 @@ class XianlingChessStorage {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getInt(_playerKey); // null = 未选择
   }
+
+  static const _keyTotalGames = 'chess_total_games';
+  static const _keyWins = 'chess_wins';
+  static const _keyDraws = 'chess_draws';
+
+  /// 🏆 玩家胜利
+  static Future<void> incrementWin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final wins = prefs.getInt(_keyWins) ?? 0;
+    await prefs.setInt(_keyWins, wins + 1);
+
+    final total = prefs.getInt(_keyTotalGames) ?? 0;
+    await prefs.setInt(_keyTotalGames, total + 1);
+  }
+
+  /// 😐 平局
+  static Future<void> incrementDraw() async {
+    final prefs = await SharedPreferences.getInstance();
+    final draws = prefs.getInt(_keyDraws) ?? 0;
+    await prefs.setInt(_keyDraws, draws + 1);
+
+    final total = prefs.getInt(_keyTotalGames) ?? 0;
+    await prefs.setInt(_keyTotalGames, total + 1);
+  }
+
+  /// 💥 玩家失败（只增加对局数）
+  static Future<void> incrementLoss() async {
+    final prefs = await SharedPreferences.getInstance();
+    final total = prefs.getInt(_keyTotalGames) ?? 0;
+    await prefs.setInt(_keyTotalGames, total + 1);
+  }
+
+  /// 📊 获取战绩：胜场、总局数、胜率（0~1）
+  static Future<(int wins, int total, double winRate)> getWinStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final wins = prefs.getInt(_keyWins) ?? 0;
+    final total = prefs.getInt(_keyTotalGames) ?? 0;
+    final rate = (total == 0) ? 0.0 : (wins / total);
+    return (wins, total, rate);
+  }
 }

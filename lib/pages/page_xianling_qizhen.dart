@@ -8,6 +8,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/xianling_chess_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 
 import '../widgets/dialogs/chess_poem_dialog.dart';
+import '../widgets/dialogs/chess_stone_select_dialog.dart';
 
 class XianlingQizhenPage extends StatefulWidget {
   const XianlingQizhenPage({super.key});
@@ -42,105 +43,16 @@ class _XianlingQizhenPageState extends State<XianlingQizhenPage> {
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.transparent,
-      builder: (_) => Dialog(
-        backgroundColor: const Color(0xFFF9F5E3),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                '选择你的棋子颜色',
-                style: TextStyle(fontSize: 18),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '此选择将永久保存，无法更改。\n你将永远是先手执棋。',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  GestureDetector(
-                    onTap: () => _selectStone(1), // 黑子
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              center: Alignment.topLeft,
-                              radius: 0.8,
-                              colors: [Colors.black87, Colors.black],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black38,
-                                blurRadius: 6,
-                                offset: Offset(2, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '执黑',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _selectStone(2), // 白子
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              center: Alignment.topLeft,
-                              radius: 0.8,
-                              colors: [Colors.white, Colors.grey],
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 6,
-                                offset: Offset(2, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          '执白',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+      builder: (_) => ChessStoneSelectDialog(
+        onStoneSelected: (stone) async {
+          await XianlingChessStorage.savePlayerStone(stone);
+          setState(() {
+            playerStone = stone;
+          });
+          Navigator.of(context).pop();
+        },
       ),
     );
-  }
-
-  Future<void> _selectStone(int stone) async {
-    await XianlingChessStorage.savePlayerStone(stone);
-    setState(() {
-      playerStone = stone;
-    });
-    Navigator.of(context).pop();
   }
 
   Future<(String, String, int)> _getRealmAndTitleAndLevel() async {
@@ -248,12 +160,39 @@ class _XianlingQizhenPageState extends State<XianlingQizhenPage> {
                     future: PlayerStorage.getPlayer(),
                     builder: (context, snapshot) {
                       final playerName = snapshot.data?.name ?? '你';
-                      return StoneCounter(
-                        playerName: playerName,
-                        realm: realm,
-                        label: isPlayerBlack ? '黑子' : '白子',
-                        color: isPlayerBlack ? Colors.black : Colors.white,
-                        count: isPlayerBlack ? value['black']! : value['white']!,
+
+                      return FutureBuilder(
+                        future: XianlingChessStorage.getWinStats(),
+                        builder: (context, statSnap) {
+                          final (wins, total, rate) = statSnap.data ?? (0, 0, 0.0);
+
+                          final statColor = isPlayerBlack ? Colors.black : Colors.white;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '胜率 ${(rate * 100).toStringAsFixed(1)}%（共 $total 局）',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: statColor,
+                                  decoration: TextDecoration.none, // ✅ 不要下划线
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+
+                              // ✅ 保留原始玩家信息组件
+                              StoneCounter(
+                                playerName: playerName,
+                                realm: realm,
+                                label: isPlayerBlack ? '黑子' : '白子',
+                                color: isPlayerBlack ? Colors.black : Colors.white,
+                                count: isPlayerBlack ? value['black']! : value['white']!,
+                              ),
+                            ],
+                          );
+                        },
                       );
                     },
                   );

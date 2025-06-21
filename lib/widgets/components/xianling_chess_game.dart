@@ -1,6 +1,5 @@
 // 🗒️ 文件：lib/widgets/components/xianling_chess_game.dart
 import 'package:flame/components.dart';
-import 'package:flame/events.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -207,6 +206,15 @@ class XianlingChessGame extends FlameGame {
 
   void _showWinDialog(int player) {
     final color = player == 1 ? '黑子' : '白子';
+// ✅ 判断胜负归属（谁是玩家）
+    final isPlayerWin = (player == playerStone);
+
+    // ✅ 记录胜/败局
+    if (isPlayerWin) {
+      XianlingChessStorage.incrementWin();
+    } else {
+      XianlingChessStorage.incrementLoss();
+    }
 
     // ❌ 不要提前 resetBoard！
 
@@ -253,6 +261,8 @@ class XianlingChessGame extends FlameGame {
   }
 
   void _showDrawDialog() {
+    // ✅ 记录平局
+    XianlingChessStorage.incrementDraw();
     // ❌ 不要在这里 resetBoard！
 
     showDialog(

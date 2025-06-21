@@ -1,4 +1,4 @@
-// 📦 文件：gomoku_ai_pro.dart
+// 📦 文件：gomoku_ai_pro.dart（修复版）
 import 'dart:math';
 
 class GomokuAI {
@@ -54,8 +54,7 @@ class GomokuAI {
     for (final move in candidates) {
       final r = move[0], c = move[1];
       board[r][c] = aiPlayer;
-
-      final hash = _boardHash(board, depth);
+      final hash = _boardHash(board, depth, true, aiPlayer, enemy);
       final score = _minimax(
         board,
         depth - 1,
@@ -67,14 +66,14 @@ class GomokuAI {
         transpositionTable,
         hash,
       );
-
       board[r][c] = 0;
+
       if (score > bestScore) {
         bestScore = score;
         bestMove = [r, c];
       }
     }
-    return bestMove ?? _randomMove(board);
+    return bestMove ?? _randomBestFallback(board, aiPlayer);
   }
 
   int _minimax(
@@ -89,8 +88,8 @@ class GomokuAI {
       String hash,
       ) {
     if (cache.containsKey(hash)) return cache[hash]!;
-    if (_checkWin(board, aiPlayer)) return 99999;
-    if (_checkWin(board, enemy)) return -99999;
+    if (_checkWin(board, aiPlayer)) return 99999 - (4 - depth);
+    if (_checkWin(board, enemy)) return -99999 + (4 - depth);
     if (depth == 0) return _evaluate(board, aiPlayer);
 
     final moves = _generateCandidateMoves(board);
@@ -99,7 +98,7 @@ class GomokuAI {
     for (final move in moves) {
       final r = move[0], c = move[1];
       board[r][c] = isMax ? aiPlayer : enemy;
-      final childHash = _boardHash(board, depth);
+      final childHash = _boardHash(board, depth, !isMax, aiPlayer, enemy);
       final val = _minimax(board, depth - 1, !isMax, aiPlayer, enemy, alpha, beta, cache, childHash);
       board[r][c] = 0;
 
@@ -124,8 +123,8 @@ class GomokuAI {
     for (int r = 0; r < n; r++) {
       for (int c = 0; c < n; c++) {
         if (board[r][c] != 0) {
-          for (int dr = -1; dr <= 1; dr++) {
-            for (int dc = -1; dc <= 1; dc++) {
+          for (int dr = -2; dr <= 2; dr++) {
+            for (int dc = -2; dc <= 2; dc++) {
               if (dr == 0 && dc == 0) continue;
               int nr = r + dr, nc = c + dc;
               if (nr >= 0 && nc >= 0 && nr < n && nc < n && board[nr][nc] == 0) {
@@ -162,9 +161,7 @@ class GomokuAI {
   int _matchPattern(List<List<int>> board, int player, List<int> pattern) {
     int count = 0;
     final size = board.length;
-    final dirs = [
-      [1, 0], [0, 1], [1, 1], [1, -1]
-    ];
+    final dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
     for (int r = 0; r < size; r++) {
       for (int c = 0; c < size; c++) {
         for (var dir in dirs) {
@@ -217,18 +214,18 @@ class GomokuAI {
     return true;
   }
 
-  String _boardHash(List<List<int>> board, int depth) {
-    return '${board.map((row) => row.join()).join()}_$depth';
+  String _boardHash(List<List<int>> board, int depth, bool isMax, int aiPlayer, int enemy) {
+    return '${board.map((row) => row.join()).join()}_${depth}_${(isMax ? 1 : 0)}_${aiPlayer}${enemy}';
   }
 
-  List<int> _randomMove(List<List<int>> board) {
-    final rand = Random();
+  List<int> _randomBestFallback(List<List<int>> board, int aiPlayer) {
     final empty = <List<int>>[];
     for (int r = 0; r < board.length; r++) {
       for (int c = 0; c < board[r].length; c++) {
         if (board[r][c] == 0) empty.add([r, c]);
       }
     }
-    return empty[rand.nextInt(empty.length)];
+    empty.shuffle();
+    return empty.first;
   }
 }
