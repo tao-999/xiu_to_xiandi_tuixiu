@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
@@ -8,7 +9,7 @@ import 'package:xiu_to_xiandi_tuixiu/utils/route_observer.dart';
 
 import 'models/disciple.dart';
 import 'models/weapon.dart';
-import 'models/pill.dart'; // ✅ 新增
+import 'models/pill.dart';
 import 'models/character.dart';
 import 'pages/page_create_role.dart';
 import 'pages/page_root.dart';
@@ -17,51 +18,72 @@ import 'services/cultivation_tracker.dart';
 import 'utils/app_lifecycle_manager.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // ✅ 捕获最外层所有异常
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ 沉浸式 + 白色图标
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.black,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
+    // ✅ 沉浸式 + 白色图标
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.black,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+    );
 
-  await Hive.initFlutter();
-  Hive.registerAdapter(DiscipleAdapter());
-  Hive.registerAdapter(WeaponAdapter());
-  Hive.registerAdapter(PillAdapter()); // ✅ 注册丹药适配器
-  Hive.registerAdapter(PillTypeAdapter()); // ✅ 注册丹药类型适配器
+    debugPrint('✅ 准备初始化 Hive...');
+    await Hive.initFlutter();
 
-  final prefs = await SharedPreferences.getInstance();
-  final playerStr = prefs.getString('playerData');
+    // ✅ 注册所有模型
+    Hive.registerAdapter(DiscipleAdapter());
+    Hive.registerAdapter(WeaponAdapter());
+    Hive.registerAdapter(PillAdapter());
+    Hive.registerAdapter(PillTypeAdapter());
+    debugPrint('✅ Hive 注册完成');
 
-  bool hasCreatedRole = false;
-  Character? player;
+    bool hasCreatedRole = false;
+    Character? player;
 
-  if (playerStr != null && playerStr.isNotEmpty) {
-    final playerJson = jsonDecode(playerStr);
-    final playerId = playerJson['id'];
-    if (playerId != null && playerId.toString().isNotEmpty) {
-      hasCreatedRole = true;
-      player = Character.fromJson(playerJson);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final playerStr = prefs.getString('playerData');
+      debugPrint('✅ 读取 SharedPreferences 成功');
+
+      if (playerStr != null && playerStr.isNotEmpty) {
+        final playerJson = jsonDecode(playerStr);
+        debugPrint('✅ playerData 解码成功：$playerJson');
+
+        final playerId = playerJson['id'];
+        if (playerId != null && playerId.toString().isNotEmpty) {
+          hasCreatedRole = true;
+          player = Character.fromJson(playerJson);
+          debugPrint('✅ 角色对象初始化成功：${player.name}');
+        }
+      } else {
+        debugPrint('⚠️ 未找到 playerData，进入创建角色页');
+      }
+
+      if (hasCreatedRole && player != null) {
+        await CultivationTracker.initWithPlayer(player);
+        CultivationTracker.startGlobalTick();
+        debugPrint('✅ 修为追踪器启动完成');
+      }
+    } catch (e, stack) {
+      debugPrint('❌ 初始化过程异常：$e');
+      debugPrintStack(stackTrace: stack);
     }
-  }
 
-  // ✅ 修为系统初始化
-  if (hasCreatedRole && player != null) {
-    await CultivationTracker.initWithPlayer(player);
-    CultivationTracker.startGlobalTick();
-  }
-
-  runApp(
-    AppLifecycleManager( // ✅ 外层包裹
-      child: XiudiApp(hasCreatedRole: hasCreatedRole),
-    ),
-  );
+    runApp(
+      AppLifecycleManager(
+        child: XiudiApp(hasCreatedRole: hasCreatedRole),
+      ),
+    );
+  }, (error, stack) {
+    debugPrint('❌ 捕获到未处理异常：$error');
+    debugPrintStack(stackTrace: stack);
+  });
 }
 
 class XiudiApp extends StatelessWidget {
@@ -72,7 +94,7 @@ class XiudiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '修到仙帝退休',
-      navigatorObservers: [routeObserver], // 🧠 注入 observer！
+      navigatorObservers: [routeObserver],
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'ZcoolCangEr',

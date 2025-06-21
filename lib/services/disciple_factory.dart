@@ -108,7 +108,9 @@ class DiscipleFactory {
           atk: selected['atk'],
           def: selected['def'],
           realm: '凡人',
+          description: selected['description'],
           imagePath: selected['imagePath'],
+          favorability: 0,
         );
       }
     }
@@ -124,7 +126,9 @@ class DiscipleFactory {
       atk: 2,
       def: 1,
       realm: '凡人',
+      description: '炮灰',
       imagePath: getImageForAptitude(aptitude),
+      favorability: 0,
     );
   }
 }

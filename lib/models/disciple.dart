@@ -72,15 +72,21 @@ class Disciple extends HiveObject {
   @HiveField(21)
   String? assignedRoom;
 
+  @HiveField(22)
+  String description;
+
+  @HiveField(23)
+  int favorability;
+
   Disciple({
-    required this.id,
-    required this.name,
-    required this.gender,
-    required this.age,
-    required this.aptitude,
-    required this.hp,
-    required this.atk,
-    required this.def,
+    this.id = '',
+    this.name = '',
+    this.gender = '',
+    this.age = 0,
+    this.aptitude = 0,
+    this.hp = 0,
+    this.atk = 0,
+    this.def = 0,
     this.realm = '',
     this.loyalty = 100,
     this.specialty = '',
@@ -95,10 +101,10 @@ class Disciple extends HiveObject {
     this.imagePath = '',
     this.joinedAt,
     this.assignedRoom,
+    this.description = '',
+    this.favorability = 0,
   });
 
-  /// ✅ 安全 copyWith：所有字段都支持保留原值
-  /// ✅ 安全 copyWith：所有字段都支持保留原值（assignedRoom 支持设为 null）
   static const _unset = Object();
 
   Disciple copyWith({
@@ -123,7 +129,9 @@ class Disciple extends HiveObject {
     int? missionEndTimestamp,
     String? imagePath,
     int? joinedAt,
-    Object? assignedRoom = _unset, // ✅ 用 sentinel 方式单独处理
+    Object? assignedRoom = _unset,
+    String? description,
+    int? favorability,
   }) {
     return Disciple(
       id: id ?? this.id,
@@ -149,7 +157,9 @@ class Disciple extends HiveObject {
       joinedAt: joinedAt ?? this.joinedAt,
       assignedRoom: identical(assignedRoom, _unset)
           ? this.assignedRoom
-          : assignedRoom as String?, // ✅ 显式设为 null 或新值
+          : assignedRoom as String?,
+      description: description ?? this.description,
+      favorability: favorability ?? this.favorability,
     );
   }
 }

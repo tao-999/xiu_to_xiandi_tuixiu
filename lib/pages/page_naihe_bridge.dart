@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -81,26 +82,20 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
       _spinning = true;
     });
 
-    // ✅ 清空 SharedPreferences
+    // 🧨 清空 SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
-    // ✅ 清空 弟子
-    await DiscipleStorage.clear(); // 清除所有弟子
+    // 🧨 清空所有 Hive 数据
+    await Hive.close();
+    await Hive.deleteFromDisk();
 
-    // 清空武器
-    await WeaponsStorage.clearAllWeapons();
-
-    // 清空丹药
-    PillStorageService.clearAllPills();
-
-    // ✅ 停止修炼 tick、清除赤炎谷数据
+    // 🛑 停止修为 tick、清除赤炎谷数据（内存状态）
     CultivationTracker.stopTick();
     ChiyanguStorage.resetPickaxeData();
 
     await Future.delayed(const Duration(seconds: 8));
 
-    // ✅ 回到创建角色页
     if (context.mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const CreateRolePage()),

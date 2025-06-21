@@ -18,7 +18,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/root_bottom_menu.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/map_switcher_overlay.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart'; // ✅ 引入修为逻辑
+import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 
 class XiudiRoot extends StatefulWidget {
   const XiudiRoot({super.key});
@@ -33,10 +33,12 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
   int currentStage = 1;
   AutoBattleGame? game;
   bool hasClaimedGift = false;
+  String meditationImagePath = '';
 
   @override
   void initState() {
     super.initState();
+    debugPrint('📍 XiudiRoot initState()');
     _recordLoginTime();
     _loadPlayerData();
     _checkGiftClaimed();
@@ -67,17 +69,15 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
   }
 
   Future<void> _loadPlayerData() async {
+    debugPrint('📍 加载角色数据开始...');
     final loadedPlayer = await PlayerStorage.getPlayer();
     if (loadedPlayer == null) return;
 
     final newGender = loadedPlayer.gender;
-
-    // ✅ 获取装备
     final equipped = await WeaponsStorage.loadWeaponsEquippedBy(loadedPlayer.id);
     final hasWeapon = equipped.any((w) => w.type == 'weapon');
     final hasArmor = equipped.any((w) => w.type == 'armor');
 
-    // ✅ 贴图后缀拼接
     String suffix = '';
     if (hasWeapon && hasArmor) {
       suffix = '_weapon_armor';
@@ -90,19 +90,32 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
     final baseName = newGender == 'female' ? 'dazuo_female' : 'dazuo_male';
     final imagePath = 'assets/images/${baseName}${suffix}.png';
 
-    // ✅ 更新角色数据
+    debugPrint('✅ 成功加载角色：${loadedPlayer.name}');
+    debugPrint('✅ 角色装备加载完成，装备数量：${equipped.length}');
+    debugPrint('✅ 角色贴图路径：$imagePath');
+
     setState(() {
       player = loadedPlayer;
       gender = newGender;
+      meditationImagePath = imagePath;
+
+      if (game == null) {
+        game = AutoBattleGame(
+          playerEmojiOrIconPath: imagePath,
+          isAssetImage: true,
+          currentMapStage: loadedPlayer.currentMapStage,
+        );
+        debugPrint('✅ AutoBattleGame 初始化完成');
+      } else {
+        game?.updatePlayerImage(imagePath);
+      }
     });
 
-    // ✅ 不动地图，只更新角色贴图
-    game?.updatePlayerImage(imagePath);
+    debugPrint('✅ 角色数据更新完成');
   }
 
   void _navigateToPage(int index) {
     if (player == null) return;
-
     final pages = [
       const CharacterPage(),
       const BeibaoPage(),
@@ -110,7 +123,6 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
       const ZongmenPage(),
       const ZhaomuPage(),
     ];
-
     if (index >= 0 && index < pages.length) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => pages[index]));
     }
@@ -124,28 +136,10 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
     });
   }
 
-  Future<String> getMeditationImagePath(Character player) async {
-    final isFemale = player.gender == 'female';
-    final baseName = isFemale ? 'dazuo_female' : 'dazuo_male';
-
-    final equipped = await WeaponsStorage.loadWeaponsEquippedBy(player.id);
-    final hasWeapon = equipped.any((w) => w.type == 'weapon');
-    final hasArmor = equipped.any((w) => w.type == 'armor');
-
-    String suffix = '';
-    if (hasWeapon && hasArmor) {
-      suffix = '_weapon_armor';
-    } else if (hasWeapon) {
-      suffix = '_weapon';
-    } else if (hasArmor) {
-      suffix = '_armor';
-    }
-
-    return 'assets/images/${baseName}${suffix}.png';
-  }
-
   @override
   Widget build(BuildContext context) {
+    debugPrint('📍 XiudiRoot build() 触发，player=${player != null}, game=${game != null}');
+
     if (player == null || game == null) {
       return const Scaffold(
         backgroundColor: Colors.black,
@@ -160,33 +154,22 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
           Stack(
             children: [
               Positioned.fill(child: GameWidget(game: game!)),
-
-              // ✅ 中间插入：打坐图贴图（装备动态变图）
-              FutureBuilder<String>(
-                future: getMeditationImagePath(player!),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const SizedBox();
-                  return Align(
-                    alignment: Alignment.center,
-                    child: Image.asset(
-                      snapshot.data!,
-                      width: 160,
-                      height: 160,
-                    ),
-                  );
-                },
-              ),
+              if (meditationImagePath.isNotEmpty)
+                Align(
+                  alignment: Alignment.center,
+                  child: Image.asset(
+                    meditationImagePath,
+                    width: 160,
+                    height: 160,
+                  ),
+                ),
             ],
           ),
-
-          // 🏷️ 修仙纪元
           const Positioned(
             left: 20,
             top: 36,
             child: XiuxianEraLabel(),
           ),
-
-          // ⛩️ 地图切换按钮（含弹窗）
           MapSwitcherOverlay(
             currentStage: currentStage,
             onStageChanged: (newStage) async {
@@ -197,9 +180,7 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
               final totalLayer = levelInfo.totalLayer;
               final requiredMinLayer = (newStage - 1) * CultivationConfig.levelsPerRealm + 1;
 
-              if (totalLayer < requiredMinLayer) {
-                return; // 🚫 地图未解锁，退出
-              }
+              if (totalLayer < requiredMinLayer) return;
 
               setState(() {
                 player = latestPlayer;
@@ -210,8 +191,6 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
               game?.updateBattleSpeed(newStage);
             },
           ),
-
-          // 📦 底部菜单
           Positioned(
             bottom: 8,
             left: 0,
@@ -221,8 +200,6 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
               onTap: _navigateToPage,
             ),
           ),
-
-          // 🎁 修仙大礼包按钮
           GiftButtonOverlay(
             onGiftClaimed: () {
               setState(() {

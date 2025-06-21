@@ -39,13 +39,15 @@ class DiscipleAdapter extends TypeAdapter<Disciple> {
       imagePath: fields[19] as String,
       joinedAt: fields[20] as int?,
       assignedRoom: fields[21] as String?,
+      description: fields[22] as String,
+      favorability: fields[23] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, Disciple obj) {
     writer
-      ..writeByte(22)
+      ..writeByte(24)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -89,7 +91,11 @@ class DiscipleAdapter extends TypeAdapter<Disciple> {
       ..writeByte(20)
       ..write(obj.joinedAt)
       ..writeByte(21)
-      ..write(obj.assignedRoom);
+      ..write(obj.assignedRoom)
+      ..writeByte(22)
+      ..write(obj.description)
+      ..writeByte(23)
+      ..write(obj.favorability);
   }
 
   @override
