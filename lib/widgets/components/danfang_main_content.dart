@@ -313,7 +313,10 @@ class _DanfangMainContentState extends State<DanfangMainContent>
             onMaterialSelected: _onMaterialSelected,
             isDisabled: _isRefining,
           ),
-          if (!_isRefining && _maxAlchemyCount > 1)
+          if (!_isRefining &&
+              _selectedMaterials.length == 3 &&
+              _selectedMaterials.every((e) => e.isNotEmpty) &&
+              _maxAlchemyCount > 1)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: AlchemyQuantitySelector(
