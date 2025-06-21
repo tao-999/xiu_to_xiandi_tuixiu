@@ -94,9 +94,9 @@ class _PillBlueprintDialog extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: list.map((bp) {
-                            final notOwned = !ownedKeys.contains(bp.uniqueKey);
+                            final owned = ownedKeys.contains(bp.uniqueKey);
                             final levelTooHigh = bp.level > currentSectLevel;
-                            final isDisabled = levelTooHigh || notOwned;
+                            final isDisabled = levelTooHigh || !owned;
 
                             return Padding(
                               padding: const EdgeInsets.only(right: 12),
@@ -104,32 +104,56 @@ class _PillBlueprintDialog extends StatelessWidget {
                                 onTap: isDisabled ? null : () => Navigator.pop(context, bp),
                                 child: Opacity(
                                   opacity: isDisabled ? 0.3 : 1.0,
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
+                                  child: Stack(
+                                    alignment: Alignment.topRight,
                                     children: [
-                                      Image.asset(
-                                        'assets/images/${bp.iconPath}',
-                                        width: 48,
-                                        height: 48,
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Image.asset(
+                                            'assets/images/${bp.iconPath}',
+                                            width: 48,
+                                            height: 48,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            bp.name,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.black,
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                          Text(
+                                            '${bp.typeLabel} +${bp.effectValue}',
+                                            style: const TextStyle(
+                                              fontSize: 9,
+                                              color: Colors.black,
+                                              height: 1.2,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        bp.name,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.black,
-                                          height: 1.2,
+                                      if (levelTooHigh && owned)
+                                        Positioned(
+                                          right: 0,
+                                          top: 0,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange,
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: const Text(
+                                              '已拥有',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 8,
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        '${bp.typeLabel} +${bp.effectValue}',
-                                        style: const TextStyle(
-                                          fontSize: 9,
-                                          color: Colors.black,
-                                          height: 1.2,
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 ),
