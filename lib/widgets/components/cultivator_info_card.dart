@@ -74,10 +74,18 @@ class CultivatorInfoCard extends StatelessWidget {
     // ✅ 拆分属性
     final baseHp = PlayerStorage.getBaseHp(profile);
     final extraHp = PlayerStorage.getExtraHp(profile);
+    final pillBonusHp = PlayerStorage.getPillHp(profile);
     final baseAtk = PlayerStorage.getBaseAtk(profile);
     final extraAtk = PlayerStorage.getExtraAtk(profile);
+    final pillBonusAtk= PlayerStorage.getPillAtk(profile);
     final baseDef = PlayerStorage.getBaseDef(profile);
     final extraDef = PlayerStorage.getExtraDef(profile);
+    final pillBonusDef = PlayerStorage.getPillDef(profile);
+
+    debugPrint('📊 角色属性计算：');
+    debugPrint('▶️ 气血：base=$baseHp, extra=$extraHp, pill=$pillBonusHp');
+    debugPrint('▶️ 攻击：base=$baseAtk, extra=$extraAtk, pill=$pillBonusAtk');
+    debugPrint('▶️ 防御：base=$baseDef, extra=$extraDef, pill=$pillBonusDef');
 
     return Column(
       children: [
@@ -128,9 +136,9 @@ class CultivatorInfoCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAttributeRow('气血：${formatAnyNumber(baseHp)}（+${formatAnyNumber(extraHp)}）'),
-              _buildAttributeRow('攻击：${formatAnyNumber(baseAtk)}（+${formatAnyNumber(extraAtk)}）'),
-              _buildAttributeRow('防御：${formatAnyNumber(baseDef)}（+${formatAnyNumber(extraDef)}）'),
+              _buildAttributeRow('气血：${formatAnyNumber(baseHp)}（+${formatAnyNumber(extraHp + pillBonusHp)}）'),
+              _buildAttributeRow('攻击：${formatAnyNumber(baseAtk)}（+${formatAnyNumber(extraAtk + pillBonusAtk)}）'),
+              _buildAttributeRow('防御：${formatAnyNumber(baseDef)}（+${formatAnyNumber(extraDef + pillBonusDef)}）'),
             ],
           ),
         ),

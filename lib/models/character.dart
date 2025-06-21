@@ -13,12 +13,15 @@ class Character {
 
   int baseHp;
   int extraHp;
+  int pillBonusHp;
 
   int baseAtk;
   int extraAtk;
+  int pillBonusAtk;
 
   int baseDef;
   int extraDef;
+  int pillBonusDef;
 
   double atkSpeed;
 
@@ -47,10 +50,13 @@ class Character {
     required this.cultivation,
     required this.baseHp,
     required this.extraHp,
+    required this.pillBonusHp,
     required this.baseAtk,
     required this.extraAtk,
+    required this.pillBonusAtk,
     required this.baseDef,
     required this.extraDef,
+    required this.pillBonusDef,
     required this.atkSpeed,
     required this.critRate,
     required this.critDamage,
@@ -79,10 +85,13 @@ class Character {
     'currentMapStage': currentMapStage,
     'baseHp': baseHp,
     'extraHp': extraHp,
+    'pillBonusHp': pillBonusHp,
     'baseAtk': baseAtk,
     'extraAtk': extraAtk,
+    'pillBonusAtk': pillBonusAtk,
     'baseDef': baseDef,
     'extraDef': extraDef,
+    'pillBonusDef': pillBonusDef,
     'atkSpeed': atkSpeed,
     'critRate': critRate,
     'critDamage': critDamage,
@@ -107,12 +116,15 @@ class Character {
     cultivation: BigInt.tryParse(json['cultivation'].toString()) ?? BigInt.zero,
     cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
     currentMapStage: json['currentMapStage'] ?? 1,
-    baseHp: (json['baseHp'] ?? 100) as int,
-    extraHp: (json['extraHp'] ?? 0) as int,
-    baseAtk: (json['baseAtk'] ?? 10) as int,
-    extraAtk: (json['extraAtk'] ?? 0) as int,
-    baseDef: (json['baseDef'] ?? 5) as int,
-    extraDef: (json['extraDef'] ?? 0) as int,
+    baseHp: json['baseHp'] ?? 100,
+    extraHp: json['extraHp'] ?? 0,
+    pillBonusHp: json['pillBonusHp'] ?? 0,
+    baseAtk: json['baseAtk'] ?? 10,
+    extraAtk: json['extraAtk'] ?? 0,
+    pillBonusAtk: json['pillBonusAtk'] ?? 0,
+    baseDef: json['baseDef'] ?? 5,
+    extraDef: json['extraDef'] ?? 0,
+    pillBonusDef: json['pillBonusDef'] ?? 0,
     atkSpeed: (json['atkSpeed'] ?? 1.5).toDouble(),
     critRate: (json['critRate'] ?? 0.0).toDouble(),
     critDamage: (json['critDamage'] ?? 0.0).toDouble(),
@@ -143,10 +155,13 @@ class Character {
     currentMapStage: 1,
     baseHp: 100,
     extraHp: 0,
+    pillBonusHp: 0,
     baseAtk: 10,
     extraAtk: 0,
+    pillBonusAtk: 0,
     baseDef: 5,
     extraDef: 0,
+    pillBonusDef: 0,
     atkSpeed: 1.5,
     critRate: 0.0,
     critDamage: 0.0,

@@ -10,6 +10,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/aptitude_upgrade_dialog.dar
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
+import '../widgets/components/pill_consumer.dart';
+
 class CharacterPage extends StatefulWidget {
   const CharacterPage({super.key});
 
@@ -118,6 +120,15 @@ class _CharacterPageState extends State<CharacterPage> {
                       onUpdated: _reloadData,
                     ),
                   ],
+                ),
+              ),
+
+              // 🥄 左上角按钮：吞丹入口
+              Positioned(
+                top: 100,
+                left: 30,
+                child: PillConsumer(
+                  onConsumed: _reloadData,
                 ),
               ),
             ],

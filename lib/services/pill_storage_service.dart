@@ -59,4 +59,21 @@ class PillStorageService {
     final box = await _openBox();
     await box.clear();
   }
+
+  /// ✅ 吞服丹药：减少数量，为0时删除
+  static Future<void> consumePill(Pill pill, {int count = 1}) async {
+    final box = await _openBox();
+
+    final key = pill.key;
+    final stored = box.get(key);
+
+    if (stored != null) {
+      stored.count -= count;
+      if (stored.count <= 0) {
+        await stored.delete();
+      } else {
+        await stored.save();
+      }
+    }
+  }
 }

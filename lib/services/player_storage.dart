@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/weapons_storage.dart';
-import '../models/weapon.dart';
 import '../utils/cultivation_level.dart';
 import 'cultivation_tracker.dart';
 
@@ -190,9 +189,14 @@ class PlayerStorage {
   static int getExtraDef(Character player) => player.extraDef;
 
   /// 🔰 获取总气血 / 攻击 / 防御（仅用于战力计算或合并展示）
-  static int getHp(Character player) => getBaseHp(player) + getExtraHp(player);
-  static int getAtk(Character player) => getBaseAtk(player) + getExtraAtk(player);
-  static int getDef(Character player) => getBaseDef(player) + getExtraDef(player);
+  static int getHp(Character player) =>
+      getBaseHp(player) + getExtraHp(player) + getPillHp(player);
+
+  static int getAtk(Character player) =>
+      getBaseAtk(player) + getExtraAtk(player) + getPillAtk(player);
+
+  static int getDef(Character player) =>
+      getBaseDef(player) + getExtraDef(player) + getPillDef(player);
 
   /// 🔰 获取战力（统一从这里算，内部合并）
   static int getPower(Character player) {
@@ -267,6 +271,41 @@ class PlayerStorage {
       'extraAtk': totalExtraAtk,
       'extraDef': totalExtraDef,
     });
+  }
+
+  static int getPillHp(Character player) => player.pillBonusHp;
+  static int getPillAtk(Character player) => player.pillBonusAtk;
+  static int getPillDef(Character player) => player.pillBonusDef;
+
+  /// 🥣 吞丹！根据类型和数量，叠加到角色加成属性中
+  static Future<void> applyPillBonus({
+    required String type, // 'attack' | 'defense' | 'health'
+    required int bonusPerPill,
+    required int count,
+  }) async {
+    final player = await getPlayer();
+    if (player == null) return;
+
+    final totalBonus = bonusPerPill * count;
+
+    switch (type) {
+      case 'health':
+        player.pillBonusHp += totalBonus;
+        await updateField('pillBonusHp', player.pillBonusHp);
+        break;
+      case 'attack':
+        player.pillBonusAtk += totalBonus;
+        await updateField('pillBonusAtk', player.pillBonusAtk);
+        break;
+      case 'defense':
+        player.pillBonusDef += totalBonus;
+        await updateField('pillBonusDef', player.pillBonusDef);
+        break;
+      default:
+        debugPrint('❌ 未知丹药类型：$type');
+    }
+
+    debugPrint('🍷 吞丹成功 → 类型=$type，数量=$count，累计加成=$totalBonus');
   }
 
 }
