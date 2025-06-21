@@ -3,6 +3,8 @@ import 'package:flame/game.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/player_storage.dart';
+import '../services/weapons_storage.dart';
+import '../utils/route_observer.dart';
 import 'page_character.dart';
 import 'page_youli.dart';
 import 'page_zongmen.dart';
@@ -25,7 +27,7 @@ class XiudiRoot extends StatefulWidget {
   State<XiudiRoot> createState() => _XiudiRootState();
 }
 
-class _XiudiRootState extends State<XiudiRoot> {
+class _XiudiRootState extends State<XiudiRoot> with RouteAware {
   Character? player;
   String gender = 'male';
   int currentStage = 1;
@@ -40,6 +42,24 @@ class _XiudiRootState extends State<XiudiRoot> {
     _checkGiftClaimed();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
+  }
+
+  @override
+  void didPopNext() {
+    debugPrint('📍 [RouteAware] 返回到 Root，刷新角色+装备');
+    _loadPlayerData();
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
   Future<void> _recordLoginTime() async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -50,23 +70,34 @@ class _XiudiRootState extends State<XiudiRoot> {
     final loadedPlayer = await PlayerStorage.getPlayer();
     if (loadedPlayer == null) return;
 
-    // 直接从 player 拿关卡阶数
-    final savedStage = loadedPlayer.currentMapStage ?? 1;
-
     final newGender = loadedPlayer.gender;
+
+    // ✅ 获取装备
+    final equipped = await WeaponsStorage.loadWeaponsEquippedBy(loadedPlayer.id);
+    final hasWeapon = equipped.any((w) => w.type == 'weapon');
+    final hasArmor = equipped.any((w) => w.type == 'armor');
+
+    // ✅ 贴图后缀拼接
+    String suffix = '';
+    if (hasWeapon && hasArmor) {
+      suffix = '_weapon_armor';
+    } else if (hasWeapon) {
+      suffix = '_weapon';
+    } else if (hasArmor) {
+      suffix = '_armor';
+    }
+
+    final baseName = newGender == 'female' ? 'dazuo_female' : 'dazuo_male';
+    final imagePath = 'assets/images/${baseName}${suffix}.png';
+
+    // ✅ 更新角色数据
     setState(() {
       player = loadedPlayer;
       gender = newGender;
-      currentStage = savedStage;
-
-      game = AutoBattleGame(
-        playerEmojiOrIconPath: newGender == 'female'
-            ? 'dazuo_female.png'
-            : 'dazuo_male.png',
-        isAssetImage: true,
-        currentMapStage: savedStage,
-      );
     });
+
+    // ✅ 不动地图，只更新角色贴图
+    game?.updatePlayerImage(imagePath);
   }
 
   void _navigateToPage(int index) {
@@ -93,6 +124,26 @@ class _XiudiRootState extends State<XiudiRoot> {
     });
   }
 
+  Future<String> getMeditationImagePath(Character player) async {
+    final isFemale = player.gender == 'female';
+    final baseName = isFemale ? 'dazuo_female' : 'dazuo_male';
+
+    final equipped = await WeaponsStorage.loadWeaponsEquippedBy(player.id);
+    final hasWeapon = equipped.any((w) => w.type == 'weapon');
+    final hasArmor = equipped.any((w) => w.type == 'armor');
+
+    String suffix = '';
+    if (hasWeapon && hasArmor) {
+      suffix = '_weapon_armor';
+    } else if (hasWeapon) {
+      suffix = '_weapon';
+    } else if (hasArmor) {
+      suffix = '_armor';
+    }
+
+    return 'assets/images/${baseName}${suffix}.png';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (player == null || game == null) {
@@ -106,7 +157,27 @@ class _XiudiRootState extends State<XiudiRoot> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          Positioned.fill(child: GameWidget(game: game!)),
+          Stack(
+            children: [
+              Positioned.fill(child: GameWidget(game: game!)),
+
+              // ✅ 中间插入：打坐图贴图（装备动态变图）
+              FutureBuilder<String>(
+                future: getMeditationImagePath(player!),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) return const SizedBox();
+                  return Align(
+                    alignment: Alignment.center,
+                    child: Image.asset(
+                      snapshot.data!,
+                      width: 160,
+                      height: 160,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
 
           // 🏷️ 修仙纪元
           const Positioned(

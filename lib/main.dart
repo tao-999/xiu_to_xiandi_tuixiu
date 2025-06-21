@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/route_observer.dart';
 
 import 'models/disciple.dart';
 import 'models/weapon.dart';
@@ -12,7 +13,6 @@ import 'models/character.dart';
 import 'pages/page_create_role.dart';
 import 'pages/page_root.dart';
 import 'widgets/effects/touch_effect_overlay.dart';
-import 'services/pill_storage_service.dart'; // ✅ 新增
 import 'services/cultivation_tracker.dart';
 import 'utils/app_lifecycle_manager.dart';
 
@@ -72,6 +72,7 @@ class XiudiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '修到仙帝退休',
+      navigatorObservers: [routeObserver], // 🧠 注入 observer！
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         fontFamily: 'ZcoolCangEr',

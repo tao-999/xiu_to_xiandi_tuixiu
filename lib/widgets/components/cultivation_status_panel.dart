@@ -4,10 +4,8 @@ import 'package:xiu_to_xiandi_tuixiu/models/weapon.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/weapons_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/meditation_widget.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/equip_selection_dialog.dart';
-import '../../models/refine_blueprint.dart';
 import 'cultivation_progress_bar.dart';
 
 class CultivationStatusPanel extends StatefulWidget {

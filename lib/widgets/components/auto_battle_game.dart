@@ -8,8 +8,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/lightning_effect_compone
 import '../../utils/number_format.dart';
 
 class AutoBattleGame extends FlameGame {
-  final String playerEmojiOrIconPath;
-  final bool isAssetImage;
+  String playerEmojiOrIconPath;
+  bool isAssetImage;
   int currentMapStage;
 
   AutoBattleGame({
@@ -45,6 +45,16 @@ class AutoBattleGame extends FlameGame {
 
     attackTimer = Timer(1.0, repeat: true, onTick: _fireProjectile)..start();
     clearWaveTimer = Timer(30.0, repeat: true, onTick: _clearAllEnemies)..start();
+  }
+
+  void updatePlayerImage(String newPath, {bool assetImage = true}) async {
+    player.removeFromParent();
+    playerEmojiOrIconPath = newPath;
+    isAssetImage = assetImage;
+
+    final newPlayer = await _loadPlayer();
+    player = newPlayer;
+    add(player);
   }
 
   Future<PositionComponent> _loadPlayer() async {
