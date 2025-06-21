@@ -5,6 +5,7 @@ import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/weapons_storage.dart';
 import '../utils/cultivation_level.dart';
+import '../utils/lingshi_util.dart';
 import 'cultivation_tracker.dart';
 
 class PlayerStorage {
@@ -142,10 +143,10 @@ class PlayerStorage {
     final h = high ?? BigInt.zero;
     final s = supreme ?? BigInt.zero;
 
-    return (l * BigInt.from(1) +           // 下品：1 灵石 = 1 修为
-        m * BigInt.from(100) +         // 中品：1 = 100 修为
-        h * BigInt.from(10000) +       // 上品：1 = 10000 修为
-        s * BigInt.from(1000000));     // 极品：1 = 100 万修为
+    return (l * lingShiRates[LingShiType.lower]! +
+        m * lingShiRates[LingShiType.middle]! +
+        h * lingShiRates[LingShiType.upper]! +
+        s * lingShiRates[LingShiType.supreme]!);
   }
 
   /// 🎯 检查是否突破，并统一刷新属性（用 calculateBaseAttributes）
