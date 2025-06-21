@@ -75,7 +75,7 @@ class ChiyanguStorage {
   static const _keyPickaxeLastRefill = 'pickaxe_last_refill';
 
   static const int maxPickaxe = 1000;
-  static const Duration refillCooldown = Duration(minutes: 5);
+  static const Duration refillCooldown = Duration(minutes: 1);
 
   /// ✅ 获取当前锄头数量（自动计算离线恢复）
   static Future<int> getPickaxeCount() async {

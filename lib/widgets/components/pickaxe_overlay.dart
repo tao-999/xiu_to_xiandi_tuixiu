@@ -57,7 +57,7 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> with WidgetsBindingObse
     Duration passed = now.difference(lastRefill);
 
     if (currentCount < ChiyanguStorage.maxPickaxe) {
-      int refillAmount = passed.inMinutes ~/ 5;
+      int refillAmount = passed.inMinutes;
       if (refillAmount > 0) {
         currentCount = (currentCount + refillAmount).clamp(0, ChiyanguStorage.maxPickaxe);
         final newTime = lastRefill.add(ChiyanguStorage.refillCooldown * refillAmount);

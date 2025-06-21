@@ -88,7 +88,7 @@ class ChiyanguGame extends FlameGame {
 
   void _addRow(int row) {
     for (int col = 0; col < cols; col++) {
-      final x = col * cellSize;
+      final x = startX + col * cellSize; // ✅ 加入 startX 偏移
       final y = row * cellSize;
       final key = '${row}_$col';
 
@@ -255,7 +255,7 @@ class ChiyanguGame extends FlameGame {
       final parts = key.split('_');
       final row = int.parse(parts[0]);
       final col = int.parse(parts[1]);
-      final x = col * cellSize;
+      final x = startX + col * cellSize;
       final y = row * cellSize;
       final position = Vector2(x, y);
       final type = value['type'];

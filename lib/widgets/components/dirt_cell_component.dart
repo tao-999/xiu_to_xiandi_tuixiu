@@ -41,18 +41,18 @@ class DirtCellComponent extends PositionComponent
     ));
 
     // ✅ 可视化调试 key（如不需要可注释掉）
-    add(TextComponent(
-      text: gridKey,
-      anchor: Anchor.bottomLeft,
-      position: Vector2(2, size.y - 2),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          fontSize: 8,
-          color: Colors.white,
-          fontFamily: 'monospace',
-        ),
-      ),
-    ));
+    // add(TextComponent(
+    //   text: gridKey,
+    //   anchor: Anchor.bottomLeft,
+    //   position: Vector2(2, size.y - 2),
+    //   textRenderer: TextPaint(
+    //     style: const TextStyle(
+    //       fontSize: 8,
+    //       color: Colors.white,
+    //       fontFamily: 'monospace',
+    //     ),
+    //   ),
+    // ));
   }
 
   @override
