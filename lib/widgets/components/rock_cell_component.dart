@@ -116,27 +116,63 @@ class RockCellComponent extends PositionComponent
       game.add(frag);
     }
 
-    // ✅ 发奖励：根据当前深度加下品灵石
     final depth = ChiyanguGame.depthNotifier.value;
-    ResourcesStorage.add('spiritStoneLow', BigInt.from(depth));
+    final centerPos = absolutePosition + size / 2;
+    final rand = Random();
 
-    // ✅ 展示飘字
-    game.add(_showSpiritStoneReward(absolutePosition + size / 2));
+    String label;
+    String key;
+    BigInt amount = BigInt.from(depth); // ✅ 每种灵石都发“层数”数量！
+
+    // 🎯 爆率判定：只爆一种，优先高品质
+    if (rand.nextDouble() < 0.0001) {
+      key = 'spiritStoneSupreme';
+      label = '+$depth 极品灵石';
+    } else if (rand.nextDouble() < 0.001) {
+      key = 'spiritStoneHigh';
+      label = '+$depth 上品灵石';
+    } else if (rand.nextDouble() < 0.01) {
+      key = 'spiritStoneMid';
+      label = '+$depth 中品灵石';
+    } else {
+      key = 'spiritStoneLow';
+      label = '+$depth 下品灵石';
+    }
+
+    ResourcesStorage.add(key, amount);
+    game.add(_showSpiritStoneReward(centerPos, label: label));
 
     if (shouldShift) {
       game.tryShiftIfNeeded(gridKey, onlyIfTapped: true);
     }
+
+    game.saveCurrentState();
   }
 
-  Component _showSpiritStoneReward(Vector2 pos) {
-    final amount = ChiyanguGame.depthNotifier.value;
+  Component _showSpiritStoneReward(Vector2 pos, {required String label}) {
+    // 🧠 自动判断灵石类型，决定颜色
+    Color color;
+
+    if (label.contains('极品')) {
+      color = const Color(0xFFFF4444); // 金色
+    } else if (label.contains('上品')) {
+      color = const Color(0xFF66CCFF); // 蓝色
+    } else if (label.contains('中品')) {
+      color = const Color(0xFF66FF66); // 绿色
+    } else {
+      color = const Color(0xFFFFFF66); // 下品：黄中带点白
+    }
 
     final text = TextComponent(
-      text: '+$amount 下品灵石',
+      text: label,
       position: pos,
       anchor: Anchor.center,
       textRenderer: TextPaint(
-        style: const TextStyle(color: Colors.yellow, fontSize: 14),
+        style: TextStyle(
+          color: color,
+          fontSize: 14,
+          fontFamily: 'monospace',
+        ),
       ),
     );
 

@@ -18,23 +18,22 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> with WidgetsBindingObse
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // ✅ 添加生命周期监听
+    WidgetsBinding.instance.addObserver(this);
     _startTimer();
     _loadData();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // ✅ 移除监听
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }
 
-  /// ✅ 生命周期回到前台时刷新
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _loadData(); // 👈 切回来刷新数据
+      _loadData();
     }
   }
 
@@ -84,23 +83,62 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> with WidgetsBindingObse
         : '${timeLeft.inMinutes.remainder(60).toString().padLeft(2, '0')}:${(timeLeft.inSeconds % 60).toString().padLeft(2, '0')}';
 
     return Positioned(
-      top: 16,
+      top: 24,
       left: 16,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '⛏️ $pickaxeCount / ${ChiyanguStorage.maxPickaxe}',
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-            Text(
-              '$refillText 后+1',
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '⛏️ $pickaxeCount / ${ChiyanguStorage.maxPickaxe}',
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => Dialog(
+                      backgroundColor: const Color(0xFFF9F5E3), // ✅ 米黄色背景
+                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero), // ✅ 直角边框
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text(
+                              '💎 灵石掉落概率说明',
+                              style: TextStyle(fontSize: 16, color: Colors.black),
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              '每次爆石头，只能爆出「一种灵石」，爆率如下：\n\n'
+                                  '❤️ 极品灵石：0.01%\n'
+                                  '💙 上品灵石：0.1%\n'
+                                  '💚 中品灵石：1%\n'
+                                  '💛 下品灵石：其余概率保底\n\n'
+                                  '📈 爆出的灵石数量 = 当前深度层数\n'
+                                  '⛏️ 挖得越深，爆得越多，手越爽！',
+                                style: TextStyle(fontSize: 14, color: Colors.black87),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                child: const Icon(Icons.info_outline, size: 16, color: Colors.white70),
+              ),
+            ],
+          ),
+          Text(
+            '$refillText 后+1',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
       ),
     );
   }
