@@ -6,6 +6,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/huanyue_storage.dart';
 import '../../services/global_event_bus.dart';
 import '../../services/resources_storage.dart';
+import '../../services/weapons_storage.dart';
 import '../../utils/number_format.dart';
 import '../../utils/tile_manager.dart';
 import 'huanyue_enemy_spawner.dart';
@@ -49,10 +50,15 @@ class HuanyuePlayerComponent extends SpriteComponent
     final multiplier = await PlayerStorage.getSizeMultiplier();
     size = Vector2.all(tileSize * multiplier);
 
-    final gender = await PlayerStorage.getField<String>('gender') ?? 'male';
-    sprite = await game.loadSprite(
-      gender == 'female' ? 'icon_youli_female.png' : 'icon_youli_male.png',
-    );
+    final player = await PlayerStorage.getPlayer();
+    if (player == null) return; // ✅ 空值保护
+
+    final gender = player.gender;
+    final playerId = player.id;
+
+    final imageName = await getEquippedSpriteFileName(gender, playerId);
+    sprite = await game.loadSprite(imageName);
+
     add(RectangleHitbox());
 
     powerText = TextComponent(
@@ -82,6 +88,23 @@ class HuanyuePlayerComponent extends SpriteComponent
 
     EventBus.on('powerUpdated', _onPowerUpdate);
     Future.microtask(() async => await _onPowerUpdate());
+  }
+
+  Future<String> getEquippedSpriteFileName(String gender, String playerId) async {
+    final equipped = await WeaponsStorage.loadWeaponsEquippedBy(playerId);
+    final hasWeapon = equipped.any((w) => w.type == 'weapon');
+    final hasArmor = equipped.any((w) => w.type == 'armor');
+
+    String suffix = '';
+    if (hasWeapon && hasArmor) {
+      suffix = '_weapon_armor';
+    } else if (hasWeapon) {
+      suffix = '_weapon';
+    } else if (hasArmor) {
+      suffix = '_armor';
+    }
+
+    return 'icon_youli_${gender}${suffix}.png';
   }
 
   void moveTo(Vector2 destination) {
