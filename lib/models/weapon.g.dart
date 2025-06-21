@@ -20,7 +20,7 @@ class WeaponAdapter extends TypeAdapter<Weapon> {
       name: fields[0] as String,
       level: fields[1] as int,
       type: fields[2] as String,
-      createdAt: fields[3] as DateTime,
+      createdAt: fields[3] as DateTime?,
       attackBoost: fields[4] as int,
       defenseBoost: fields[5] as int,
       hpBoost: fields[6] as int,

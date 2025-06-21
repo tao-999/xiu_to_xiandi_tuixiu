@@ -35,15 +35,15 @@ class Weapon extends HiveObject {
   String? equippedById; // ✅ 当前装备者的 ID（可为角色ID或宗门弟子ID）
 
   Weapon({
-    required this.name,
-    required this.level,
-    required this.type,
-    required this.createdAt,
+    this.name = '',
+    this.level = 1,
+    this.type = 'weapon',
+    DateTime? createdAt,
     this.attackBoost = 0,
     this.defenseBoost = 0,
     this.hpBoost = 0,
     this.specialEffects = const [],
     this.iconPath = '',
-    this.equippedById, // ✅ 新增字段默认 null 表示未装备
-  });
+    this.equippedById,
+  }) : createdAt = createdAt ?? DateTime.now();
 }

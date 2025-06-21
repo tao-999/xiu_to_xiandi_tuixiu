@@ -1,3 +1,5 @@
+// lib/models/pill.dart
+
 import 'package:hive/hive.dart';
 
 part 'pill.g.dart'; // 记得运行 build_runner 生成
@@ -40,12 +42,12 @@ class Pill extends HiveObject {
   String iconPath; // 图标路径
 
   Pill({
-    required this.name,
-    required this.level,
-    required this.type,
-    required this.count,
-    required this.bonusAmount,
-    required this.createdAt,
-    required this.iconPath,
-  });
+    this.name = '',
+    this.level = 1,
+    this.type = PillType.attack,
+    this.count = 1,
+    this.bonusAmount = 0,
+    DateTime? createdAt,
+    this.iconPath = '',
+  }) : createdAt = createdAt ?? DateTime.now();
 }

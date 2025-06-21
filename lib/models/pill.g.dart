@@ -22,7 +22,7 @@ class PillAdapter extends TypeAdapter<Pill> {
       type: fields[2] as PillType,
       count: fields[3] as int,
       bonusAmount: fields[4] as int,
-      createdAt: fields[5] as DateTime,
+      createdAt: fields[5] as DateTime?,
       iconPath: fields[6] as String,
     );
   }
