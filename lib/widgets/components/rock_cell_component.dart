@@ -127,16 +127,16 @@ class RockCellComponent extends PositionComponent
     // 🎯 爆率判定：只爆一种，优先高品质
     if (rand.nextDouble() < 0.0001) {
       key = 'spiritStoneSupreme';
-      label = '+$depth 极品灵石';
+      label = '+$depth极品灵石';
     } else if (rand.nextDouble() < 0.001) {
       key = 'spiritStoneHigh';
-      label = '+$depth 上品灵石';
+      label = '+$depth上品灵石';
     } else if (rand.nextDouble() < 0.01) {
       key = 'spiritStoneMid';
-      label = '+$depth 中品灵石';
+      label = '+$depth中品灵石';
     } else {
       key = 'spiritStoneLow';
-      label = '+$depth 下品灵石';
+      label = '+$depth下品灵石';
     }
 
     ResourcesStorage.add(key, amount);

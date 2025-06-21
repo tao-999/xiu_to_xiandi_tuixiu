@@ -29,10 +29,6 @@ class _ChiyanguPageState extends State<ChiyanguPage> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    final gameWidth = ChiyanguGame.cols * ChiyanguGame.cellSize;
-    final gameLeft = (screenWidth - gameWidth) / 2;
 
     return Scaffold(
       body: Stack(
@@ -45,16 +41,16 @@ class _ChiyanguPageState extends State<ChiyanguPage> {
             ),
           ),
 
-          // ✅ GameWidget 放在下半部分中央
+          // ✅ GameWidget（自动撑满下半屏）
           Positioned(
             top: screenHeight / 2,
-            left: gameLeft,
-            width: gameWidth,
+            left: 0,
+            right: 0,
             height: screenHeight / 2,
             child: GameWidget(game: _game),
           ),
 
-          // ✅ 上半遮罩层（lava 图上半部分）
+          // ✅ 上半部分遮罩图
           Positioned(
             top: 0,
             left: 0,
@@ -69,7 +65,7 @@ class _ChiyanguPageState extends State<ChiyanguPage> {
             ),
           ),
 
-          // ✅ 深度显示组件（右上角）
+          // ✅ 深度信息（右上角）
           Positioned(
             top: 16,
             right: 16,
@@ -97,10 +93,10 @@ class _ChiyanguPageState extends State<ChiyanguPage> {
             ),
           ),
 
-          // ✅ 锄头显示组件（左上角）
+          // ✅ 锄头 UI（左上角）
           const PickaxeOverlay(),
 
-          // ✅ 返回按钮（放最上层）
+          // ✅ 返回按钮（最上层）
           const BackButtonOverlay(),
         ],
       ),

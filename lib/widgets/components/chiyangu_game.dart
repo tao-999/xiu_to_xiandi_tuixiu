@@ -1,5 +1,5 @@
-// 📦 文件：chiyangu_game.dart
 import 'dart:convert';
+import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
@@ -14,21 +14,19 @@ import 'mining_cell_component.dart';
 
 class ChiyanguGame extends FlameGame {
   static const int cols = 6;
-  static const double cellSize = 64;
+
+  late double cellSize;
 
   final Map<String, PositionComponent> cellMap = {};
   final PositionComponent maskLayer = PositionComponent();
   final PositionComponent mapLayer = PositionComponent();
 
-  double startX = 0;
-  double startY = 0;
   int currentDepth = 0;
   int visibleRows = 0;
 
   bool isShifting = false;
   String? lastTappedKey;
 
-  // ✅ 公共深度监听器（UI用）
   static final ValueNotifier<int> depthNotifier = ValueNotifier<int>(0);
 
   @override
@@ -40,17 +38,19 @@ class ChiyanguGame extends FlameGame {
 
     final screenWidth = size.x;
     final screenHeight = size.y;
-    visibleRows = (screenHeight / cellSize).ceil();
 
-    startX = (screenWidth - cols * cellSize) / 2;
-    startY = 0;
+    // ✅ 动态计算 cellSize，最大不超过 64
+    cellSize = min(screenWidth / cols, 64);
+    mapLayer.position = Vector2((size.x - cols * cellSize) / 2, 0);
+
+    visibleRows = (screenHeight / cellSize).ceil();
 
     maskLayer.size = Vector2(cols * cellSize, visibleRows * cellSize);
     maskLayer.position = Vector2.zero();
     add(maskLayer);
     maskLayer.add(mapLayer);
 
-    // ✅ 尝试从 ChiyanguStorage 恢复
+    // ✅ 加载地图
     final saved = await ChiyanguStorage.load();
     if (saved != null) {
       final savedCells = saved['cells'] as Map<String, Map<String, dynamic>>;
@@ -82,13 +82,11 @@ class ChiyanguGame extends FlameGame {
       depth: currentDepth,
       cells: buildCellStorageData(),
     );
-
-    print('✅ 已保存赤炎谷状态（via ChiyanguStorage）');
   }
 
   void _addRow(int row) {
     for (int col = 0; col < cols; col++) {
-      final x = startX + col * cellSize; // ✅ 加入 startX 偏移
+      final x = col * cellSize;
       final y = row * cellSize;
       final key = '${row}_$col';
 
@@ -108,7 +106,7 @@ class ChiyanguGame extends FlameGame {
     final topY = cellMap.values
         .whereType<PositionComponent>()
         .map((c) => c.position.y)
-        .reduce((a, b) => a < b ? a : b);
+        .reduce(min);
 
     final toRemove = <String>[];
 
@@ -153,8 +151,8 @@ class ChiyanguGame extends FlameGame {
     final self = cellMap[fromKey];
     if (self is! PositionComponent) return;
 
-    final double selfY = self.position.y;
-    final topY = cellMap.values.map((c) => c.position.y).reduce((a, b) => a < b ? a : b);
+    final selfY = self.position.y;
+    final topY = cellMap.values.map((c) => c.position.y).reduce(min);
     final secondY = topY + cellSize;
 
     int shiftLines = 0;
@@ -227,7 +225,7 @@ class ChiyanguGame extends FlameGame {
 
   int _getTopVisibleRow() {
     final rows = cellMap.keys.map((key) => int.parse(key.split('_')[0]));
-    return rows.isEmpty ? 0 : rows.reduce((a, b) => a < b ? a : b);
+    return rows.isEmpty ? 0 : rows.reduce(min);
   }
 
   Map<String, Map<String, dynamic>> buildCellStorageData() {
@@ -255,7 +253,7 @@ class ChiyanguGame extends FlameGame {
       final parts = key.split('_');
       final row = int.parse(parts[0]);
       final col = int.parse(parts[1]);
-      final x = startX + col * cellSize;
+      final x = col * cellSize;
       final y = row * cellSize;
       final position = Vector2(x, y);
       final type = value['type'];
@@ -284,7 +282,7 @@ class ChiyanguGame extends FlameGame {
         cell = rock;
         cellMap[key] = rock;
         mapLayer.add(rock);
-        await rock.restoreFromStorage(breakLevel); // ✅ 加载状态贴图
+        await rock.restoreFromStorage(breakLevel);
       }
     }
 
