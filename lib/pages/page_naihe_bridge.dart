@@ -11,6 +11,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/mengpo_soup_dialog.dart'
 
 import '../services/cultivation_tracker.dart';
 import '../services/disciple_storage.dart';
+import '../services/pill_storage_service.dart';
 import '../services/weapons_storage.dart';
 import '../widgets/components/naihe_info_icon.dart';
 
@@ -89,6 +90,9 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
 
     // 清空武器
     await WeaponsStorage.clearAllWeapons();
+
+    // 清空丹药
+    PillStorageService.clearAllPills();
 
     // ✅ 停止修炼 tick、清除赤炎谷数据
     CultivationTracker.stopTick();

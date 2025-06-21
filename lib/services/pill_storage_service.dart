@@ -12,7 +12,21 @@ class PillStorageService {
   /// ✅ 添加丹药
   static Future<void> addPill(Pill pill) async {
     final box = await _openBox();
-    await box.add(pill);
+
+    // ✅ 使用 firstOrNull 替代 firstWhere，避免 orElse 报错
+    final same = box.values.where((p) =>
+    p.name == pill.name &&
+        p.level == pill.level &&
+        p.type == pill.type &&
+        p.bonusAmount == pill.bonusAmount,
+    ).cast<Pill>().toList().firstOrNull;
+
+    if (same != null) {
+      same.count += pill.count;
+      await same.save();
+    } else {
+      await box.add(pill);
+    }
   }
 
   /// ✅ 删除某个丹药

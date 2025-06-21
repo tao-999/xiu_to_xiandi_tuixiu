@@ -86,6 +86,7 @@ class _BeibaoPageState extends State<BeibaoPage> {
       print('   💊 数量：${p.count}');
       print('   🔥 属性加成：+${p.bonusAmount}');
       print('   🕒 炼制时间：${p.createdAt}');
+      print('   ℹ️ 图片路径：${p.iconPath}');
 
       String effect = '';
       switch (p.type) {
@@ -102,7 +103,9 @@ class _BeibaoPageState extends State<BeibaoPage> {
 
       newItems.add(BeibaoItem(
         name: p.name,
-        imagePath: p.iconPath, // 你可以自定义丹药图标路径
+        imagePath: p.iconPath.startsWith('assets/')
+          ? p.iconPath
+          : 'assets/images/${p.iconPath}',
         level: p.level,
         quantity: BigInt.from(p.count),
         description: '效果：$effect',

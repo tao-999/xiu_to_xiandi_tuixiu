@@ -8,7 +8,7 @@ class BeibaoItem {
   final String name;
   final String imagePath;
   final BigInt? quantity; // ✅ 改成 BigInt 专门表示资源类数量
-  final int? level; // ✅ 新增，专门表示武器阶数
+  final int? level; // ✅ 新增，专门表示阶数
   final String description;
   final BeibaoItemType type;
 
@@ -80,6 +80,13 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
     );
     final items = _paddedItems(pageItems);
 
+    // 定义需要显示阶数的类型集合
+    const Set<BeibaoItemType> _showLevelTypes = {
+      BeibaoItemType.weapon,
+      BeibaoItemType.pill,
+      // 后续扩展直接加
+    };
+
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -110,26 +117,26 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
                       border: Border.all(color: Colors.white10),
                     ),
                     alignment: Alignment.center,
+                    // 关键骚点：Stack+Positioned.fill让图片占满整个格子
                     child: Stack(
                       children: [
-                        Opacity(
-                          opacity: (item.quantity == 0 || item.quantity == BigInt.zero) ? 0.3 : 1.0,
-                          child: Image.asset(
-                            item.imagePath,
-                            width: 32,
-                            height: 32,
-                            fit: BoxFit.contain,
+                        Positioned.fill(
+                          child: Opacity(
+                            opacity: (item.quantity == 0 || item.quantity == BigInt.zero) ? 0.3 : 1.0,
+                            child: Image.asset(
+                              item.imagePath,
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
-
-                        if (item.type == BeibaoItemType.weapon)
+                        if (_showLevelTypes.contains(item.type))
                           Positioned(
                             top: 0,
                             right: 0,
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                               child: Text(
-                                '${item.level}阶', // ✅ 就它！纯纯的 int → “几阶”
+                                '${item.level}阶',
                                 style: const TextStyle(
                                   fontSize: 8,
                                   color: Colors.white,

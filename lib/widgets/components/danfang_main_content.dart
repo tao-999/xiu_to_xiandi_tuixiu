@@ -30,7 +30,8 @@ class DanfangMainContent extends StatefulWidget {
   State<DanfangMainContent> createState() => _DanfangMainContentState();
 }
 
-class _DanfangMainContentState extends State<DanfangMainContent> {
+class _DanfangMainContentState extends State<DanfangMainContent>
+    with WidgetsBindingObserver {
   PillBlueprint? _selectedBlueprint;
   List<String> _selectedMaterials = [];
   Timer? _timer;
@@ -41,8 +42,32 @@ class _DanfangMainContentState extends State<DanfangMainContent> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // ✅ 添加监听
     _startTimer();
     _checkAndRestoreState();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // ✅ 移除监听
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 每次依赖变更（通常是从其他页面切回来时）都检查一次状态
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndRestoreState(); // 💥 补一次，防止跳页回来漏执行
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkAndRestoreState(); // ✅ 回到页面立即检查产丹
+    }
   }
 
   void _startTimer() {
@@ -50,18 +75,42 @@ class _DanfangMainContentState extends State<DanfangMainContent> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _checkAndRestoreState());
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
   Future<void> _checkAndRestoreState() async {
     final end = await DanfangService.loadCooldown();
     final now = DateTime.now();
 
-    // 1. 冷却中：正常逻辑
+    print('🧪 [检查状态] 当前时间: $now, 结束时间: $end');
+
+    if (end != null && now.isAfter(end)) {
+      print('🔥 冷却已结束，准备领取丹药...');
+
+      // ✅ 补上关键数据（修复核心 Bug）
+      _selectedBlueprint = await DanfangService.loadSelectedBlueprint();
+      _selectedCount = await DanfangService.loadRefineCount();
+
+      await _onRefineFinish();
+
+      setState(() {
+        _isRefining = false;
+        _selectedBlueprint = null;
+        _selectedMaterials = [];
+      });
+
+      widget.onRefineStateChanged?.call(false);
+      await DanfangService.clearCooldown();
+      await DanfangService.saveSelectedMaterials([]);
+      await DanfangService.clearSelectedBlueprint();
+      await DanfangService.clearRefineCount();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.arrayKey.currentState?.resetToIdle();
+      });
+      return;
+    }
+
     if (end != null && now.isBefore(end)) {
+      print('⏳ 冷却中... 距离完成还有 ${(end.difference(now)).inSeconds} 秒');
+
       if (!_isRefining) {
         setState(() => _isRefining = true);
         widget.onRefineStateChanged?.call(true);
@@ -80,46 +129,26 @@ class _DanfangMainContentState extends State<DanfangMainContent> {
           widget.arrayKey.currentState?.setFinalStateManually();
         });
       }
+      return;
     }
-    // 2. 冷却时间刚结束：产出丹药！
-    else if (_isRefining && (end != null && now.isAfter(end))) {
-      // 💥 在这里调用发丹药的逻辑
-      await _onRefineFinish(); // 记得防止多次触发！
 
+    print('🍃 无炼制状态，重置 UI');
+    if (_isRefining) {
       setState(() {
         _isRefining = false;
         _selectedBlueprint = null;
         _selectedMaterials = [];
       });
       widget.onRefineStateChanged?.call(false);
-
-      await DanfangService.clearCooldown();
-      await DanfangService.saveSelectedMaterials([]);
-      await DanfangService.clearSelectedBlueprint();
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.arrayKey.currentState?.resetToIdle();
-      });
     }
-    // 3. 彻底无炼丹状态，常规清理
-    else {
-      if (_isRefining) {
-        setState(() {
-          _isRefining = false;
-          _selectedBlueprint = null;
-          _selectedMaterials = [];
-        });
-        widget.onRefineStateChanged?.call(false);
-      }
 
-      await DanfangService.clearCooldown();
-      await DanfangService.saveSelectedMaterials([]);
-      await DanfangService.clearSelectedBlueprint();
+    await DanfangService.clearCooldown();
+    await DanfangService.saveSelectedMaterials([]);
+    await DanfangService.clearSelectedBlueprint();
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.arrayKey.currentState?.resetToIdle();
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.arrayKey.currentState?.resetToIdle();
+    });
   }
 
   void _onMaterialSelected(int index, String name) async {
@@ -139,8 +168,7 @@ class _DanfangMainContentState extends State<DanfangMainContent> {
   }
 
   Future<void> _onRefineFinish() async {
-    if (_selectedBlueprint == null) return;
-
+    final count = await DanfangService.loadRefineCount(); // ✅ 补充炼丹数量
     final newPill = Pill(
       name: _selectedBlueprint!.name,
       level: _selectedBlueprint!.level,
@@ -149,14 +177,13 @@ class _DanfangMainContentState extends State<DanfangMainContent> {
         PillBlueprintType.defense => PillType.defense,
         PillBlueprintType.health => PillType.health,
       },
-      count: _selectedCount,
+      count: count,
       bonusAmount: _selectedBlueprint!.effectValue,
       createdAt: DateTime.now(),
-      iconPath: _selectedBlueprint!.iconPath, // 🏅骚气加上图标
+      iconPath: _selectedBlueprint!.iconPath,
     );
 
     await PillStorageService.addPill(newPill);
-
     ToastTip.show(context, '炼制成功！获得${newPill.name}x${newPill.count}');
   }
 
@@ -207,19 +234,17 @@ class _DanfangMainContentState extends State<DanfangMainContent> {
 
       array.onAnimationComplete = () async {
         final totalAptitude = disciples.fold<int>(0, (sum, d) => sum + (d.aptitude ?? 0));
-
-        // ✅ 计算每颗的时间，再乘以炼制数量
         final perUnitTime = DanfangService.calculateRefineDuration(
           _selectedBlueprint!.level,
           totalAptitude,
         );
         final durationSeconds = perUnitTime * _selectedCount;
-
         final endTime = DateTime.now().add(Duration(seconds: durationSeconds));
 
         await DanfangService.saveCooldown(endTime);
         await DanfangService.saveSelectedBlueprint(_selectedBlueprint!);
         await DanfangService.saveSelectedMaterials(_selectedMaterials);
+        await DanfangService.saveRefineCount(_selectedCount); // ✅ 持久化炼丹数量
         await DanfangService.consumeHerbs(_selectedMaterials, _selectedCount);
 
         if (mounted) {
