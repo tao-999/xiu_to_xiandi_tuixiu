@@ -6,6 +6,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_task_dispatch.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_lianqi.dart';
 
+import '../../pages/page_zongmen_roles.dart';
+
 class ZongmenQuickMenu extends StatelessWidget {
   const ZongmenQuickMenu({super.key});
 
@@ -20,7 +22,7 @@ class ZongmenQuickMenu extends StatelessWidget {
       ["藏经阁", "gongfa", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CangjinggePage()))],
       ["灵田", "lingtian", () => ToastTip.show(context, "灵田开发中")],
       ["洞天福地", "dongtianfudi", () => ToastTip.show(context, "洞天福地开发中")],
-      ["宗门职位", "zhiwei", () => ToastTip.show(context, "职位系统开发中")],
+      ["宗门职位", "zhiwei", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenRolesPage()))],
       ["外交", "waijiao", () => ToastTip.show(context, "外交系统开发中")],
       ["历代志", "lidaizhi", () => ToastTip.show(context, "宗门事件记录开发中")],
     ];

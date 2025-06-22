@@ -142,9 +142,9 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                 },
                 child: Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1D1A17),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1D1A17).withOpacity(0.9),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: ZongmenDiscipleInfoPanel(disciple: disciple),
                 ),

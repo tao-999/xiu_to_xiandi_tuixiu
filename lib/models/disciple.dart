@@ -78,6 +78,9 @@ class Disciple extends HiveObject {
   @HiveField(23)
   int favorability;
 
+  @HiveField(24)
+  String? role;
+
   Disciple({
     this.id = '',
     this.name = '',
@@ -103,6 +106,7 @@ class Disciple extends HiveObject {
     this.assignedRoom,
     this.description = '',
     this.favorability = 0,
+    this.role = '弟子',
   });
 
   static const _unset = Object();
@@ -132,6 +136,7 @@ class Disciple extends HiveObject {
     Object? assignedRoom = _unset,
     String? description,
     int? favorability,
+    String? role,
   }) {
     return Disciple(
       id: id ?? this.id,
@@ -160,6 +165,7 @@ class Disciple extends HiveObject {
           : assignedRoom as String?,
       description: description ?? this.description,
       favorability: favorability ?? this.favorability,
+      role: role ?? this.role,
     );
   }
 }

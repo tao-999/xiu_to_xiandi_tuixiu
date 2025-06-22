@@ -50,6 +50,8 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
             );
           },
         ),
+        _buildInfoRow('好感度', '${d.favorability}'),
+        _buildInfoRow('职位', '${d.role}'),
       ],
     );
   }

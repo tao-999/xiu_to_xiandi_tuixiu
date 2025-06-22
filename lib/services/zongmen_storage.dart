@@ -29,8 +29,6 @@ class ZongmenStorage {
   /// 📤 加载弟子 + 更新年龄（Hive 读取）
   static Future<List<Disciple>> loadDisciples() async {
     final box = await Hive.openBox<Disciple>('disciples');
-    print("📦 当前弟子总数（含未加入宗门的）: ${box.length}");
-
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     const timeRate = 10000;
 
