@@ -38,6 +38,7 @@ class _DanfangMainContentState extends State<DanfangMainContent>
   bool _isRefining = false;
   int _maxAlchemyCount = 1;
   int _selectedCount = 1;
+  bool _isRestoring = false;
 
   @override
   void initState() {
@@ -76,79 +77,96 @@ class _DanfangMainContentState extends State<DanfangMainContent>
   }
 
   Future<void> _checkAndRestoreState() async {
-    final end = await DanfangService.loadCooldown();
-    final now = DateTime.now();
+    if (_isRestoring) return; // ✅ 加锁防并发
+    _isRestoring = true;
 
-    print('🧪 [检查状态] 当前时间: $now, 结束时间: $end');
+    try {
+      final end = await DanfangService.loadCooldown();
+      final now = DateTime.now();
 
-    if (end != null && now.isAfter(end)) {
-      print('🔥 冷却已结束，准备领取丹药...');
+      print('🧪 [检查状态] 当前时间: $now, 结束时间: $end');
 
-      // ✅ 补上关键数据（修复核心 Bug）
-      _selectedBlueprint = await DanfangService.loadSelectedBlueprint();
-      _selectedCount = await DanfangService.loadRefineCount();
+      if (end != null && now.isAfter(end)) {
+        print('🔥 冷却已结束，准备领取丹药...');
 
-      await _onRefineFinish();
+        // ✅ 补上关键数据（修复核心 Bug）
+        _selectedBlueprint = await DanfangService.loadSelectedBlueprint();
+        _selectedCount = await DanfangService.loadRefineCount();
 
-      setState(() {
-        _isRefining = false;
-        _selectedBlueprint = null;
-        _selectedMaterials = [];
-      });
+        await _onRefineFinish();
 
-      widget.onRefineStateChanged?.call(false);
+        if (mounted) {
+          setState(() {
+            _isRefining = false;
+            _selectedBlueprint = null;
+            _selectedMaterials = [];
+          });
+        }
+
+        widget.onRefineStateChanged?.call(false);
+
+        await DanfangService.clearCooldown();
+        await DanfangService.saveSelectedMaterials([]);
+        await DanfangService.clearSelectedBlueprint();
+        await DanfangService.clearRefineCount();
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.arrayKey.currentState?.resetToIdle();
+        });
+
+        return;
+      }
+
+      if (end != null && now.isBefore(end)) {
+        print('⏳ 冷却中... 距离完成还有 ${(end.difference(now)).inSeconds} 秒');
+
+        if (!_isRefining) {
+          if (mounted) {
+            setState(() => _isRefining = true);
+          }
+          widget.onRefineStateChanged?.call(true);
+        }
+
+        final bp = await DanfangService.loadSelectedBlueprint();
+        final mats = await DanfangService.loadSelectedMaterials();
+
+        if (mounted) {
+          setState(() {
+            _selectedBlueprint = bp;
+            _selectedMaterials = List<String>.from(mats ?? []);
+          });
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            widget.arrayKey.currentState?.setFinalStateManually();
+          });
+        }
+
+        return;
+      }
+
+      print('🍃 无炼制状态，重置 UI');
+
+      if (_isRefining) {
+        if (mounted) {
+          setState(() {
+            _isRefining = false;
+            _selectedBlueprint = null;
+            _selectedMaterials = [];
+          });
+        }
+        widget.onRefineStateChanged?.call(false);
+      }
+
       await DanfangService.clearCooldown();
       await DanfangService.saveSelectedMaterials([]);
       await DanfangService.clearSelectedBlueprint();
-      await DanfangService.clearRefineCount();
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         widget.arrayKey.currentState?.resetToIdle();
       });
-      return;
+    } finally {
+      _isRestoring = false; // ✅ 解锁
     }
-
-    if (end != null && now.isBefore(end)) {
-      print('⏳ 冷却中... 距离完成还有 ${(end.difference(now)).inSeconds} 秒');
-
-      if (!_isRefining) {
-        setState(() => _isRefining = true);
-        widget.onRefineStateChanged?.call(true);
-      }
-
-      final bp = await DanfangService.loadSelectedBlueprint();
-      final mats = await DanfangService.loadSelectedMaterials();
-
-      if (mounted) {
-        setState(() {
-          _selectedBlueprint = bp;
-          _selectedMaterials = List<String>.from(mats ?? []);
-        });
-
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.arrayKey.currentState?.setFinalStateManually();
-        });
-      }
-      return;
-    }
-
-    print('🍃 无炼制状态，重置 UI');
-    if (_isRefining) {
-      setState(() {
-        _isRefining = false;
-        _selectedBlueprint = null;
-        _selectedMaterials = [];
-      });
-      widget.onRefineStateChanged?.call(false);
-    }
-
-    await DanfangService.clearCooldown();
-    await DanfangService.saveSelectedMaterials([]);
-    await DanfangService.clearSelectedBlueprint();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.arrayKey.currentState?.resetToIdle();
-    });
   }
 
   void _onMaterialSelected(int index, String name) async {
