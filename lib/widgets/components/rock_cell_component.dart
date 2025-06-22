@@ -125,18 +125,20 @@ class RockCellComponent extends PositionComponent
     BigInt amount = BigInt.from(depth); // ✅ 每种灵石都发“层数”数量！
 
     // 🎯 爆率判定：只爆一种，优先高品质
-    if (rand.nextDouble() < 0.0001) {
+    final roll = rand.nextDouble();
+
+    if (roll < 0.0005) {
       key = 'spiritStoneSupreme';
-      label = '+$depth极品灵石';
-    } else if (rand.nextDouble() < 0.001) {
+      label = '$depth极品灵石';
+    } else if (roll < 0.0025) {
       key = 'spiritStoneHigh';
-      label = '+$depth上品灵石';
-    } else if (rand.nextDouble() < 0.01) {
+      label = '$depth上品灵石';
+    } else if (roll < 0.0225) {
       key = 'spiritStoneMid';
-      label = '+$depth中品灵石';
+      label = '$depth中品灵石';
     } else {
       key = 'spiritStoneLow';
-      label = '+$depth下品灵石';
+      label = '$depth下品灵石';
     }
 
     ResourcesStorage.add(key, amount);
@@ -170,7 +172,7 @@ class RockCellComponent extends PositionComponent
       textRenderer: TextPaint(
         style: TextStyle(
           color: color,
-          fontSize: 14,
+          fontSize: 11,
           fontFamily: 'monospace',
         ),
       ),
@@ -179,7 +181,7 @@ class RockCellComponent extends PositionComponent
     text.add(
       MoveEffect.by(
         Vector2(0, -30),
-        EffectController(duration: 0.8),
+        EffectController(duration: 1.5),
         onComplete: () => text.removeFromParent(),
       ),
     );

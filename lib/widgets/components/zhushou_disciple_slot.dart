@@ -63,120 +63,131 @@ class _ZhushouDiscipleSlotState extends State<ZhushouDiscipleSlot> {
     showDialog(
       context: context,
       builder: (_) => Dialog(
-        backgroundColor: const Color(0xFF2D2D2D),
+        backgroundColor: Colors.transparent, // ✅ 背景透明
         insetPadding: const EdgeInsets.all(24),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '选择驻守弟子 - ${widget.roomName}',
-                style: const TextStyle(fontSize: 16, color: Colors.white, fontFamily: 'ZcoolCangEr'),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.maxFinite,
-                height: 400,
-                child: GridView.builder(
-                  itemCount: list.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.7,
-                  ),
-                  itemBuilder: (_, index) {
-                    final d = list[index];
-                    final isSelected = _selected?.id == d.id;
-
-                    return GestureDetector(
-                      onTap: () async {
-                        await ZongmenStorage.setDiscipleAssignedRoom(d.id, widget.roomName);
-                        setState(() => _selected = d);
-                        Navigator.pop(context);
-                        widget.onChanged?.call('switch');
-                      },
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white24),
-                            ),
-                            child: Stack(
-                              children: [
-                                Positioned.fill(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.asset(
-                                      d.imagePath.isNotEmpty
-                                          ? d.imagePath
-                                          : 'assets/images/default_card.webp',
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 0,
-                                  right: 0,
-                                  child: Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(
-                                      shape: BoxShape.circle,
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      '${d.aptitude}',
-                                      style: const TextStyle(
-                                        color: Colors.black,
-                                        fontSize: 12,
-                                        fontFamily: 'ZcoolCangEr',
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 4),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-                                    ),
-                                    child: Text(
-                                      d.name,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontFamily: 'ZcoolCangEr',
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                if (isSelected)
-                                  const Align(
-                                    alignment: Alignment.bottomRight,
-                                    child: Padding(
-                                      padding: EdgeInsets.all(4),
-                                      child: Icon(Icons.check, color: Colors.greenAccent, size: 20),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+        child: Stack(
+          children: [
+            // ✅ 背景图层
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.zero, // ✅ 直角风格
+                child: Image.asset(
+                  'assets/images/bg_zhushoudizi.webp', // ✅ 你的专属背景图
+                  fit: BoxFit.cover,
                 ),
               ),
-            ],
-          ),
+            ),
+
+            // ✅ 内容层
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: double.maxFinite,
+                    height: 400,
+                    child: GridView.builder(
+                      itemCount: list.length,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.7,
+                      ),
+                      itemBuilder: (_, index) {
+                        final d = list[index];
+                        final isSelected = _selected?.id == d.id;
+
+                        return GestureDetector(
+                          onTap: () async {
+                            await ZongmenStorage.setDiscipleAssignedRoom(d.id, widget.roomName);
+                            setState(() => _selected = d);
+                            Navigator.pop(context);
+                            widget.onChanged?.call('switch');
+                          },
+                          child: Stack(
+                            children: [
+                              Container(
+                                decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white24),
+                                ),
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Image.asset(
+                                          d.imagePath.isNotEmpty
+                                              ? d.imagePath
+                                              : 'assets/images/default_card.webp',
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: Container(
+                                        width: 28,
+                                        height: 28,
+                                        decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(
+                                          shape: BoxShape.circle,
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Text(
+                                          '${d.aptitude}',
+                                          style: const TextStyle(
+                                            color: Colors.black,
+                                            fontSize: 12,
+                                            fontFamily: 'ZcoolCangEr',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 0,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(vertical: 4),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.black54,
+                                          borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+                                        ),
+                                        child: Text(
+                                          d.name,
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontFamily: 'ZcoolCangEr',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      const Align(
+                                        alignment: Alignment.bottomRight,
+                                        child: Padding(
+                                          padding: EdgeInsets.all(4),
+                                          child: Icon(Icons.check, color: Colors.greenAccent, size: 20),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

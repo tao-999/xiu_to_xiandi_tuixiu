@@ -27,7 +27,6 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
   bool _hasZhushou = false;
 
   bool _isRefining = false;
-  DateTime? _refineEndTime;
   List<RefineBlueprint> _ownedBlueprints = [];
   RefineBlueprint? _selectedBlueprint;
   List<String> _selectedMaterials = [];
@@ -111,7 +110,6 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
       _ownedBlueprints = owned;
       _selectedBlueprint = restoredBlueprint;
       _selectedMaterials = restoredMaterials;
-      _refineEndTime = refineEndTime;
       _isRefining = refineEndTime != null && refineEndTime.isAfter(DateTime.now());
       _refineStateVersion++; // ✅ 每次刷新炼制状态都触发 Selector 重建
     });

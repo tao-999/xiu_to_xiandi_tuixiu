@@ -116,9 +116,9 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> with WidgetsBindingObse
                             SizedBox(height: 12),
                             Text(
                               '每次爆石头，只能爆出「一种灵石」，爆率如下：\n\n'
-                                  '❤️ 极品灵石：0.01%\n'
-                                  '💙 上品灵石：0.1%\n'
-                                  '💚 中品灵石：1%\n'
+                                  '❤️ 极品灵石：0.05%\n'
+                                  '💙 上品灵石：0.2%\n'
+                                  '💚 中品灵石：2%\n'
                                   '💛 下品灵石：其余概率保底\n\n'
                                   '📈 爆出的灵石数量 = 当前深度层数\n'
                                   '⛏️ 挖得越深，爆得越多，手越爽！',
