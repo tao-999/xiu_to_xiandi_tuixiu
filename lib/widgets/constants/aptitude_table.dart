@@ -32,3 +32,7 @@ final List<AptitudeGate> aptitudeTable = [
   AptitudeGate(minAptitude: 201, realmName: '至尊仙帝'),
   AptitudeGate(minAptitude: 211, realmName: '退休仙帝'),
 ];
+
+int getMaxAptitudeLimit() {
+  return aptitudeTable.map((e) => e.minAptitude).reduce((a, b) => a > b ? a : b);
+}

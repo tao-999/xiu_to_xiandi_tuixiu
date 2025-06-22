@@ -1,12 +1,14 @@
-// lib/pages/page_disciple_list.dart
-
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_disciple_detail.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_zhaomu.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_disciple_card.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/disciple_limit_info_dialog.dart';
+
+// ✅ 全局 route observer
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
 
 class DiscipleListPage extends StatefulWidget {
   const DiscipleListPage({super.key});
@@ -15,7 +17,7 @@ class DiscipleListPage extends StatefulWidget {
   State<DiscipleListPage> createState() => _DiscipleListPageState();
 }
 
-class _DiscipleListPageState extends State<DiscipleListPage> {
+class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
   List<Disciple> disciples = [];
   int maxDiscipleCount = 0;
 
@@ -25,13 +27,31 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
     _loadDisciples();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!); // ✅ 注册监听
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this); // ✅ 注销监听
+    super.dispose();
+  }
+
+  // ✅ 当从其他页面 pop 回来时触发
+  @override
+  void didPopNext() {
+    _loadDisciples(); // ✅ 自动刷新弟子列表
+  }
+
   Future<void> _loadDisciples() async {
     final list = await ZongmenStorage.loadDisciples();
     final zongmen = await ZongmenStorage.loadZongmen();
     int max = 0;
     if (zongmen != null) {
       final level = ZongmenStorage.calcSectLevel(zongmen.sectExp);
-      max = 5 * level;  // 改成等差逻辑
+      max = 5 * level;
     }
 
     setState(() {
@@ -137,8 +157,7 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
                   )
                       : GridView.builder(
                     padding: const EdgeInsets.only(top: 4),
-                    gridDelegate:
-                    const SliverGridDelegateWithFixedCrossAxisCount(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
@@ -146,8 +165,18 @@ class _DiscipleListPageState extends State<DiscipleListPage> {
                     ),
                     itemCount: disciples.length,
                     itemBuilder: (context, index) {
-                      return ZongmenDiscipleCard(
-                        disciple: disciples[index],
+                      final disciple = disciples[index];
+                      return GestureDetector(
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DiscipleDetailPage(disciple: disciple),
+                            ),
+                          );
+                          // ❌ 不需要主动刷新，交给 didPopNext 自动刷新
+                        },
+                        child: ZongmenDiscipleCard(disciple: disciple),
                       );
                     },
                   ),

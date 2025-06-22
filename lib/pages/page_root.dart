@@ -98,12 +98,13 @@ class _XiudiRootState extends State<XiudiRoot> with RouteAware {
       player = loadedPlayer;
       gender = newGender;
       meditationImagePath = imagePath;
+      currentStage = loadedPlayer.currentMapStage;
 
       if (game == null) {
         game = AutoBattleGame(
           playerEmojiOrIconPath: imagePath,
           isAssetImage: true,
-          currentMapStage: loadedPlayer.currentMapStage,
+          currentMapStage: currentStage,
         );
         debugPrint('✅ AutoBattleGame 初始化完成');
       } else {
