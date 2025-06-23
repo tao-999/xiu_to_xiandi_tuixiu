@@ -7,7 +7,6 @@ import 'package:xiu_to_xiandi_tuixiu/pages/page_huanyue_explore.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_chiyangu.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_xianling_qizhen.dart';
-
 import '../../pages/page_market.dart';
 import '../../pages/page_naihe_bridge.dart';
 
@@ -22,43 +21,52 @@ class YouliMapGame extends FlameGame {
   Future<void> onLoad() async {
     final screen = canvasSize;
 
+    final sprite = await loadSprite('bg_map_youli_horizontal.webp');
+    final originalSize = sprite.srcSize;
+
+    // ✅ 根据屏幕高度计算缩放倍数
+    final double scale = screen.y / originalSize.y;
+
+    // ✅ 设置背景尺寸 = 原图尺寸（逻辑大小不变），只缩放显示比例
     bg = SpriteComponent()
-      ..sprite = await loadSprite('bg_map_youli_horizontal.webp')
-      ..size = Vector2(3000, 2400)
-      ..anchor = Anchor.topLeft
-      ..scale = Vector2.all(0.45)
-      ..position = Vector2(0, screen.y - 2400 * 0.45);
+      ..sprite = sprite
+      ..size = originalSize
+      ..scale = Vector2.all(scale)
+      ..anchor = Anchor.topLeft;
+
+    // ✅ 居中逻辑：屏幕宽度的一半 - 缩放后地图宽度的一半
+    final double mapWidth = originalSize.x * scale;
+    final double offsetX = (screen.x - mapWidth) / 2;
+
+    bg.position = Vector2(offsetX.clamp(screen.x - mapWidth, 0), 0); // Y顶对齐，X居中
     add(bg);
 
-    await _addEntry('youli_fanchenshiji.png', Vector2(500, 1900), onTap: () {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const XiuXianMarketPage()),
-      );
-    });
-    await _addEntry('youli_huanyueshan.png', Vector2(550, 1300), onTap: () {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const HuanyueExplorePage()),
-      );
-    });
-    await _addEntry('youli_ciyangu.png', Vector2(400, 800), onTap: () {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const ChiyanguPage()),
-      );
-    });
-    await _addEntry('youli_fukongxiandao.png', Vector2(1100, 400));
-    await _addEntry('youli_dengtianti.png', Vector2(1600, 800));
-    await _addEntry('youli_youmingguiku.png', Vector2(2700, 1800));
-    await _addEntry('youli_xianlingqizhen.png', Vector2(1350, 2200), onTap: () {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const XianlingQizhenPage()),
-      );
-    });
-    await _addEntry('youli_naiheqiao.png', Vector2(1000, 910), onTap: () {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const NaiheBridgePage()),
-      );
+    // ✅ 原图坐标，无需缩放
+    await _addEntry('youli_fanchenshiji.png', Vector2(800, 850), onTap: () {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const XiuXianMarketPage()));
     });
 
+    await _addEntry('youli_huanyueshan.png', Vector2(1250, 200), onTap: () {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HuanyueExplorePage()));
+    });
+
+    await _addEntry('youli_ciyangu.png', Vector2(1360, 830), onTap: () {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChiyanguPage()));
+    });
+
+    await _addEntry('youli_fukongxiandao.png', Vector2(900, 500));
+    await _addEntry('youli_dengtianti.png', Vector2(200, 250));
+    await _addEntry('youli_youmingguiku.png', Vector2(1500, 600));
+
+    await _addEntry('youli_xianlingqizhen.png', Vector2(550, 600), onTap: () {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const XianlingQizhenPage()));
+    });
+
+    await _addEntry('youli_naiheqiao.png', Vector2(400, 800), onTap: () {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NaiheBridgePage()));
+    });
+
+    // ✅ 拖动组件
     add(DragMap(
       onDragged: _onDragged,
       onTap: _handleTap,
@@ -109,10 +117,9 @@ class YouliMapGame extends FlameGame {
   void _handleTap(Vector2 tapInScreen) {
     for (final icon in entryIcons) {
       final center = icon.absolutePosition;
-      final size = icon.size; // ✅ 不要乘 bg.scale 了！
+      final size = icon.size;
 
       final topLeft = center - size / 2;
-
       final hitbox = Rect.fromLTWH(
         topLeft.x,
         topLeft.y,
@@ -140,13 +147,12 @@ class _EntryIcon extends PositionComponent {
     this.position = position;
     anchor = Anchor.center;
 
-    // 🟡 固定宽度 256，高度按原图比例缩放
-    const double fixedWidth = 206;
+    const double fixedWidth = 128;
     final originalSize = sprite.srcSize;
     final scale = fixedWidth / originalSize.x;
     final scaledHeight = originalSize.y * scale;
-
     final textHeight = 32.0;
+
     size = Vector2(fixedWidth, scaledHeight + textHeight);
 
     final icon = SpriteComponent(
@@ -156,22 +162,6 @@ class _EntryIcon extends PositionComponent {
       position: Vector2(0, textHeight / 2),
     );
 
-    final label = TextComponent(
-      text: name,
-      anchor: Anchor.bottomCenter,
-      position: Vector2(0, -scaledHeight / 2.3), // 文字在图标上方
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          fontSize: 36,
-          color: Colors.white,
-          fontFamily: 'ZcoolCangEr',
-          shadows: [
-            Shadow(color: Colors.black87, offset: Offset(1, 1), blurRadius: 2),
-          ],
-        ),
-      ),
-    );
-
-    addAll([icon, label]);
+    add(icon);
   }
 }
