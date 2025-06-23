@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart' as flutter;
 
+import '../../utils/sect_role_limits.dart';
+
 class DiscipleNodeComponent extends PositionComponent {
   final String id;
   final String name;
@@ -70,7 +72,7 @@ class DiscipleNodeComponent extends PositionComponent {
 
     if (role != null && role != '弟子') {
       final roleStyle = flutter.TextStyle(
-        color: _getRoleColor(role!),
+        color: SectRoleLimits.getRoleColor(role!),
         fontSize: 9,
         height: 1.0,
       );
@@ -94,17 +96,6 @@ class DiscipleNodeComponent extends PositionComponent {
 
     final dx = (size.x - tp.width) / 2;
     tp.paint(canvas, Offset(dx, dy));
-  }
-
-  flutter.Color _getRoleColor(String role) {
-    switch (role) {
-      case '长老':
-        return flutter.Colors.redAccent;
-      case '执事':
-        return flutter.Colors.green;
-      default:
-        return flutter.Colors.white;
-    }
   }
 
   bool containsPoint(Vector2 pointInWorld) {
