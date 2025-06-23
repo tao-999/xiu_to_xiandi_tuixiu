@@ -19,12 +19,13 @@ class _ZongmenRolesPageState extends State<ZongmenRolesPage> {
   void initState() {
     super.initState();
     mapGame = ZongmenPositionMapGame(
-      onAppointRequested: (id, name, role, onSelected) {
+      onAppointRequested: (id, name, role, realm, onSelected) {
         showDialog(
           context: context,
           builder: (context) => AppointDiscipleRoleDialog(
-            discipleName: name, // ✅ 终于用对了
+            discipleName: name,
             currentRole: role,
+            currentRealm: realm,
             onAppointed: (newRole) {
               onSelected(newRole);
             },

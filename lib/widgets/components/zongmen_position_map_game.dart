@@ -23,13 +23,14 @@ class ZongmenPositionMapGame extends FlameGame {
       String discipleId,
       String discipleName,
       String? currentRole,
+      String? currentRealm,
       void Function(String? newRole) onAppointed,
       )? onAppointRequested;
 
   ZongmenPositionMapGame({this.onAppointRequested});
 
   static const Size discipleNodeSize = Size(48, 48);
-  static const Size avatarSize = Size(28, 28);
+  static const Size avatarSize = Size(32, 32);
 
   @override
   Future<void> onLoad() async {
@@ -40,13 +41,15 @@ class ZongmenPositionMapGame extends FlameGame {
       ..sprite = await loadSprite('bg_zongmen_zhiwei.webp')
       ..size = mapSize
       ..position = cameraOffset;
+    cameraOffset.setFrom(Vector2((size.x - mapSize.x) / 2, 0));
+    bg.position = cameraOffset.clone();
 
     final disciples = await ZongmenStorage.loadDisciples();
     final regions = await RoleService.loadAllRegions();
-    final roles = await RoleService.loadAllRoles(); // ✅ 加载职位
     final usedRects = regions.values.toList();
 
     for (final d in disciples) {
+      if (d.role == '宗主') continue; // 宗主单独处理
       Rect? region = regions[d.id];
 
       if (region == null) {
@@ -62,7 +65,7 @@ class ZongmenPositionMapGame extends FlameGame {
         id: d.id,
         name: d.name,
         realm: d.realm,
-        role: roles[d.id], // ✅ 职位填入
+        role: d.role, // ✅ 直接使用字段
         imagePath: d.imagePath,
         position: Vector2(region.left, region.top),
         size: Vector2(
@@ -73,6 +76,7 @@ class ZongmenPositionMapGame extends FlameGame {
 
       bg.add(node);
     }
+
     await _addZongzhuNode();
     add(bg);
 
@@ -87,16 +91,18 @@ class ZongmenPositionMapGame extends FlameGame {
           final worldTap = tapPosition - cameraOffset;
           for (final child in bg.children) {
             if (child is DiscipleNodeComponent && child.containsPoint(worldTap)) {
+              if (child.role == '宗主') return;
               debugPrint('🎯 命中弟子：${child.name}（ID: ${child.id}）');
 
               onAppointRequested?.call(
                 child.id,
                 child.name,
                 child.role,
+                child.realm,
                     (newRole) async {
                   child.updateRole(newRole);
-                  await RoleService.saveRole(child.id, newRole); // ✅ 统一持久化 key
-                },
+                  await ZongmenStorage.setDiscipleRole(child.id, newRole ?? '弟子');
+                    },
               );
               break;
             }

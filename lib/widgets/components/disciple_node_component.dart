@@ -7,7 +7,7 @@ class DiscipleNodeComponent extends PositionComponent {
   final String name;
   final String realm;
   final String imagePath;
-  String? role; // ✅ 改成非 final
+  String? role;
 
   DiscipleNodeComponent({
     required this.id,
@@ -32,7 +32,7 @@ class DiscipleNodeComponent extends PositionComponent {
     final sprite = await Sprite.load(fixedPath);
     final originalSize = sprite.srcSize;
 
-    final targetAvatarSize = 28.0;
+    final targetAvatarSize = 32.0;
     final scale = targetAvatarSize / (originalSize.x > originalSize.y
         ? originalSize.x
         : originalSize.y);
@@ -54,33 +54,46 @@ class DiscipleNodeComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    final centerX = size.x / 2;
 
-    final textPaint = TextPaint(
-      style: const flutter.TextStyle(
-        color: flutter.Colors.white,
-        fontSize: 9,
-        height: 1.0,
-      ),
+    final nameStyle = const flutter.TextStyle(
+      color: flutter.Colors.white,
+      fontSize: 9,
+      height: 1.0,
     );
 
-    final title = '$name · $realm';
-    final titleOffsetX = centerX - (title.length * 4.5 / 2);
-    textPaint.render(canvas, title, Vector2(titleOffsetX, 0));
+    _drawCenteredText(
+      canvas,
+      name,
+      nameStyle,
+      dy: 0,
+    );
 
-    if (role != null && role!.isNotEmpty) {
-      final roleColor = _getRoleColor(role!);
-      final rolePaint = TextPaint(
-        style: flutter.TextStyle(
-          color: roleColor,
-          fontSize: 9,
-          height: 1.0,
-          fontWeight: flutter.FontWeight.bold,
-        ),
+    if (role != null && role != '弟子') {
+      final roleStyle = flutter.TextStyle(
+        color: _getRoleColor(role!),
+        fontSize: 9,
+        height: 1.0,
       );
-      final roleOffsetX = centerX - (role!.length * 4.5 / 2);
-      rolePaint.render(canvas, role!, Vector2(roleOffsetX, size.y - 11));
+
+      _drawCenteredText(
+        canvas,
+        role!,
+        roleStyle,
+        dy: size.y - 4, // ✅ 下移，防止撞图
+      );
     }
+  }
+
+  /// 🎯 居中绘制文字
+  void _drawCenteredText(Canvas canvas, String text, flutter.TextStyle style, {required double dy}) {
+    final tp = flutter.TextPainter(
+      text: flutter.TextSpan(text: text, style: style),
+      textAlign: flutter.TextAlign.center,
+      textDirection: flutter.TextDirection.ltr,
+    )..layout();
+
+    final dx = (size.x - tp.width) / 2;
+    tp.paint(canvas, Offset(dx, dy));
   }
 
   flutter.Color _getRoleColor(String role) {
@@ -94,13 +107,11 @@ class DiscipleNodeComponent extends PositionComponent {
     }
   }
 
-  /// ✅ 外部点击判定用
   bool containsPoint(Vector2 pointInWorld) {
     final rect = toRect();
     return rect.contains(Offset(pointInWorld.x, pointInWorld.y));
   }
 
-  /// ✅ 职位刷新方法（改完就自动重绘）
   void updateRole(String? newRole) {
     role = newRole;
   }

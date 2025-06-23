@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 
+import '../utils/sect_role_limits.dart';
+
 class ZongmenStorage {
   static const String _zongmenKey = 'current_zongmen';
 
@@ -131,4 +133,56 @@ class ZongmenStorage {
     await saveZongmen(newZongmen);
     return newZongmen;
   }
+
+  /// 🧍 保存职位（职位是弟子 ID 与房间的映射）
+  /// 如果要设为无职位，传 null 即可
+  /// 🧍 设置弟子职位（含“弟子”），并保证职位唯一（除“弟子”外）
+  static Future<void> setDiscipleRole(String discipleId, String role) async {
+    final box = await Hive.openBox<Disciple>('disciples');
+    final zongmen = await loadZongmen();
+    final sectExp = zongmen?.sectExp ?? 0;
+    final sectLevel = calcSectLevel(sectExp);
+
+    final roleMax = SectRoleLimits.getMax(role, sectLevel);
+    final disciples = box.values.toList();
+
+    // ✅ 找出当前拥有该角色的人（除了自己）
+    final others = disciples
+        .where((d) => d.role == role && d.id != discipleId)
+        .toList();
+
+    if (role != '弟子' && others.length >= roleMax) {
+      // 🔥 如果已满，踢掉一个（比如最早加入的那个）
+      others.sort((a, b) => (a.joinedAt ?? 0).compareTo(b.joinedAt ?? 0));
+      final kicked = others.first;
+      await box.put(kicked.id, kicked.copyWith(role: '弟子'));
+    }
+
+    // ✅ 设置新角色
+    final d = box.get(discipleId);
+    if (d != null) {
+      await box.put(d.id, d.copyWith(role: role));
+    }
+  }
+
+  /// 获取当前宗门的所有职位分配情况（map：职位 => 弟子）
+  /// 📋 获取所有非“弟子”的职位对应弟子（比如宗主、长老、执事）
+  static Future<Map<String, Disciple>> getAssignedRoles() async {
+    final box = await Hive.openBox<Disciple>('disciples');
+    return {
+      for (final d in box.values)
+        if (d.role != '弟子') d.role!: d
+    };
+  }
+
+  /// 🧹 把某职位的弟子踢下岗 → 改为“弟子”
+  static Future<void> clearRole(String role) async {
+    final box = await Hive.openBox<Disciple>('disciples');
+    for (final d in box.values) {
+      if (d.role == role) {
+        await box.put(d.id, d.copyWith(role: '弟子'));
+      }
+    }
+  }
+
 }
