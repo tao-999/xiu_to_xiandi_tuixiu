@@ -84,29 +84,44 @@ class RockCellComponent extends PositionComponent
       targetPosition: globalClick,
       onFinish: () async {
         await Future.delayed(const Duration(milliseconds: 500));
-        _onPickaxeStrike(event.localPosition, shouldShift: true);
+        _onPickaxeStrike(
+          event.localPosition,
+          shouldShift: true,
+          context: game.buildContext!, // ✅ 传入 context
+        );
         isProcessingTap = false;
       },
     ));
   }
 
-  void externalBreak() {
+  void externalBreak(BuildContext context) {
     if (broken) return;
-    _onPickaxeStrike(size / 2, shouldShift: false);
+    _onPickaxeStrike(
+      size / 2,
+      shouldShift: false,
+      context: context, // ✅ 传下去
+    );
   }
 
-  void _onPickaxeStrike(Vector2 clickPoint, {required bool shouldShift}) {
+  void _onPickaxeStrike(
+      Vector2 clickPoint, {
+        required bool shouldShift,
+        required BuildContext context, // ✅ 加入 context
+      }) {
     hitCount++;
     game.saveCurrentState();
 
     if (hitCount == 1) {
       _addCrackOverlay();
     } else {
-      _breakBlock(shouldShift: shouldShift);
+      _breakBlock(shouldShift: shouldShift, context: context); // ✅ 向下传 context
     }
   }
 
-  void _breakBlock({required bool shouldShift}) {
+  void _breakBlock({
+    required bool shouldShift,
+    required BuildContext context,
+  }) {
     if (broken) return;
     broken = true;
     removeFromParent();
@@ -142,6 +157,9 @@ class RockCellComponent extends PositionComponent
     }
 
     ResourcesStorage.add(key, amount);
+    // ✅ 新增：浮层提示（Toast）
+    final color = _getSpiritStoneColor(label);
+    ToastTip.show(context, label, backgroundColor: color);
     game.add(_showSpiritStoneReward(centerPos, label: label));
 
     if (shouldShift) {
@@ -151,19 +169,20 @@ class RockCellComponent extends PositionComponent
     game.saveCurrentState();
   }
 
-  Component _showSpiritStoneReward(Vector2 pos, {required String label}) {
-    // 🧠 自动判断灵石类型，决定颜色
-    Color color;
-
+  Color _getSpiritStoneColor(String label) {
     if (label.contains('极品')) {
-      color = const Color(0xFFFF4444); // 金色
+      return const Color(0xFFFF4444); // 金
     } else if (label.contains('上品')) {
-      color = const Color(0xFF66CCFF); // 蓝色
+      return const Color(0xFF66CCFF); // 蓝
     } else if (label.contains('中品')) {
-      color = const Color(0xFF66FF66); // 绿色
+      return const Color(0xFF66FF66); // 绿
     } else {
-      color = const Color(0xFFFFFF66); // 下品：黄中带点白
+      return const Color(0xFFFFFF66); // 黄
     }
+  }
+
+  Component _showSpiritStoneReward(Vector2 pos, {required String label}) {
+    final color = _getSpiritStoneColor(label); // ✅ 用统一方法
 
     final text = TextComponent(
       text: label,

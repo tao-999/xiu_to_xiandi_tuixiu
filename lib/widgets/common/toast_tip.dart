@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 class ToastTip {
-  static void show(BuildContext context, String message, {
-    Duration duration = const Duration(seconds: 2),
-  }) {
+  static void show(
+      BuildContext context,
+      String message, {
+        Duration duration = const Duration(seconds: 2),
+        Color backgroundColor = const Color.fromRGBO(255, 255, 255, 0.75), // ✅ 默认值
+      }) {
     final overlay = Overlay.of(context);
     if (overlay == null) return;
 
@@ -20,9 +23,9 @@ class ToastTip {
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
                 margin: const EdgeInsets.symmetric(horizontal: 32),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.75), // 👈 这里你可以自由控制透明度
+                  color: backgroundColor, // ✅ 用传入的背景色
                   borderRadius: BorderRadius.zero,
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black26,
                       blurRadius: 10,
