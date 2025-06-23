@@ -48,6 +48,16 @@ class ZongmenPositionMapGame extends FlameGame {
     final regions = await RoleService.loadAllRegions();
     final usedRects = regions.values.toList();
 
+    // ✅ 补上宗主默认占位（居中）
+    final center = mapSize / 2;
+    final zongzhuRect = Rect.fromLTWH(
+      center.x,
+      center.y,
+      discipleNodeSize.width,
+      discipleNodeSize.height,
+    );
+    usedRects.add(zongzhuRect);
+
     for (final d in disciples) {
       if (d.role == '宗主') continue; // 宗主单独处理
       Rect? region = regions[d.id];
