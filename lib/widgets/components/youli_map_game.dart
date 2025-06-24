@@ -50,19 +50,19 @@ class YouliMapGame extends FlameGame {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const HuanyueExplorePage()));
     });
 
-    await _addEntry('youli_ciyangu.png', Vector2(1360, 830), onTap: () {
+    await _addEntry('youli_ciyangu.png', Vector2(1350, 810), onTap: () {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChiyanguPage()));
     });
 
-    await _addEntry('youli_fukongxiandao.png', Vector2(900, 500));
-    await _addEntry('youli_dengtianti.png', Vector2(200, 250));
-    await _addEntry('youli_youmingguiku.png', Vector2(1500, 600));
+    await _addEntry('youli_fukongxiandao.png', Vector2(1100, 650));
+    await _addEntry('youli_dengtianti.png', Vector2(150, 220));
+    await _addEntry('youli_youmingguiku.png', Vector2(1450, 560));
 
     await _addEntry('youli_xianlingqizhen.png', Vector2(550, 600), onTap: () {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const XianlingQizhenPage()));
     });
 
-    await _addEntry('youli_naiheqiao.png', Vector2(400, 800), onTap: () {
+    await _addEntry('youli_naiheqiao.png', Vector2(370, 780), onTap: () {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NaiheBridgePage()));
     });
 
@@ -77,23 +77,10 @@ class YouliMapGame extends FlameGame {
     final icon = _EntryIcon(
       sprite: await loadSprite(imageName),
       position: position,
-      name: _extractName(imageName),
       onTap: onTap,
     );
     entryIcons.add(icon);
     bg.add(icon);
-  }
-
-  String _extractName(String imageName) {
-    if (imageName.contains('huanyueshan')) return '幻月山';
-    if (imageName.contains('fanchenshiji')) return '修仙集市';
-    if (imageName.contains('ciyangu')) return '赤炎谷';
-    if (imageName.contains('fukongxiandao')) return '浮空仙岛';
-    if (imageName.contains('dengtianti')) return '登天梯';
-    if (imageName.contains('youmingguiku')) return '幽冥鬼窟';
-    if (imageName.contains('xianlingqizhen')) return '仙灵棋阵';
-    if (imageName.contains('naiheqiao')) return '奈何桥';
-    return '未知区域';
   }
 
   void _onDragged(Vector2 delta) {
@@ -141,17 +128,16 @@ class _EntryIcon extends PositionComponent {
   _EntryIcon({
     required Sprite sprite,
     required Vector2 position,
-    required String name,
     this.onTap,
   }) {
     this.position = position;
     anchor = Anchor.center;
 
-    const double fixedWidth = 128;
+    const double fixedWidth = 72;
     final originalSize = sprite.srcSize;
     final scale = fixedWidth / originalSize.x;
     final scaledHeight = originalSize.y * scale;
-    final textHeight = 32.0;
+    const double textHeight = 32.0;
 
     size = Vector2(fixedWidth, scaledHeight + textHeight);
 
