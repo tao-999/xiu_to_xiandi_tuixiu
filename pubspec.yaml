@@ -47,6 +47,7 @@ flutter:
     - assets/fonts/
     - assets/images/materials/
     - assets/images/herbs/
+    - assets/images/hell/
   fonts:
     - family: ZcoolCangEr
       fonts:

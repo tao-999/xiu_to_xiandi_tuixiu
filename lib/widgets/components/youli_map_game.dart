@@ -9,6 +9,7 @@ import 'package:xiu_to_xiandi_tuixiu/pages/page_chiyangu.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_xianling_qizhen.dart';
 import '../../pages/page_market.dart';
 import '../../pages/page_naihe_bridge.dart';
+import '../../pages/page_youming_hell.dart';
 
 class YouliMapGame extends FlameGame {
   final BuildContext context;
@@ -56,7 +57,9 @@ class YouliMapGame extends FlameGame {
 
     await _addEntry('youli_fukongxiandao.png', Vector2(1100, 650));
     await _addEntry('youli_dengtianti.png', Vector2(150, 220));
-    await _addEntry('youli_youmingguiku.png', Vector2(1450, 560));
+    await _addEntry('youli_youmingguiku.png', Vector2(1450, 560), onTap: () {
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const YoumingHellPage()));
+    });
 
     await _addEntry('youli_xianlingqizhen.png', Vector2(550, 600), onTap: () {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const XianlingQizhenPage()));
