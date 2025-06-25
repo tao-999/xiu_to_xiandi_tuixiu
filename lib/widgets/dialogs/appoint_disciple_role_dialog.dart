@@ -43,12 +43,10 @@ class AppointDiscipleRoleDialog extends StatelessWidget {
           (groupedMap[role] ??= []).add(d);
         }
 
-        // ✅ 提取要展示的角色（不包括宗主）
         final List<SectRole> roles = SectRoleLimits.roles.values
             .where((r) => r.name != '宗主')
             .toList();
 
-        // ✅ 始终将“弟子”放到最后
         roles.sort((a, b) {
           if (a.name == '弟子') return 1;
           if (b.name == '弟子') return -1;
@@ -71,27 +69,47 @@ class AppointDiscipleRoleDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: roles.map((roleObj) {
               final role = roleObj.name;
+              final count = groupedMap[role]?.length ?? 0;
+              final max = SectRoleLimits.getMax(role, sectLevel);
               final isSelected =
                   (role == currentRole) || (role == '弟子' && currentRole == null);
-              final isFull = SectRoleLimits.isRoleFull(role, groupedMap, sectLevel);
+
+              // ✅ 简洁判断逻辑
+              bool isEnabled;
+              if (role == '弟子') {
+                isEnabled = true;
+              } else if (role == '长老' || role == '执事') {
+                isEnabled = sectLevel >= 2 && (count < max || isSelected);
+              } else {
+                isEnabled = count < max || isSelected;
+              }
+
+              final isDisabled = !isEnabled;
+              final roleColor = isDisabled
+                  ? Colors.grey
+                  : SectRoleLimits.getRoleColor(role);
 
               return ListTile(
                 title: Text(
-                  role,
+                  isDisabled && (role == '长老' || role == '执事') && sectLevel < 2
+                      ? '$role（需宗门2级）'
+                      : role,
                   style: TextStyle(
-                    color: isFull && !isSelected
-                        ? Colors.grey
-                        : SectRoleLimits.getRoleColor(role),
+                    color: roleColor,
                     fontSize: 13,
                   ),
                 ),
                 trailing: isSelected
                     ? const Icon(Icons.check, color: Colors.green)
                     : null,
-                enabled: !isFull || isSelected,
+                enabled: isEnabled,
                 onTap: () {
-                  if (!isSelected && isFull) {
-                    ToastTip.show(context, '⚠️ $role 已满员');
+                  if (!isEnabled) {
+                    if ((role == '长老' || role == '执事') && sectLevel < 2) {
+                      ToastTip.show(context, '⚠️ $role 需宗门等级达到2级才能任命');
+                    } else {
+                      ToastTip.show(context, '⚠️ $role 已满员');
+                    }
                     return;
                   }
 
