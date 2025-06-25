@@ -2,7 +2,7 @@ import 'package:hive/hive.dart';
 import '../models/pill.dart';
 
 class PillStorageService {
-  static const String _boxName = 'pill_box';
+  static const String _boxName = 'pills';
 
   /// 🧪 打开盒子（私有方法）
   static Future<Box<Pill>> _openBox() async {

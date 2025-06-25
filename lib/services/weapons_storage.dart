@@ -4,7 +4,7 @@ import '../models/refine_blueprint.dart';
 import '../models/weapon.dart';
 
 class WeaponsStorage {
-  static const String _boxName = 'weapons_box';
+  static const String _boxName = 'weapons';
 
   // 🔐 打开盒子（私有）
   static Future<Box<Weapon>> _openBox() async {

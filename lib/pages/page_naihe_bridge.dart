@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -10,10 +13,9 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/typewriter_poem_section.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/mengpo_soup_dialog.dart';
 
-import '../services/cultivation_tracker.dart';
-import '../services/disciple_storage.dart';
-import '../services/pill_storage_service.dart';
-import '../services/weapons_storage.dart';
+import '../models/disciple.dart';
+import '../models/pill.dart';
+import '../models/weapon.dart';
 import '../widgets/components/naihe_info_icon.dart';
 
 class NaiheBridgePage extends StatefulWidget {
@@ -82,15 +84,21 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
       _spinning = true;
     });
 
-    // 🧨 清空 SharedPreferences
+    // ✅ 清空 SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
-    // 🧨 清空所有 Hive 数据
+    // ✅ 关闭所有已打开的 box（带泛型）
+    await closeAllBoxes();
+
+    // ✅ 关闭 Hive 并尝试官方删除
     await Hive.close();
     await Hive.deleteFromDisk();
 
-    // 🛑 停止修为 tick、清除赤炎谷数据（内存状态）
+    // ✅ 暴力物理删除 Hive 数据文件（保险）
+    await nukeHiveStorage();
+
+    // ✅ 清理游戏状态
     CultivationTracker.stopTick();
     ChiyanguStorage.resetPickaxeData();
 
@@ -101,6 +109,47 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
         MaterialPageRoute(builder: (_) => const CreateRolePage()),
             (route) => false,
       );
+    }
+  }
+
+  Future<void> nukeHiveStorage() async {
+    // ✅ 等 Hive 全部关闭
+    await Hive.close();
+
+    // ✅ 获取默认 Hive 目录
+    final dir = await getApplicationDocumentsDirectory();
+
+    // ✅ Hive 默认 box 是保存在这里的（你没改 path 就准在这）
+    final hiveRoot = dir.path;
+    final files = Directory(hiveRoot).listSync(recursive: true);
+
+    for (final file in files) {
+      final name = file.path;
+      if (name.endsWith('.hive') || name.endsWith('.lock') || name.contains('hive')) {
+        try {
+          await File(name).delete();
+          debugPrint('🔥 删除文件: $name');
+        } catch (e) {
+          debugPrint('⚠️ 删除失败: $name');
+        }
+      }
+    }
+
+    debugPrint('✅ Hive 文件全干掉了');
+  }
+
+  Future<void> closeAllBoxes() async {
+    if (Hive.isBoxOpen('disciples')) {
+      await Hive.box<Disciple>('disciples').close();
+    }
+    if (Hive.isBoxOpen('weapons')) {
+      await Hive.box<Weapon>('weapons').close();
+    }
+    if (Hive.isBoxOpen('pills')) {
+      await Hive.box<Pill>('pills').close();
+    }
+    if (Hive.isBoxOpen('role_regions')) {
+      await Hive.box('role_regions').close();
     }
   }
 
