@@ -8,6 +8,9 @@ class SafeZoneCircle extends PositionComponent {
   final Paint innerCirclePaint;
   final Paint starPaint;
 
+  bool _glowing = false;
+  double _glowTime = 0.0;
+
   SafeZoneCircle({
     required Vector2 center,
     required this.radius,
@@ -32,6 +35,18 @@ class SafeZoneCircle extends PositionComponent {
         priority: 50,
       );
 
+  void startGlow() {
+    _glowing = true;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (_glowing) {
+      _glowTime += dt;
+    }
+  }
+
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -44,7 +59,16 @@ class SafeZoneCircle extends PositionComponent {
     final innerRadius = radius - gap;
     canvas.drawCircle(Offset.zero, innerRadius, innerCirclePaint);
 
-    // 3. 五芒星（画在内圈上）
+    // 3. 五芒星（发光时 alpha 变化）
+    final double alpha = _glowing
+        ? (sin(_glowTime * 2 * pi) * 0.5 + 0.5) * 255
+        : 128;
+
+    final glowPaint = Paint()
+      ..color = starPaint.color.withAlpha(alpha.clamp(0, 255).toInt())
+      ..style = starPaint.style
+      ..strokeWidth = starPaint.strokeWidth;
+
     final List<Offset> vertices = [];
     final double angleStep = 2 * pi / 5;
     final double startAngle = -pi / 2;
@@ -57,7 +81,6 @@ class SafeZoneCircle extends PositionComponent {
       ));
     }
 
-    // 五芒星一笔画法
     final starPath = Path()..moveTo(vertices[0].dx, vertices[0].dy);
     starPath.lineTo(vertices[2].dx, vertices[2].dy);
     starPath.lineTo(vertices[4].dx, vertices[4].dy);
@@ -65,6 +88,6 @@ class SafeZoneCircle extends PositionComponent {
     starPath.lineTo(vertices[3].dx, vertices[3].dy);
     starPath.close();
 
-    canvas.drawPath(starPath, starPaint);
+    canvas.drawPath(starPath, glowPaint);
   }
 }

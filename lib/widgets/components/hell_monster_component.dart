@@ -5,6 +5,9 @@ import 'package:flame/collisions.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart';
+import '../../services/hell_service.dart';
+import '../../services/resources_storage.dart';
+import 'hell_player_component.dart';
 import 'youming_hell_map_game.dart';
 import 'hp_bar_wrapper.dart'; // ✅ 引入你封装好的血条组件
 
@@ -87,6 +90,7 @@ class HellMonsterComponent extends SpriteComponent
       ),
     )..priority = 999;
     add(_damageText);
+    print('⚙️ 怪物 #$id（波次 $waveIndex）加载完成，速度: $_moveSpeed');
   }
 
   void trackTarget(
@@ -143,20 +147,86 @@ class HellMonsterComponent extends SpriteComponent
 
   @override
   void onCollision(Set<Vector2> points, PositionComponent other) {
+    super.onCollision(points, other);
+
     if (other is HellMonsterComponent && other != this) {
       final offset = (position - other.position).normalized() * 2;
       position += offset;
     }
-    super.onCollision(points, other);
+
+    // ✅ 怪物撞到玩家，也要触发攻击逻辑！
+    if (other is HellPlayerComponent && !other.isDead) {
+      final damage = atk; // ✅ 怪物的攻击力
+      other.receiveDamage(damage); // ✅ 玩家会判断防御并处理飘字
+    }
+  }
+
+  void _giveReward() async {
+    final base = 10 + (level - 1); // 每升一级 +1
+    final reward = isBoss ? base * 2 : base;
+
+    // ✅ 1. 发放灵石
+    ResourcesStorage.add('spiritStoneMid', BigInt.from(reward));
+    print('💰 击杀奖励：$reward 个中品灵石');
+
+    // ✅ 2. 累加到奖励统计中
+    final prev = await HellService.loadSpiritStoneReward();
+    await HellService.saveSpiritStoneReward(prev + reward);
+  }
+
+  void onDeath({Vector2? from}) {
+    print('💀 怪物 #$id 死亡触发！当前波次：$waveIndex，剩余HP: $hp');
+
+    _giveReward(); // ✅ 发放灵石奖励
+    // ✅ 死亡立即触发逻辑
+    game.checkWaveProgress(); // 🎯 无论如何，先告诉游戏“我死了”
+
+    if (from != null) {
+      final direction = (position - from).normalized();
+      final knockbackTarget = position + direction * 480;
+
+      // ✅ 延迟演出效果，不影响主控判断
+      final effect = MoveEffect.to(
+        knockbackTarget,
+        EffectController(duration: 1.0, curve: Curves.easeOut),
+      )..onComplete = () {
+        removeFromParent(); // 🪦 最后清尸
+      };
+
+      Future.microtask(() {
+        if (isMounted) add(effect);
+      });
+    } else {
+      removeFromParent();
+    }
   }
 
   void receiveDamage(int damage, {Vector2? from}) {
     final reduced = damage - def;
-    if (reduced <= 0) return; // ❌ 破不了防，不处理
 
+    if (reduced <= 0) {
+      // ✅ 格挡文字
+      _damageText.text = '格挡';
+      _damageText.position = Vector2(0, -size.y / 2 - 2);
+
+      if (!_damageText.isMounted) {
+        add(_damageText);
+      }
+
+      _damageText.add(
+        MoveByEffect(
+          Vector2(0, -16),
+          EffectController(duration: 0.4, curve: Curves.easeOut),
+          onComplete: () => _damageText.removeFromParent(),
+        ),
+      );
+      return;
+    }
+
+    // ✅ 扣血
     hp -= reduced;
 
-    // ✅ 展示飘字（文字组件需要提前在 onLoad 中初始化 _damageText）
+    // ✅ 飘字动画
     _damageText.text = '-$reduced';
     _damageText.position = Vector2(0, -size.y / 2 - 2);
 
@@ -168,33 +238,13 @@ class HellMonsterComponent extends SpriteComponent
       MoveByEffect(
         Vector2(0, -16),
         EffectController(duration: 0.4, curve: Curves.easeOut),
-        onComplete: () {
-          _damageText.removeFromParent(); // ✅ 及时隐藏
-        },
+        onComplete: () => _damageText.removeFromParent(),
       ),
     );
 
-    // ✅ 怪物死亡处理
+    // ✅ 判断死亡
     if (hp <= 0) {
-      if (from != null) {
-        final direction = (position - from).normalized();
-        final knockbackTarget = position + direction * 480;
-
-        final effect = MoveEffect.to(
-          knockbackTarget,
-          EffectController(duration: 1.0, curve: Curves.easeOut),
-        )..onComplete = () {
-          removeFromParent();
-          game.checkWaveProgress();
-        };
-
-        Future.microtask(() {
-          if (isMounted) add(effect);
-        });
-      } else {
-        removeFromParent();
-        game.checkWaveProgress();
-      }
+      onDeath(from: from); // ⬅️ 独立封装的死亡逻辑
     }
   }
 

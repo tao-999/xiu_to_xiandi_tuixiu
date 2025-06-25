@@ -4,6 +4,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
+
 import '../../models/character.dart';
 import '../../utils/player_sprite_util.dart';
 import 'hp_bar_wrapper.dart';
@@ -14,7 +15,16 @@ class HellPlayerComponent extends SpriteComponent
   HellPlayerComponent({
     required this.safeZoneCenter,
     required this.safeZoneRadius,
+    required this.onRevived,
+    required this.isWaveCleared,
+    this.onHellPassed,
   }) : super(anchor: Anchor.center);
+
+  final Vector2 safeZoneCenter;
+  final double safeZoneRadius;
+  final VoidCallback onRevived;
+  final VoidCallback? onHellPassed;
+  final bool Function() isWaveCleared; // ✅ 新增判断当前波是否已清空
 
   Vector2? targetPosition;
   final double moveSpeed = 200.0;
@@ -25,10 +35,9 @@ class HellPlayerComponent extends SpriteComponent
   late int atk;
   late int def;
 
-  late HpBarWrapper _hpBar;
+  bool isDead = false;
 
-  final Vector2 safeZoneCenter;
-  final double safeZoneRadius;
+  late HpBarWrapper _hpBar;
 
   bool get isInSafeZone =>
       (absolutePosition - safeZoneCenter).length <= safeZoneRadius;
@@ -44,7 +53,6 @@ class HellPlayerComponent extends SpriteComponent
 
     final sizeMultiplier = await PlayerStorage.getSizeMultiplier();
     size = Vector2.all(18.0 * sizeMultiplier);
-    position = Vector2.all(1024);
 
     maxHp = PlayerStorage.getHp(_player);
     hp = maxHp;
@@ -56,6 +64,7 @@ class HellPlayerComponent extends SpriteComponent
     _hpBar = HpBarWrapper(ratio: () => hp / maxHp)
       ..scale.x = 1
       ..priority = 999;
+
     Future.microtask(() {
       parent?.add(_hpBar);
     });
@@ -64,9 +73,10 @@ class HellPlayerComponent extends SpriteComponent
   @override
   void update(double dt) {
     super.update(dt);
+
     _hpBar.position = absolutePosition + Vector2(0, -size.y / 2 - 6);
 
-    if (targetPosition != null) {
+    if (!isDead && targetPosition != null) {
       final toTarget = targetPosition! - position;
       final distance = toTarget.length;
       if (distance < moveSpeed * dt) {
@@ -76,35 +86,78 @@ class HellPlayerComponent extends SpriteComponent
         position += toTarget.normalized() * moveSpeed * dt;
       }
     }
+
+    // ✅ 安全区回血，无需管怪是否清完
+    if (isInSafeZone && !isDead) {
+      if (hp < maxHp) {
+        hp = maxHp;
+        _showFloatingText('🌿 安全区恢复满血！', color: Colors.greenAccent);
+      }
+    }
+
+    // ✅ 怪物清空才触发换层
+    if (isInSafeZone && !isDead && isWaveCleared()) {
+      onHellPassed?.call();
+    }
   }
 
   void moveTo(Vector2 target) {
-    targetPosition = target;
+    if (isDead) return;
 
-    // ✅ 左右方向镜像控制
+    targetPosition = target;
     final delta = target - position;
     scale.x = delta.x < 0 ? -1 : 1;
   }
 
   void receiveDamage(int damage) {
-    final reduced = (damage - def);
+    if (isDead) return;
 
+    final reduced = (damage - def);
     if (reduced <= 0) {
       _showFloatingText('格挡', color: Colors.grey);
       return;
     }
 
     hp = (hp - reduced).clamp(0, maxHp);
-
-    // ✅ 受击伤害飘字
     _showFloatingText('-$reduced', color: Colors.redAccent);
-
-    // ✅ 闪红 or 动效
     _triggerDamageEffect();
 
-    if (hp <= 0) {
+    if (hp <= 0 && !isDead) {
+      isDead = true;
       _onDeath();
     }
+  }
+
+  void _onDeath() {
+    _showFloatingText('你死了', color: Colors.purpleAccent);
+    targetPosition = null;
+
+    for (int i = 3; i >= 1; i--) {
+      Future.delayed(Duration(seconds: 4 - i), () {
+        _showFloatingText('$i 秒后复活', color: Colors.orangeAccent);
+      });
+    }
+
+    Future.delayed(const Duration(seconds: 3), () {
+      _reviveAtSafeZone();
+      _showFloatingText('已复活', color: Colors.greenAccent);
+    });
+  }
+
+  void _reviveAtSafeZone() {
+    isDead = false;
+    hp = maxHp;
+    position = safeZoneCenter.clone();
+
+    add(
+      OpacityEffect.to(
+        0.3,
+        EffectController(duration: 0.1, reverseDuration: 0.1, repeatCount: 6),
+        onComplete: () => opacity = 1.0,
+      ),
+    );
+
+    onRevived();
   }
 
   void _showFloatingText(String text, {Color color = Colors.white}) {
@@ -134,14 +187,7 @@ class HellPlayerComponent extends SpriteComponent
   }
 
   void _triggerDamageEffect() {
-    // 你可以加入红屏、闪光、震屏等逻辑
-    // 比如让血条震动、贴图变红闪烁
-    // 这里只是预留接口
-  }
-
-  void _onDeath() {
-    _showFloatingText('你死了', color: Colors.purpleAccent);
-    // ❌ 播放死亡动画 or 弹窗
+    // 可加角色受伤效果
   }
 
   int get power => atk + def + hp ~/ 10;
@@ -150,11 +196,15 @@ class HellPlayerComponent extends SpriteComponent
   void onCollision(Set<Vector2> points, PositionComponent other) {
     super.onCollision(points, other);
 
-    if (other is HellMonsterComponent) {
-      final damage = (atk - other.def).clamp(0, atk);
-      other.receiveDamage(damage, from: absolutePosition); // ✅ 一句就够了！
+    if (other is HellMonsterComponent && !isDead) {
+      final damage = atk;
+      other.receiveDamage(damage, from: absolutePosition);
 
-      print('⚔️ 玩家攻击怪物 [${other.id}]，造成 $damage 点伤害');
+      final delta = position - other.position;
+      if (delta.length > 0) {
+        final pushBack = delta.normalized() * 4;
+        position += pushBack;
+      }
     }
   }
 }

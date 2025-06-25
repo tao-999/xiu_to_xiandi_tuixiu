@@ -27,7 +27,6 @@ class LightningEffectComponent extends Component with HasGameReference {
   @override
   Future<void> onLoad() async {
     super.onLoad();
-    print('⚡ [闪电特效] 准备释放 $lightningCount 道闪电');
 
     final targets = parent?.children.whereType<PositionComponent>().where((c) {
       final delta = c.absolutePosition - start;

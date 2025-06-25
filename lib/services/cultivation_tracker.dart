@@ -73,11 +73,6 @@ class CultivationTracker {
       final oldLayer = calculateCultivationLevel(oldExp).totalLayer;
       final newLayer = calculateCultivationLevel(player.cultivation).totalLayer;
 
-      debugPrint('📌 [修为检测]');
-      debugPrint('🥚 oldExp: $oldExp');
-      debugPrint('🔼 oldLayer: $oldLayer');
-      debugPrint('🔥 newLayer: $newLayer');
-
       if (newLayer > oldLayer) {
         PlayerStorage.calculateBaseAttributes(player);
         await PlayerStorage.applyAllEquippedAttributesWith(); // ✅ 更新装备附加属性
