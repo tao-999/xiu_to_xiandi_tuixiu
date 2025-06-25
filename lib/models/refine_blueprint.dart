@@ -52,4 +52,16 @@ class RefineBlueprint {
       iconPath: map['iconPath'],
     );
   }
+
+  // 放在 RefineBlueprint 类内部
+  String get typeLabel {
+    switch (type) {
+      case BlueprintType.weapon:
+        return '武器';
+      case BlueprintType.armor:
+        return '防具';
+      case BlueprintType.accessory:
+        return '饰品';
+    }
+  }
 }

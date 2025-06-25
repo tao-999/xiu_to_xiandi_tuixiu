@@ -13,7 +13,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/lianqi_header.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zhushou_disciple_slot.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/refine_material_selector.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/blueprint_dropdown_selector.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/select_refine_blueprint_button.dart';
 
 class LianqiPage extends StatefulWidget {
   const LianqiPage({super.key});
@@ -144,8 +144,7 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
                     const SizedBox(height: 40),
                     LianqiHeader(level: level),
                     const SizedBox(height: 24),
-                    BlueprintDropdownSelector(
-                      blueprintList: _ownedBlueprints,
+                    SelectRefineBlueprintButton(
                       selected: _selectedBlueprint,
                       onSelected: (val) {
                         setState(() {
@@ -153,9 +152,8 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
                           _selectedMaterials.clear();
                         });
                       },
+                      maxLevelAllowed: level, // ✅ 来自宗门经验计算出的可炼阶数
                       isDisabled: !_hasZhushou || _isRefining,
-                      maxLevelAllowed: level,
-                      hasZhushou: _hasZhushou,
                     ),
                     const SizedBox(height: 24),
                     if (_selectedBlueprint != null)

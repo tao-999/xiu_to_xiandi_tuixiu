@@ -294,7 +294,8 @@ class _DanfangMainContentState extends State<DanfangMainContent>
           const SizedBox(height: 24),
           SelectPillBlueprintButton(
             currentSectLevel: widget.level,
-            onSelected: _onBlueprintSelected,
+            selected: _selectedBlueprint, // ✅ 显示用
+            onSelected: _onBlueprintSelected, // ✅ 设置用
             isDisabled: _isRefining,
           ),
           const SizedBox(height: 24),

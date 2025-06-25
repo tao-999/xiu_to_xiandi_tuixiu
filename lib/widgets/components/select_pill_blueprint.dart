@@ -5,13 +5,15 @@ import 'package:xiu_to_xiandi_tuixiu/services/pill_blueprint_service.dart';
 class SelectPillBlueprintButton extends StatelessWidget {
   final void Function(PillBlueprint blueprint) onSelected;
   final int currentSectLevel;
-  final bool isDisabled; // ✅ 新增：是否禁用状态
+  final PillBlueprint? selected; // ✅ 新增：当前选中丹方
+  final bool isDisabled;
 
   const SelectPillBlueprintButton({
     super.key,
     required this.onSelected,
     required this.currentSectLevel,
-    this.isDisabled = false, // ✅ 默认允许点击
+    this.selected,
+    this.isDisabled = false,
   });
 
   @override
@@ -22,17 +24,21 @@ class SelectPillBlueprintButton extends StatelessWidget {
           : () async {
         final result = await showDialog<PillBlueprint>(
           context: context,
-          builder: (_) => _PillBlueprintDialog(currentSectLevel: currentSectLevel),
+          builder: (_) => _PillBlueprintDialog(
+            currentSectLevel: currentSectLevel,
+          ),
         );
         if (result != null) {
           onSelected(result);
         }
       },
       child: Text(
-        '选择丹方',
+        selected != null
+            ? '已选：${selected!.level}阶 ${selected!.name}'
+            : '选择丹方',
         style: TextStyle(
           fontSize: 14,
-          color: isDisabled ? Colors.grey : Colors.white, // ✅ 灰色表示不可点击
+          color: isDisabled ? Colors.grey : Colors.white,
           decoration: isDisabled ? null : TextDecoration.underline,
         ),
       ),
@@ -49,7 +55,6 @@ class _PillBlueprintDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final all = PillBlueprintService.generateAllBlueprints();
     final grouped = <int, List<PillBlueprint>>{};
-
     for (var bp in all) {
       grouped.putIfAbsent(bp.level, () => []).add(bp);
     }
@@ -89,7 +94,6 @@ class _PillBlueprintDialog extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -162,7 +166,6 @@ class _PillBlueprintDialog extends StatelessWidget {
                           }).toList(),
                         ),
                       ),
-
                       const SizedBox(height: 20),
                     ],
                   );
