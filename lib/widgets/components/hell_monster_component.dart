@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
+import 'package:flame/effects.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart';
 import 'youming_hell_map_game.dart';
@@ -30,6 +31,7 @@ class HellMonsterComponent extends SpriteComponent
   Vector2 _wanderDirection = Vector2.zero();
 
   TextComponent? _idText;  // 用来显示编号的文本
+  late final TextComponent _damageText;
 
   HellMonsterComponent({
     required this.id, // 初始化时传入编号
@@ -53,7 +55,11 @@ class HellMonsterComponent extends SpriteComponent
 
   @override
   Future<void> onLoad() async {
-    sprite = await Sprite.load('hell/diyu_$level.png');
+    // 计算 level 在 1-18 范围内循环的图片索引
+    int normalizedLevel = (level - 1) % 18 + 1;
+
+    // 根据循环后的 level 加载图片
+    sprite = await Sprite.load('hell/diyu_$normalizedLevel.png');
     size = isBoss ? Vector2.all(32) * 2 : Vector2.all(32);
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
@@ -68,14 +74,19 @@ class HellMonsterComponent extends SpriteComponent
         ..anchor = Anchor.topLeft,
     );
 
-    // 创建编号显示文本
-    _idText = TextComponent(
-      text: 'ID: $id',  // 显示怪物编号
+    _damageText = TextComponent(
+      text: '',
+      anchor: Anchor.bottomCenter,
+      position: Vector2(0, -size.y / 2 - 2),
       textRenderer: TextPaint(
-        style: TextStyle(fontSize: 12, color: Colors.white),
+        style: const TextStyle(
+          fontSize: 12,
+          color: Colors.red,
+          shadows: [Shadow(offset: Offset(1, 1), blurRadius: 1, color: Colors.black)],
+        ),
       ),
-    )..position = Vector2(0, -size.y / 2 - 16); // 设置文本位置，稍微在血条上方
-    add(_idText!);  // 将文本添加到怪物组件中
+    )..priority = 999;
+    add(_damageText);
   }
 
   void trackTarget(
@@ -139,13 +150,51 @@ class HellMonsterComponent extends SpriteComponent
     super.onCollision(points, other);
   }
 
-  void receiveDamage(int damage) {
-    final reduced = (damage - def).clamp(0, damage);
+  void receiveDamage(int damage, {Vector2? from}) {
+    final reduced = damage - def;
+    if (reduced <= 0) return; // ❌ 破不了防，不处理
+
     hp -= reduced;
 
+    // ✅ 展示飘字（文字组件需要提前在 onLoad 中初始化 _damageText）
+    _damageText.text = '-$reduced';
+    _damageText.position = Vector2(0, -size.y / 2 - 2);
+
+    if (!_damageText.isMounted) {
+      add(_damageText);
+    }
+
+    _damageText.add(
+      MoveByEffect(
+        Vector2(0, -16),
+        EffectController(duration: 0.4, curve: Curves.easeOut),
+        onComplete: () {
+          _damageText.removeFromParent(); // ✅ 及时隐藏
+        },
+      ),
+    );
+
+    // ✅ 怪物死亡处理
     if (hp <= 0) {
-      removeFromParent();
-      game.checkWaveProgress();
+      if (from != null) {
+        final direction = (position - from).normalized();
+        final knockbackTarget = position + direction * 480;
+
+        final effect = MoveEffect.to(
+          knockbackTarget,
+          EffectController(duration: 1.0, curve: Curves.easeOut),
+        )..onComplete = () {
+          removeFromParent();
+          game.checkWaveProgress();
+        };
+
+        Future.microtask(() {
+          if (isMounted) add(effect);
+        });
+      } else {
+        removeFromParent();
+        game.checkWaveProgress();
+      }
     }
   }
 

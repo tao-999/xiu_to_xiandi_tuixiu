@@ -1,10 +1,12 @@
 import 'dart:math';
+import 'dart:math' as math;
 import 'package:flame/experimental.dart';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart';
 
+import '../effects/lightning_effect_component.dart';
 import 'hell_monster_component.dart';
 import 'hell_player_component.dart';
 import 'safe_zone_circle.dart';
@@ -29,6 +31,8 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection {
   final int totalWaves = 3;
   int currentWave = 0;
   final List<List<HellMonsterComponent>> waves = [];
+  double _lightningCooldown = 0.0;
+  bool _isReleasingLightning = false;
 
   YoumingHellMapGame(this.context, {required this.level});
 
@@ -41,6 +45,48 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection {
     await _spawnPlayer();
     await _generateAllWaves();
     _loadWave(0);
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    _lightningCooldown -= dt;
+    if (_lightningCooldown <= 0 && !_isReleasingLightning) {
+      _isReleasingLightning = true;
+      _fireLightning().then((_) {
+        _lightningCooldown = 1.0; // 每 1 秒触发一次
+        _isReleasingLightning = false;
+      });
+    }
+  }
+
+  Future<void> _fireLightning() async {
+    final cam = cameraComponent;
+    final rect = cam.visibleWorldRect;
+
+    final random = math.Random();
+    final actualCount = random.nextInt(10) + 1;
+
+    for (int i = 0; i < actualCount; i++) {
+      final randX = rect.left + random.nextDouble() * rect.width;
+      final randY = rect.top + random.nextDouble() * rect.height;
+      final start = Vector2(randX, randY);
+
+      // ✅ 生成随机方向 & 距离
+      final angle = random.nextDouble() * 2 * math.pi;
+      final dir = Vector2(math.cos(angle), math.sin(angle));
+      final maxDistance = 200 + random.nextDouble() * 300; // 闪电长度范围 200~500
+
+      mapRoot.add(LightningEffectComponent(
+        start: start,
+        direction: dir,
+        maxDistance: maxDistance,
+      ));
+
+      print('⚡ 第${i + 1}道雷: start=$start, angle=${angle.toStringAsFixed(2)}, dist=${maxDistance.toStringAsFixed(1)}');
+      await Future.delayed(const Duration(milliseconds: 30));
+    }
   }
 
   Future<void> _initCameraAndWorld() async {
