@@ -1,7 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-class HellLevelOverlay extends TextComponent with HasGameRef {
+class HellLevelOverlay extends TextComponent with HasGameReference {
   final int Function() getLevel;
 
   HellLevelOverlay({required this.getLevel})
@@ -23,7 +23,7 @@ class HellLevelOverlay extends TextComponent with HasGameRef {
   @override
   Future<void> onLoad() async {
     // ✅ 获取当前视口宽度，设置右上角位置
-    position = Vector2(gameRef.size.x - 8, 36);
+    position = Vector2(game.size.x - 8, 36);
   }
 
   @override
