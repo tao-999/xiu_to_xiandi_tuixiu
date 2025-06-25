@@ -36,46 +36,52 @@ class GiftService {
     return prefs.getInt(_keyClaimCount) ?? 0;
   }
 
-  /// 发放奖励 + 写入时间 + 次数 + 返回奖励结果（给组件展示）
-  static Future<GiftRewardResult> claimReward() async {
-    final prefs = await SharedPreferences.getInstance();
-    final now = DateTime.now();
-    final last = prefs.getInt(_keyLastClaimed);
-    final isFirst = last == null;
-    final oldCount = prefs.getInt(_keyClaimCount) ?? 0;
-    final newCount = oldCount + 1;
+  /// 计算当前奖励（用于展示或发放）
+  static GiftRewardResult calculateReward(int claimCount) {
+    final isFirst = claimCount == 0;
 
     BigInt stone;
     BigInt ticket;
     BigInt charm;
 
     if (isFirst) {
-      stone = BigInt.parse('1' + '0' * 48);
-      ticket = BigInt.from(50000);
-      charm = BigInt.from(1000);
+      stone = BigInt.from(10000);
+      ticket = BigInt.from(500);
+      charm = BigInt.from(10);
     } else {
-      final base = 10000 + (newCount - 1) * 500;
+      final base = 10000 + (claimCount - 1) * 500;
       stone = BigInt.from(base);
       ticket = BigInt.one;
       charm = BigInt.one;
     }
 
-    // ✅ 发奖励
-    await ResourcesStorage.add('spiritStoneLow', stone);
-    await ResourcesStorage.add('recruitTicket', ticket);
-    await ResourcesStorage.add('fateRecruitCharm', charm);
-
-    // ✅ 写入记录
-    await prefs.setInt(_keyLastClaimed, now.millisecondsSinceEpoch);
-    await prefs.setInt(_keyClaimCount, newCount);
-
     return GiftRewardResult(
       isFirstTime: isFirst,
-      claimCount: newCount,
+      claimCount: claimCount + 1, // 对用户展示是 +1
       spiritStone: stone,
       recruitTicket: ticket,
       fateCharm: charm,
     );
+  }
+
+  /// 发放奖励 + 写入时间 + 次数 + 返回奖励结果（给组件展示）
+  static Future<GiftRewardResult> claimReward() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now();
+    final oldCount = prefs.getInt(_keyClaimCount) ?? 0;
+
+    final result = calculateReward(oldCount);
+
+    // ✅ 发奖励
+    await ResourcesStorage.add('spiritStoneLow', result.spiritStone);
+    await ResourcesStorage.add('recruitTicket', result.recruitTicket);
+    await ResourcesStorage.add('fateRecruitCharm', result.fateCharm);
+
+    // ✅ 写入记录
+    await prefs.setInt(_keyLastClaimed, now.millisecondsSinceEpoch);
+    await prefs.setInt(_keyClaimCount, oldCount + 1);
+
+    return result;
   }
 
   /// 调试用：清除所有数据

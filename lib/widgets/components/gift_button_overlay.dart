@@ -21,22 +21,21 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindi
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // ✅ 添加生命周期监听
+    WidgetsBinding.instance.addObserver(this);
     _loadGiftTime();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // ✅ 注销监听
+    WidgetsBinding.instance.removeObserver(this);
     _countdownTimer?.cancel();
     super.dispose();
   }
 
-  /// ✅ 监听 App 回到前台时刷新倒计时
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _loadGiftTime(); // ⏰ 回到前台时刷新倒计时
+      _loadGiftTime();
     }
   }
 
@@ -69,7 +68,8 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindi
   bool get _canClaim => _remaining == Duration.zero;
 
   Future<void> _showGiftDialog() async {
-    final isFirstTime = _lastClaimed == null;
+    final count = await GiftService.getClaimCount();
+    final preview = GiftService.calculateReward(count);
 
     await showDialog(
       context: context,
@@ -81,79 +81,62 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindi
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 18),
         ),
-        content: FutureBuilder<int>(
-          future: GiftService.getClaimCount(),
-          builder: (context, snapshot) {
-            final count = (snapshot.data ?? 0) + 1;
-            final amount = 10000 + (count - 1) * 500;
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              preview.isFirstTime
+                  ? '🧙‍♂️ 欢迎修士踏入仙道，来一份开光大礼包'
+                  : '🌅 修炼辛苦，赠你每日修仙资源',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Text('💰 下品灵石 ×${preview.spiritStone}', style: const TextStyle(fontSize: 13)),
+            Text('📜 招募券 ×${preview.recruitTicket}', style: const TextStyle(fontSize: 13)),
+            Text('🧬 资质提升券 ×${preview.fateCharm}', style: const TextStyle(fontSize: 13)),
+            const SizedBox(height: 16),
+            const Text(
+              '请点击下方领取，方可继续修行！',
+              style: TextStyle(fontSize: 14, color: Colors.red),
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: InkWell(
+                onTap: () async {
+                  Navigator.of(context).pop();
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isFirstTime
-                      ? '🧙‍♂️ 欢迎修士踏入仙道，来一份开光大礼包'
-                      : '🌅 修炼辛苦，赠你每日修仙资源',
-                  style: const TextStyle(fontSize: 14),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  '💰 下品灵石 ×${isFirstTime ? '1${'0' * 48}' : amount}',
-                  style: const TextStyle(fontSize: 13),
-                ),
-                Text(
-                  '📜 招募券 ×${isFirstTime ? 50000 : 1}',
-                  style: const TextStyle(fontSize: 13),
-                ),
-                Text(
-                  '🧬 资质提升券 ×${isFirstTime ? 1000 : 1}',
-                  style: const TextStyle(fontSize: 13),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '请点击下方领取，方可继续修行！',
-                  style: TextStyle(fontSize: 14, color: Colors.red),
-                ),
-                const SizedBox(height: 24),
-                Center(
-                  child: InkWell(
-                    onTap: () async {
-                      Navigator.of(context).pop();
+                  final result = await GiftService.claimReward();
+                  widget.onGiftClaimed();
 
-                      final result = await GiftService.claimReward();
-                      widget.onGiftClaimed();
+                  if (mounted) {
+                    _lastClaimed = DateTime.now();
+                    _updateRemaining();
+                    _startCountdown();
+                    setState(() {});
+                  }
 
-                      if (mounted) {
-                        _lastClaimed = DateTime.now();
-                        _updateRemaining();
-                        _startCountdown();
-                        setState(() {});
-                      }
-
-                      ToastTip.show(
-                        context,
-                        result.isFirstTime
-                            ? '🎁 首次礼包领取成功！\n下品灵石 +${result.spiritStone}\n招募券 +${result.recruitTicket}\n资质提升券 +${result.fateCharm}'
-                            : '🪙 第 ${result.claimCount} 次修仙礼包：\n下品灵石 +${result.spiritStone}\n招募券 +1\n资质提升券 +1',
-                      );
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Text(
-                        '立即领取',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontFamily: 'ZcoolCangEr',
-                          color: Colors.black,
-                        ),
-                      ),
+                  ToastTip.show(
+                    context,
+                    result.isFirstTime
+                        ? '🎁 首次礼包领取成功！\n下品灵石 +${result.spiritStone}\n招募券 +${result.recruitTicket}\n资质提升券 +${result.fateCharm}'
+                        : '🪙 第 ${result.claimCount} 次修仙礼包：\n下品灵石 +${result.spiritStone}\n招募券 +1\n资质提升券 +1',
+                  );
+                },
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Text(
+                    '立即领取',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontFamily: 'ZcoolCangEr',
+                      color: Colors.black,
                     ),
                   ),
-                )
-              ],
-            );
-          },
+                ),
+              ),
+            )
+          ],
         ),
       ),
     );
