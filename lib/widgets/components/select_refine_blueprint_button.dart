@@ -140,7 +140,7 @@ class _RefineBlueprintDialogState extends State<_RefineBlueprintDialog> {
                                         style: const TextStyle(fontSize: 10, color: Colors.black),
                                       ),
                                       Text(
-                                        '${meta['type']} +${meta['value']}',
+                                        '${meta['type']} +${meta['value']}%',
                                         style: const TextStyle(fontSize: 9, color: Colors.black),
                                       ),
                                     ],
