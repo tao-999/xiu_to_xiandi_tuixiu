@@ -52,8 +52,8 @@ class NoiseTileMapGenerator extends PositionComponent {
   }
 
   final Map<String, Paint> terrainPaints = {
-    'deep_ocean': Paint()..color = const Color(0xFF102840),
-    'shallow_ocean': Paint()..color = const Color(0xFF4060C0),
+    'deep_ocean': Paint()..color = const Color(0xFF00334D),     // 🌊 深海幽蓝
+    'shallow_ocean': Paint()..color = const Color(0xFF66CCFF),  // 🏝️ 浅滩亮蓝
     'beach': Paint()..color = const Color(0xFFEEDC82),
     'grass': Paint()..color = const Color(0xFF88C070),
     'mud': Paint()..color = const Color(0xFF70543E),

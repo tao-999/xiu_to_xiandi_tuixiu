@@ -13,9 +13,6 @@ class DragMap extends PositionComponent
   final PositionComponent Function()? childBuilder;
 
   double scaleFactor = 1.0;
-  double _initialScale = 1.0;
-  Vector2 _initialPosition = Vector2.zero();
-  Offset _focalStart = Offset.zero;
 
   DragMap({
     required this.onDragged,
@@ -87,17 +84,5 @@ class DragMap extends PositionComponent
       if (isTapLocked?.value == true) return;
       onTap?.call(_startPosition ?? Vector2.zero());
     }
-  }
-
-  void startScaling(ScaleStartDetails details) {
-    _initialScale = scaleFactor;
-    _initialPosition = position.clone();
-    _focalStart = details.focalPoint;
-  }
-
-  void updateScaling(ScaleUpdateDetails details) {
-    scaleFactor = (_initialScale * details.scale).clamp(0.5, 3.0);
-    final delta = details.focalPoint - _focalStart;
-    position = _initialPosition + Vector2(delta.dx, delta.dy);
   }
 }
