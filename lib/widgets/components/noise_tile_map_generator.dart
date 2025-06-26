@@ -1,8 +1,11 @@
+import 'dart:ui';
 import 'dart:math';
+
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Image;
 
 import '../../utils/noise_utils.dart';
+import '../components/forest_tile_renderer.dart';
 
 class NoiseTileMapGenerator extends PositionComponent {
   final double tileSize;
@@ -15,6 +18,7 @@ class NoiseTileMapGenerator extends PositionComponent {
   Vector2 viewSize = Vector2.zero();
 
   late final NoiseUtils _noise;
+  late final ForestTileRenderer _forestRenderer;
 
   NoiseTileMapGenerator({
     this.tileSize = 64.0,
@@ -24,6 +28,12 @@ class NoiseTileMapGenerator extends PositionComponent {
     this.persistence = 0.5,
   }) {
     _noise = NoiseUtils(seed);
+    _forestRenderer = ForestTileRenderer(seed: seed);
+  }
+
+  @override
+  Future<void> onLoad() async {
+    await _forestRenderer.loadAssets(); // 加载森林贴图
   }
 
   String _getTerrainType(double val) {
@@ -67,20 +77,30 @@ class NoiseTileMapGenerator extends PositionComponent {
 
     for (double x = startX; x < endX; x += tileSize) {
       for (double y = startY; y < endY; y += tileSize) {
-        final nx = x;
-        final ny = y;
-
-        final noiseVal = (_noise.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
-
-        final terrain = _getTerrainType(noiseVal);
-        final paint = terrainPaints[terrain]!;
-
-        final dx = x * scale;
-        final dy = y * scale;
-        final size = tileSize * scale;
-
-        canvas.drawRect(Rect.fromLTWH(dx, dy, size, size), paint);
+        _renderTile(canvas, x, y, scale);
       }
     }
   }
+
+  void _renderTile(Canvas canvas, double x, double y, double scale) {
+    final nx = x;
+    final ny = y;
+    final noiseVal = (_noise.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
+    final terrain = _getTerrainType(noiseVal);
+
+    final dx = x * scale;
+    final dy = y * scale;
+    final size = tileSize * scale;
+
+    // ✅ 绘制基础底色
+    final paint = terrainPaints[terrain]!;
+    canvas.drawRect(Rect.fromLTWH(dx, dy, size, size), paint);
+
+    // ✅ 叠加森林贴图（仅 forest 区域）
+    if (terrain == 'forest') {
+      final canvasPos = Vector2(dx, dy); // ✅传绘制坐标才对
+      _forestRenderer.renderIfNeeded(canvas, noiseVal, canvasPos, scale);
+    }
+  }
+
 }
