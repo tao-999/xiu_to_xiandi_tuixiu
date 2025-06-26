@@ -48,6 +48,7 @@ flutter:
     - assets/images/materials/
     - assets/images/herbs/
     - assets/images/hell/
+    - assets/images/floating_island/
   fonts:
     - family: ZcoolCangEr
       fonts:
