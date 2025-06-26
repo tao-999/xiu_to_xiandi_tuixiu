@@ -49,10 +49,18 @@ class HellMonsterComponent extends SpriteComponent
     position: position,
     anchor: Anchor.center,
   ) {
-    final effectiveLevel = isBoss ? level : level * (waveIndex + 1);
-    this.atk = atk ?? (isBoss ? 100 : 20 + effectiveLevel * 2);
-    this.def = def ?? (isBoss ? 50 : 10 + effectiveLevel);
-    this.hp = hp ?? (isBoss ? 500 : 100 + effectiveLevel * 10);
+    final waveBonusAtk = waveIndex * 100;
+    final levelBonusAtk = (level - 1) * 300;
+    this.atk = atk ?? (isBoss ? 3000 : 1000 + levelBonusAtk + waveBonusAtk);
+
+    final waveBonusDef = waveIndex * 50;
+    final levelBonusDef = (level - 1) * 150;
+    this.def = def ?? (isBoss ? 1500 : 500 + levelBonusDef + waveBonusDef);
+
+    final waveBonusHp = waveIndex * 1000;
+    final levelBonusHp = (level - 1) * 3000;
+    this.hp = hp ?? (isBoss ? 50000 : 10000 + levelBonusHp + waveBonusHp);
+
     this.maxHp = this.hp;
   }
 
