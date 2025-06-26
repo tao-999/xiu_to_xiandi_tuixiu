@@ -1,11 +1,11 @@
-import 'dart:ui';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart' hide Image;
 
 import '../../utils/noise_utils.dart';
-import '../components/forest_tile_renderer.dart';
+import '../components/tile_overlay_renderer_manager.dart';
 
 class NoiseTileMapGenerator extends PositionComponent {
   final double tileSize;
@@ -18,22 +18,25 @@ class NoiseTileMapGenerator extends PositionComponent {
   Vector2 viewSize = Vector2.zero();
 
   late final NoiseUtils _noise;
-  late final ForestTileRenderer _forestRenderer;
+  late final TileOverlayRendererManager _overlayManager;
 
   NoiseTileMapGenerator({
-    this.tileSize = 64.0,
+    this.tileSize = 4.0,
     this.seed = 1337,
     this.frequency = 0.005,
     this.octaves = 4,
     this.persistence = 0.5,
   }) {
     _noise = NoiseUtils(seed);
-    _forestRenderer = ForestTileRenderer(seed: seed);
+    _overlayManager = TileOverlayRendererManager(seed: seed);
+
+    // ✅ 注册地形类型 → 贴图类型
+    _overlayManager.register(terrainType: 'forest', tileType: 'tree');
   }
 
   @override
   Future<void> onLoad() async {
-    await _forestRenderer.loadAssets(); // 加载森林贴图
+    await _overlayManager.loadAllAssets(); // ✅ 加载所有贴图资源
   }
 
   String _getTerrainType(double val) {
@@ -83,24 +86,28 @@ class NoiseTileMapGenerator extends PositionComponent {
   }
 
   void _renderTile(Canvas canvas, double x, double y, double scale) {
-    final nx = x;
-    final ny = y;
-    final noiseVal = (_noise.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
+    final noiseVal = (_noise.fbm(x, y, octaves, frequency, persistence) + 1) / 2;
     final terrain = _getTerrainType(noiseVal);
 
     final dx = x * scale;
     final dy = y * scale;
     final size = tileSize * scale;
 
-    // ✅ 绘制基础底色
+    // ✅ 绘制地形底色
     final paint = terrainPaints[terrain]!;
     canvas.drawRect(Rect.fromLTWH(dx, dy, size, size), paint);
 
-    // ✅ 叠加森林贴图（仅 forest 区域）
-    if (terrain == 'forest') {
-      final canvasPos = Vector2(dx, dy); // ✅传绘制坐标才对
-      _forestRenderer.renderIfNeeded(canvas, noiseVal, canvasPos, scale);
-    }
+    // ✅ 渲染贴图（如果有注册过）
+    _overlayManager.renderIfNeeded(
+      canvas: canvas,
+      terrainType: terrain,
+      noiseVal: noiseVal,
+      worldPos: Vector2(x, y),
+      scale: scale,
+      conditionCheck: (pos) {
+        final val = (_noise.fbm(pos.x, pos.y, octaves, frequency, persistence) + 1) / 2;
+        return _getTerrainType(val) == terrain;
+      },
+    );
   }
-
 }
