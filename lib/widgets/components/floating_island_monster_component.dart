@@ -92,6 +92,8 @@ class FloatingIslandMonsterComponent extends SpriteComponent
       );
       setRandomDirection();
     }
+
+    _handleMonsterCollisions();
   }
 
   void setRandomDirection() {
@@ -111,6 +113,28 @@ class FloatingIslandMonsterComponent extends SpriteComponent
       velocity = -velocity;
       setRandomDirection();
       debugPrint('[碰撞] 怪物撞主角！双方弹飞，怪物掉头跑路！');
+    }
+  }
+
+  void _handleMonsterCollisions() {
+    // ⚡ 遍历同一 parent 下的所有怪物
+    final siblings = parent?.children.whereType<FloatingIslandMonsterComponent>();
+    if (siblings == null) return;
+
+    for (final other in siblings) {
+      if (identical(this, other)) continue;
+      final minDist = (size.x + other.size.x) / 2 - 2;
+      final delta = logicalPosition - other.logicalPosition;
+      final dist = delta.length;
+      if (dist < minDist && dist > 0.01) {
+        final push = (minDist - dist) / 2;
+        final move = delta.normalized() * push;
+        logicalPosition += move;
+        other.logicalPosition -= move;
+        // ⚠️ 也可以顺便掉头
+        setRandomDirection();
+        other.setRandomDirection();
+      }
     }
   }
 }
