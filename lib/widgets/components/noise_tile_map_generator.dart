@@ -20,6 +20,8 @@ class NoiseTileMapGenerator extends PositionComponent {
   late final NoiseUtils _noise;
   late final TileOverlayRendererManager _overlayManager;
 
+  bool _overlayLoaded = false;
+
   NoiseTileMapGenerator({
     this.tileSize = 4.0,
     this.seed = 1337,
@@ -30,30 +32,36 @@ class NoiseTileMapGenerator extends PositionComponent {
     _noise = NoiseUtils(seed);
     _overlayManager = TileOverlayRendererManager(seed: seed);
 
-    // ✅ 注册地形类型 → 贴图类型
+    // 注册需要加载的贴图
     _overlayManager.register(terrainType: 'forest', tileType: 'tree');
   }
 
   @override
   Future<void> onLoad() async {
-    await _overlayManager.loadAllAssets(); // ✅ 加载所有贴图资源
+    // 异步加载贴图，不阻塞首帧渲染
+    Future(() async {
+      await _overlayManager.loadAllAssets();
+      _overlayLoaded = true;
+    });
   }
 
+  /// 🌍 模拟均衡9种地形的分布
   String _getTerrainType(double val) {
-    if (val < 0.15) return 'deep_ocean';
-    if (val < 0.3) return 'shallow_ocean';
-    if (val < 0.4) return 'beach';
-    if (val < 0.52) return 'grass';
-    if (val < 0.58) return 'mud';
-    if (val < 0.65) return 'forest';
-    if (val < 0.75) return 'hill';
-    if (val < 0.9) return 'snow';
+    if (val < 0.11) return 'deep_ocean';
+    if (val < 0.22) return 'shallow_ocean';
+    if (val < 0.33) return 'beach';
+    if (val < 0.44) return 'grass';
+    if (val < 0.55) return 'mud';
+    if (val < 0.66) return 'forest';
+    if (val < 0.77) return 'hill';
+    if (val < 0.88) return 'snow';
     return 'lava';
   }
 
+  /// 各地形底色
   final Map<String, Paint> terrainPaints = {
-    'deep_ocean': Paint()..color = const Color(0xFF00334D),     // 🌊 深海幽蓝
-    'shallow_ocean': Paint()..color = const Color(0xFF66CCFF),  // 🏝️ 浅滩亮蓝
+    'deep_ocean': Paint()..color = const Color(0xFF00334D),
+    'shallow_ocean': Paint()..color = const Color(0xFF66CCFF),
     'beach': Paint()..color = const Color(0xFFEEDC82),
     'grass': Paint()..color = const Color(0xFF88C070),
     'mud': Paint()..color = const Color(0xFF70543E),
@@ -86,28 +94,34 @@ class NoiseTileMapGenerator extends PositionComponent {
   }
 
   void _renderTile(Canvas canvas, double x, double y, double scale) {
-    final noiseVal = (_noise.fbm(x, y, octaves, frequency, persistence) + 1) / 2;
+    // ⬇️ 生成噪声，并做指数映射让低值更丰富
+    final rawNoise = (_noise.fbm(x, y, octaves, frequency, persistence) + 1) / 2;
+    final noiseVal = pow(rawNoise, 0.6).toDouble();
+
     final terrain = _getTerrainType(noiseVal);
 
     final dx = x * scale;
     final dy = y * scale;
     final size = tileSize * scale;
 
-    // ✅ 绘制地形底色
+    // 底色先画
     final paint = terrainPaints[terrain]!;
     canvas.drawRect(Rect.fromLTWH(dx, dy, size, size), paint);
 
-    // ✅ 渲染贴图（如果有注册过）
-    _overlayManager.renderIfNeeded(
-      canvas: canvas,
-      terrainType: terrain,
-      noiseVal: noiseVal,
-      worldPos: Vector2(x, y),
-      scale: scale,
-      conditionCheck: (pos) {
-        final val = (_noise.fbm(pos.x, pos.y, octaves, frequency, persistence) + 1) / 2;
-        return _getTerrainType(val) == terrain;
-      },
-    );
+    // 贴图仅在加载完成后再画
+    if (_overlayLoaded) {
+      _overlayManager.renderIfNeeded(
+        canvas: canvas,
+        terrainType: terrain,
+        noiseVal: noiseVal,
+        worldPos: Vector2(x, y),
+        scale: scale,
+        conditionCheck: (pos) {
+          final raw = (_noise.fbm(pos.x, pos.y, octaves, frequency, persistence) + 1) / 2;
+          final adjusted = pow(raw, 0.6).toDouble();
+          return _getTerrainType(adjusted) == terrain;
+        },
+      );
+    }
   }
 }

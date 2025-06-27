@@ -12,7 +12,7 @@ class InfiniteGridPainterComponent extends PositionComponent {
   late final NoiseTileMapGenerator _generator;
 
   InfiniteGridPainterComponent({
-    this.tileSize = 4.0,
+    this.tileSize = 16.0,
     this.seed = 520,
     this.frequency = 0.0015,
   });

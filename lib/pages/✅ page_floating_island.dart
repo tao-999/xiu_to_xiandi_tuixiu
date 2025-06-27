@@ -21,6 +21,13 @@ class _FloatingIslandPageState extends State<FloatingIslandPage> {
   }
 
   @override
+  void dispose() {
+    _mapComponent.saveState();     // ⬅️ 先保存
+    _mapComponent.onRemove();      // ⬅️ 再清理
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(

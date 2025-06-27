@@ -32,9 +32,19 @@ class FloatingIslandPlayerComponent extends SpriteComponent with HasGameRef {
 
     final path = await getEquippedSpritePath(player.gender, player.id);
     sprite = await Sprite.load(path);
-    position = Vector2.zero();
-    onPositionChanged?.call(position);
-    _positionStreamController.add(position);
+
+    // ❌ 不要再重置position
+    // position = Vector2.zero();
+
+    // 🚀 改成只在position为空时才设默认值
+    if (position == Vector2.zero()) {
+      onPositionChanged?.call(position);
+      _positionStreamController.add(position);
+    } else {
+      // ✅ 这里也要通知监听器，保证地图刷新
+      onPositionChanged?.call(position);
+      _positionStreamController.add(position);
+    }
   }
 
   @override
