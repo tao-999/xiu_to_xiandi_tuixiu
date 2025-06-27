@@ -73,4 +73,10 @@ class FloatingIslandPlayerComponent extends SpriteComponent with HasGameRef {
     _positionStreamController.close();
     super.onRemove();
   }
+
+  void notifyPositionChanged() {
+    print('[FloatingIslandPlayerComponent] notifyPositionChanged called with position: $position');
+    onPositionChanged?.call(position);
+    _positionStreamController.add(position);
+  }
 }

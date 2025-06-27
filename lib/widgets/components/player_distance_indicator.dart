@@ -29,6 +29,13 @@ class _PlayerDistanceIndicatorState extends State<PlayerDistanceIndicator> {
       if (!mounted) return;
     }
 
+    // 先同步设置一次距离，避免第一帧丢失
+    final initialPos = widget.mapComponent.player!.position;
+    setState(() {
+      _distance = initialPos.length;
+    });
+
+    // 再开始监听后续更新
     _positionSub = widget.mapComponent.player!.onPositionChangedStream.listen((pos) {
       final dist = pos.length;
       if (mounted) {

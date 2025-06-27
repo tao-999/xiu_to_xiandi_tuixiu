@@ -75,6 +75,8 @@ class FloatingIslandMapComponent extends FlameGame with WidgetsBindingObserver {
       Future.microtask(() {
         player!.position = Vector2(pos['x']!, pos['y']!);
         print('[FloatingIslandMap] Loaded player position (deferred): ${player!.position}');
+        // 👇 手动通知监听器
+        player!.notifyPositionChanged();
       });
     } else {
       Future.microtask(() {
