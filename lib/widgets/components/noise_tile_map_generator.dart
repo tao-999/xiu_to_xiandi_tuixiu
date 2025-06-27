@@ -38,38 +38,25 @@ class NoiseTileMapGenerator extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
-    // 异步加载贴图，不阻塞首帧渲染
+    // 异步加载贴图
     Future(() async {
       await _overlayManager.loadAllAssets();
       _overlayLoaded = true;
     });
   }
 
-  /// 🌍 模拟均衡9种地形的分布
-  String _getTerrainType(double val) {
-    if (val < 0.18) return 'deep_ocean';       // ~18%
-    if (val < 0.32) return 'shallow_ocean';    // ~14%
-    if (val < 0.42) return 'beach';            // ~10%
-    if (val < 0.52) return 'grass';            // ~10%
-    if (val < 0.61) return 'mud';              // ~9%
-    if (val < 0.70) return 'forest';           // ~9%
-    if (val < 0.79) return 'hill';             // ~9%
-    if (val < 0.88) return 'snow';             // ~9%
-    return 'lava';                             // ~12%
-  }
-
-  /// 各地形底色
-  final Map<String, Paint> terrainPaints = {
-    'deep_ocean': Paint()..color = const Color(0xFF00334D),
-    'shallow_ocean': Paint()..color = const Color(0xFF66CCFF),
-    'beach': Paint()..color = const Color(0xFFEEDC82),
-    'grass': Paint()..color = const Color(0xFF88C070),
-    'mud': Paint()..color = const Color(0xFF70543E),
-    'forest': Paint()..color = const Color(0xFF3C803C),
-    'hill': Paint()..color = const Color(0xFF558844),
-    'snow': Paint()..color = const Color(0xFFE0E0E0),
-    'lava': Paint()..color = const Color(0xFF8B0000),
-  };
+  /// 🌈 地形区间 + 渐变色配置
+  final List<_TerrainRange> terrainRanges = [
+    _TerrainRange('deep_ocean', 0.0, 0.18, Color(0xFF001F2D), Color(0xFF00334D)),
+    _TerrainRange('shallow_ocean', 0.18, 0.32, Color(0xFF3E9DBF), Color(0xFF4DA6C3)),
+    _TerrainRange('beach', 0.32, 0.42, Color(0xFFEED9A0), Color(0xFFF3E2B7)),
+    _TerrainRange('grass', 0.42, 0.52, Color(0xFF6C9A5E), Color(0xFF77A865)),
+    _TerrainRange('mud', 0.52, 0.61, Color(0xFF4A3628), Color(0xFF5C4431)),
+    _TerrainRange('forest', 0.61, 0.70, Color(0xFF2E5530), Color(0xFF3A663A)),
+    _TerrainRange('hill', 0.70, 0.79, Color(0xFF607548), Color(0xFF6D8355)),
+    _TerrainRange('snow', 0.79, 0.88, Color(0xFFE0E0E0), Color(0xFFF5F5F5)),
+    _TerrainRange('lava', 0.88, 1.0, Color(0xFF5A1A1A), Color(0xFF702222)),
+  ];
 
   @override
   void render(Canvas canvas) {
@@ -94,26 +81,33 @@ class NoiseTileMapGenerator extends PositionComponent {
   }
 
   void _renderTile(Canvas canvas, double x, double y, double scale) {
-    // 🚀 生成噪声 + 拉伸映射
+    // 🌟 生成噪声 + 拉伸到均匀分布
     final rawNoise = (_noise.fbm(x, y, octaves, frequency, persistence) + 1) / 2;
     final stretched = (rawNoise - 0.3) / 0.4;
     final noiseVal = stretched.clamp(0.0, 1.0);
 
-    final terrain = _getTerrainType(noiseVal);
+    // 找到当前区间
+    final range = terrainRanges.firstWhere((r) => noiseVal >= r.min && noiseVal < r.max);
+
+    // 算t
+    final t = ((noiseVal - range.min) / (range.max - range.min)).clamp(0.0, 1.0);
+
+    // 插值颜色
+    final color = Color.lerp(range.colorStart, range.colorEnd, t)!;
 
     final dx = x * scale;
     final dy = y * scale;
     final size = tileSize * scale;
 
-    // 底色先画
-    final paint = terrainPaints[terrain]!;
+    // 画渐变色
+    final paint = Paint()..color = color;
     canvas.drawRect(Rect.fromLTWH(dx, dy, size, size), paint);
 
-    // 贴图仅在加载完成后再画
+    // 贴图（如果加载完成）
     if (_overlayLoaded) {
       _overlayManager.renderIfNeeded(
         canvas: canvas,
-        terrainType: terrain,
+        terrainType: range.name,
         noiseVal: noiseVal,
         worldPos: Vector2(x, y),
         scale: scale,
@@ -121,9 +115,21 @@ class NoiseTileMapGenerator extends PositionComponent {
           final raw = (_noise.fbm(pos.x, pos.y, octaves, frequency, persistence) + 1) / 2;
           final stretched = (raw - 0.3) / 0.4;
           final adjusted = stretched.clamp(0.0, 1.0);
-          return _getTerrainType(adjusted) == terrain;
+          final terrainName = terrainRanges.firstWhere(
+                  (r) => adjusted >= r.min && adjusted < r.max
+          ).name;
+          return terrainName == range.name;
         },
       );
     }
   }
+}
+
+class _TerrainRange {
+  final String name;
+  final double min;
+  final double max;
+  final Color colorStart;
+  final Color colorEnd;
+  const _TerrainRange(this.name, this.min, this.max, this.colorStart, this.colorEnd);
 }
