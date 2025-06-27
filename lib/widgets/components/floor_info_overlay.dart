@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_huanyue_explore.dart';
+
+import 'huanyue_explore_game.dart';
 
 class FloorInfoOverlay extends StatelessWidget {
   final HuanyueExploreGame game;

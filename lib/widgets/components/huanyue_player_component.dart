@@ -30,7 +30,7 @@ class HuanyuePlayerComponent extends SpriteComponent
   late TextComponent powerText;
   late final Future<void> Function() _onPowerUpdate;
 
-  double get _currentMoveSpeed => 200 + currentFloor * 0.1;
+  double get _currentMoveSpeed => 75 + currentFloor * 0.01;
 
   HuanyuePlayerComponent({
     required this.tileSize,
@@ -47,8 +47,14 @@ class HuanyuePlayerComponent extends SpriteComponent
 
   @override
   Future<void> onLoad() async {
+    // ✅ 角色基础尺寸，单位像素，不受 tileSize 影响
+    double baseSize = 28;
+
+    // ✅ 你原本的 size 增益，不动
     final multiplier = await PlayerStorage.getSizeMultiplier();
-    size = Vector2.all(tileSize * multiplier);
+
+    // ✅ 角色实际 size
+    size = Vector2.all(baseSize * multiplier);  // 只用 baseSize × 境界系数
 
     final player = await PlayerStorage.getPlayer();
     if (player == null) return; // ✅ 空值保护
@@ -144,6 +150,8 @@ class HuanyuePlayerComponent extends SpriteComponent
         _triggerExplosion(other.position);
         _showRewardText('+${other.reward} 下品灵石', other.position);
         await ResourcesStorage.add('spiritStoneLow', BigInt.from(other.reward));
+        await HuanyueStorage.addReward(RewardType.spiritStone, other.reward);
+
         HuanyueStorage.markEnemyKilled(other.id);
         other.removeFromParent();
       } else {
@@ -159,10 +167,18 @@ class HuanyuePlayerComponent extends SpriteComponent
       final isChestOpened =
       await HuanyueStorage.isCurrentFloorChestOpened(currentFloor);
 
-      if (!allEnemiesKilled || !isChestOpened) {
+      final hasChest = currentFloor % 5 == 0;
+
+      if (!allEnemiesKilled || (hasChest && !isChestOpened)) {
         if (!hintCooldown) {
           hintCooldown = true;
-          _showHintText('清光怪物和宝箱才能进入下一层', position);
+
+          final hint = hasChest
+              ? '清光怪物和宝箱才能进入下一层'
+              : '清光怪物才能进入下一层';
+
+          _showHintText(hint, position);
+
           Future.delayed(const Duration(seconds: 1), () {
             hintCooldown = false;
           });

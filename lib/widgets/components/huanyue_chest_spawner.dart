@@ -6,7 +6,6 @@ import 'package:flame/collisions.dart';
 import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/huanyue_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/tile_manager.dart';
 
 import '../../services/resources_storage.dart';
@@ -129,11 +128,16 @@ class _HuanyueChestComponent extends SpriteComponent with CollisionCallbacks {
       final isAptitudeReward = ((currentFloor ~/ 5) % 2 == 1);
       final rewardKey = isAptitudeReward ? 'fateRecruitCharm' : 'recruitTicket';
       final rewardTextStr = isAptitudeReward ? '资质提升券 x1' : '招募券 x1';
+      final int rewardCount = 1; // 这里可改
 
       // ✅ 使用独立资源系统发奖励
-      ResourcesStorage.add(rewardKey, BigInt.one).then((_) async {
+      ResourcesStorage.add(rewardKey, BigInt.from(rewardCount)).then((_) async {
         final snapshot = await ResourcesStorage.load();
         print('📦 奖励后资源快照：${snapshot.toMap()}');
+        await HuanyueStorage.addReward(
+          isAptitudeReward ? RewardType.fateRecruitCharm : RewardType.recruitTicket,
+          rewardCount,
+        );
       });
 
       // ✅ 飘字特效

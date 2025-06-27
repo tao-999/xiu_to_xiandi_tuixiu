@@ -25,7 +25,7 @@ class HuanyueDoorComponent extends SpriteComponent
     this.onEnterDoor,
     this.maxAttempts = 100,
   }) : super(
-    size: Vector2(4 * tileSize, 4 * tileSize),
+    size: Vector2.all(80),
     anchor: Anchor.center,
     priority: 20,
   );
@@ -36,6 +36,7 @@ class HuanyueDoorComponent extends SpriteComponent
     await _spawnDoor();
 
     add(RectangleHitbox()..collisionType = CollisionType.passive);
+    print('✅门sprite: $sprite');
   }
 
   Future<void> _spawnDoor() async {
@@ -79,6 +80,7 @@ class HuanyueDoorComponent extends SpriteComponent
     final fallback = Vector2(cols * tileSize / 2, rows * tileSize / 2);
     position = fallback;
     await HuanyueStorage.saveDoorPosition(currentFloor, fallback);
+    print('🌟门最终位置: $position');
   }
 
   bool isPlayerAtDoor(Vector2 playerPos) {

@@ -180,4 +180,28 @@ class HuanyueStorage {
     return await isChestOpened(chestId);
   }
 
+  // 🟢 持久化Key常量
+  static const Map<RewardType, String> _rewardKeys = {
+    RewardType.spiritStone: 'huanyue_spiritStoneTotal',
+    RewardType.recruitTicket: 'huanyue_recruitTicketTotal',
+    RewardType.fateRecruitCharm: 'huanyue_fateRecruitCharmTotal',
+  };
+
+  static Future<int> getTotalReward(RewardType type) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_rewardKeys[type]!) ?? 0;
+  }
+
+  static Future<void> addReward(RewardType type, int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    final prev = prefs.getInt(_rewardKeys[type]!) ?? 0;
+    await prefs.setInt(_rewardKeys[type]!, prev + count);
+  }
+
+}
+
+enum RewardType {
+  spiritStone,
+  recruitTicket,
+  fateRecruitCharm,
 }

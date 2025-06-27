@@ -78,10 +78,10 @@ class PlayerStorage {
     return calculateCultivationLevel(player.cultivation).totalLayer;
   }
 
-  /// 💪 获取当前玩家尺寸倍率（如 2.0、2.2）
+  /// 💪 获取当前玩家尺寸倍率
   static Future<double> getSizeMultiplier() async {
     final layer = await getCultivationLayer();
-    return 2.0 + (layer - 1) * 0.02;
+    return 1.0 + (layer - 1) * 0.005;
   }
 
   /// 💰 使用灵石提升修为（全面支持 BigInt）
