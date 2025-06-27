@@ -21,7 +21,7 @@ class DragMap extends PositionComponent
     this.showGrid = false,
     this.childBuilder,
   }) {
-    size = Vector2.all(99999);
+    size = Vector2(5000, 5000); // 交互区域
     priority = 9999;
   }
 

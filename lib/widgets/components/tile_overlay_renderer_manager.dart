@@ -37,11 +37,19 @@ class TileOverlayRendererManager {
     required double noiseVal,
     required Vector2 worldPos,
     required double scale,
+    required Vector2 cameraOffset, // ✅ 新增
     required bool Function(Vector2) conditionCheck,
   }) {
     final renderer = _renderers[terrainType];
     if (renderer != null) {
-      renderer.renderIfNeeded(canvas, noiseVal, worldPos, scale, conditionCheck);
+      renderer.renderIfNeeded(
+        canvas,
+        noiseVal,
+        worldPos,
+        scale,
+        cameraOffset, // ✅ 新增
+        conditionCheck,
+      );
     }
   }
 }

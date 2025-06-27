@@ -34,6 +34,7 @@ class TileOverlayRenderer {
       double noiseVal,
       Vector2 worldPos,
       double scale,
+      Vector2 cameraOffset, // 新增
       bool Function(Vector2 pos) conditionCheck,
       ) {
     final gridX = (worldPos.x / tileSize).floor();
@@ -47,9 +48,8 @@ class TileOverlayRenderer {
     final drawPos = Vector2(
       gridX * tileSize + tileSize / 2,
       gridY * tileSize + tileSize / 2,
-    );
+    ) - cameraOffset;
 
-    // ✅ 区域检测：整块 tileSize 区域必须全部符合条件
     final regionStart = Vector2(gridX * tileSize.toDouble(), gridY * tileSize.toDouble());
 
     const int steps = 4;
@@ -58,11 +58,10 @@ class TileOverlayRenderer {
     for (int dx = 0; dx < steps; dx++) {
       for (int dy = 0; dy < steps; dy++) {
         final checkPos = regionStart + Vector2(dx * stepSize, dy * stepSize);
-        if (!conditionCheck(checkPos)) return; // ❌ 一旦不满足条件，终止渲染
+        if (!conditionCheck(checkPos)) return;
       }
     }
 
-    // ✅ 渲染贴图
     final spriteIndex = hash % _sprites.length;
     final sprite = _sprites[spriteIndex];
     final size = Vector2.all(tileSize.toDouble());
@@ -72,7 +71,7 @@ class TileOverlayRenderer {
       position: drawPos,
       size: size,
       anchor: Anchor.center,
-      overridePaint: Paint()..filterQuality = FilterQuality.none, // 防止贴图缝隙
+      overridePaint: Paint()..filterQuality = FilterQuality.none,
     );
   }
 

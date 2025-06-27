@@ -1,43 +1,33 @@
 import 'package:flame/components.dart';
 import 'noise_tile_map_generator.dart';
 
+/// 无限地图主画布（只负责承载 generator）
 class InfiniteGridPainterComponent extends PositionComponent {
-  final double tileSize;
-  final int seed;
-  final double frequency;
+  /// 地形生成器实例，外部唯一传入
+  final NoiseTileMapGenerator generator;
 
+  /// 视口缩放
   double viewScale = 1.0;
+
+  /// 视口尺寸
   Vector2 viewSize = Vector2.zero();
 
-  late final NoiseTileMapGenerator _generator;
-
   InfiniteGridPainterComponent({
-    this.tileSize = 12.0,
-    this.seed = 520,
-    this.frequency = 0.000587,
+    required this.generator,
   });
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    _generator = NoiseTileMapGenerator(
-      tileSize: tileSize,
-      seed: seed,
-      frequency: frequency,
-    )
-      ..viewScale = viewScale
-      ..viewSize = viewSize;
-
-    add(_generator);
+    add(generator); // 子组件形式，自动随 InfiniteGridPainterComponent 渲染
   }
 
   @override
   void update(double dt) {
     super.update(dt);
 
-    // 实时同步视图参数
-    _generator
+    // 保证地形生成器拿到最新的视口参数
+    generator
       ..viewScale = viewScale
       ..viewSize = viewSize;
   }
