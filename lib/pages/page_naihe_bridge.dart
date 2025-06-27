@@ -139,17 +139,21 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
   }
 
   Future<void> closeAllBoxes() async {
-    if (Hive.isBoxOpen('disciples')) {
-      await Hive.box<Disciple>('disciples').close();
-    }
-    if (Hive.isBoxOpen('weapons')) {
-      await Hive.box<Weapon>('weapons').close();
-    }
-    if (Hive.isBoxOpen('pills')) {
-      await Hive.box<Pill>('pills').close();
-    }
-    if (Hive.isBoxOpen('role_regions')) {
-      await Hive.box('role_regions').close();
+    // 先把box名字集中定义
+    const boxNames = [
+      'disciples',
+      'weapons',
+      'pills',
+      'role_regions',
+      'floating_island',
+      'noise_cache',
+    ];
+
+    for (final name in boxNames) {
+      if (Hive.isBoxOpen(name)) {
+        await Hive.box(name).close();
+        print('[Hive] Closed box: $name');
+      }
     }
   }
 

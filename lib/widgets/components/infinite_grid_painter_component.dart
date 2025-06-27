@@ -14,7 +14,7 @@ class InfiniteGridPainterComponent extends PositionComponent {
   InfiniteGridPainterComponent({
     this.tileSize = 16.0,
     this.seed = 520,
-    this.frequency = 0.0015,
+    this.frequency = 0.0004,
   });
 
   @override

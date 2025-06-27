@@ -47,15 +47,15 @@ class NoiseTileMapGenerator extends PositionComponent {
 
   /// 🌍 模拟均衡9种地形的分布
   String _getTerrainType(double val) {
-    if (val < 0.11) return 'deep_ocean';
-    if (val < 0.22) return 'shallow_ocean';
-    if (val < 0.33) return 'beach';
-    if (val < 0.44) return 'grass';
-    if (val < 0.55) return 'mud';
-    if (val < 0.66) return 'forest';
-    if (val < 0.77) return 'hill';
-    if (val < 0.88) return 'snow';
-    return 'lava';
+    if (val < 0.18) return 'deep_ocean';       // ~18%
+    if (val < 0.32) return 'shallow_ocean';    // ~14%
+    if (val < 0.42) return 'beach';            // ~10%
+    if (val < 0.52) return 'grass';            // ~10%
+    if (val < 0.61) return 'mud';              // ~9%
+    if (val < 0.70) return 'forest';           // ~9%
+    if (val < 0.79) return 'hill';             // ~9%
+    if (val < 0.88) return 'snow';             // ~9%
+    return 'lava';                             // ~12%
   }
 
   /// 各地形底色
@@ -94,9 +94,10 @@ class NoiseTileMapGenerator extends PositionComponent {
   }
 
   void _renderTile(Canvas canvas, double x, double y, double scale) {
-    // ⬇️ 生成噪声，并做指数映射让低值更丰富
+    // 🚀 生成噪声 + 拉伸映射
     final rawNoise = (_noise.fbm(x, y, octaves, frequency, persistence) + 1) / 2;
-    final noiseVal = pow(rawNoise, 0.6).toDouble();
+    final stretched = (rawNoise - 0.3) / 0.4;
+    final noiseVal = stretched.clamp(0.0, 1.0);
 
     final terrain = _getTerrainType(noiseVal);
 
@@ -118,7 +119,8 @@ class NoiseTileMapGenerator extends PositionComponent {
         scale: scale,
         conditionCheck: (pos) {
           final raw = (_noise.fbm(pos.x, pos.y, octaves, frequency, persistence) + 1) / 2;
-          final adjusted = pow(raw, 0.6).toDouble();
+          final stretched = (raw - 0.3) / 0.4;
+          final adjusted = stretched.clamp(0.0, 1.0);
           return _getTerrainType(adjusted) == terrain;
         },
       );
