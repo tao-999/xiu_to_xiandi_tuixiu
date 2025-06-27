@@ -138,22 +138,37 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
     debugPrint('✅ Hive 文件全干掉了');
   }
 
+// ⚡ 最骚范例，close 和 open 泛型一定要完全对齐！
   Future<void> closeAllBoxes() async {
-    // 先把box名字集中定义
-    const boxNames = [
-      'disciples',
-      'weapons',
-      'pills',
-      'role_regions',
-      'floating_island',
-      'noise_cache',
-    ];
-
-    for (final name in boxNames) {
-      if (Hive.isBoxOpen(name)) {
-        await Hive.box(name).close();
-        print('[Hive] Closed box: $name');
-      }
+    // disciples: openBox<Disciple>
+    if (Hive.isBoxOpen('disciples')) {
+      await Hive.box<Disciple>('disciples').close();
+      print('[Hive] Closed box: disciples');
+    }
+    // weapons: openBox<Weapon>
+    if (Hive.isBoxOpen('weapons')) {
+      await Hive.box<Weapon>('weapons').close();
+      print('[Hive] Closed box: weapons');
+    }
+    // pills: openBox<Pill>
+    if (Hive.isBoxOpen('pills')) {
+      await Hive.box<Pill>('pills').close();
+      print('[Hive] Closed box: pills');
+    }
+    // role_regions: 没加泛型，直接 dynamic
+    if (Hive.isBoxOpen('role_regions')) {
+      await Hive.box('role_regions').close();
+      print('[Hive] Closed box: role_regions');
+    }
+    // floating_island: 没加泛型
+    if (Hive.isBoxOpen('floating_island')) {
+      await Hive.box('floating_island').close();
+      print('[Hive] Closed box: floating_island');
+    }
+    // noise_cache: openBox<double>
+    if (Hive.isBoxOpen('noise_cache')) {
+      await Hive.box<double>('noise_cache').close();
+      print('[Hive] Closed box: noise_cache');
     }
   }
 
