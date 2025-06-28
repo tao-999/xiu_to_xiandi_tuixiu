@@ -6,14 +6,15 @@ import 'package:flame/effects.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart';
 import '../../services/hell_service.dart';
+import '../../services/player_storage.dart';
 import '../../services/resources_storage.dart';
 import 'hell_player_component.dart';
 import 'youming_hell_map_game.dart';
-import 'hp_bar_wrapper.dart'; // ✅ 引入你封装好的血条组件
+import 'hp_bar_wrapper.dart';
 
 class HellMonsterComponent extends SpriteComponent
     with CollisionCallbacks, HasGameReference<YoumingHellMapGame> {
-  final int id; // 添加编号
+  final int id;
   final int level;
   final int waveIndex;
   final bool isBoss;
@@ -33,11 +34,12 @@ class HellMonsterComponent extends SpriteComponent
   double _wanderTimer = 0;
   Vector2 _wanderDirection = Vector2.zero();
 
-  TextComponent? _idText;  // 用来显示编号的文本
+  bool _isTouchingPlayer = false; // ✅ 只在第一次接触触发
+
   late final TextComponent _damageText;
 
   HellMonsterComponent({
-    required this.id, // 初始化时传入编号
+    required this.id,
     required this.level,
     required this.waveIndex,
     this.isBoss = false,
@@ -66,15 +68,11 @@ class HellMonsterComponent extends SpriteComponent
 
   @override
   Future<void> onLoad() async {
-    // 计算 level 在 1-18 范围内循环的图片索引
     int normalizedLevel = (level - 1) % 18 + 1;
-
-    // 根据循环后的 level 加载图片
     sprite = await Sprite.load('hell/diyu_$normalizedLevel.png');
     size = isBoss ? Vector2.all(32) * 2 : Vector2.all(32);
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
-    // ✅ 使用封装血条组件 HpBarWrapper
     add(
       HpBarWrapper(
         ratio: () => hp / maxHp,
@@ -98,6 +96,7 @@ class HellMonsterComponent extends SpriteComponent
       ),
     )..priority = 999;
     add(_damageText);
+
     print('⚙️ 怪物 #$id（波次 $waveIndex）加载完成，速度: $_moveSpeed');
   }
 
@@ -154,30 +153,32 @@ class HellMonsterComponent extends SpriteComponent
   }
 
   @override
-  void onCollision(Set<Vector2> points, PositionComponent other) {
-    super.onCollision(points, other);
+  void onCollisionStart(Set<Vector2> points, PositionComponent other) {
+    super.onCollisionStart(points, other);
 
-    if (other is HellMonsterComponent && other != this) {
-      final offset = (position - other.position).normalized() * 2;
-      position += offset;
+    if (other is HellPlayerComponent && !other.isDead && !_isTouchingPlayer) {
+      final damage = atk;
+      other.receiveDamage(damage);
+      _isTouchingPlayer = true; // 标记碰撞中
     }
+  }
 
-    // ✅ 怪物撞到玩家，也要触发攻击逻辑！
-    if (other is HellPlayerComponent && !other.isDead) {
-      final damage = atk; // ✅ 怪物的攻击力
-      other.receiveDamage(damage); // ✅ 玩家会判断防御并处理飘字
+  @override
+  void onCollisionEnd(PositionComponent other) {
+    super.onCollisionEnd(other);
+
+    if (other is HellPlayerComponent) {
+      _isTouchingPlayer = false; // 离开后重置
     }
   }
 
   void _giveReward() async {
-    final base = 10 + (level - 1); // 每升一级 +1
+    final base = 10 + (level - 1);
     final reward = isBoss ? base * 2 : base;
 
-    // ✅ 1. 发放灵石
     ResourcesStorage.add('spiritStoneMid', BigInt.from(reward));
     print('💰 击杀奖励：$reward 个中品灵石');
 
-    // ✅ 2. 累加到奖励统计中
     final prev = await HellService.loadSpiritStoneReward();
     await HellService.saveSpiritStoneReward(prev + reward);
   }
@@ -185,20 +186,18 @@ class HellMonsterComponent extends SpriteComponent
   void onDeath({Vector2? from}) {
     print('💀 怪物 #$id 死亡触发！当前波次：$waveIndex，剩余HP: $hp');
 
-    _giveReward(); // ✅ 发放灵石奖励
-    // ✅ 死亡立即触发逻辑
-    game.checkWaveProgress(); // 🎯 无论如何，先告诉游戏“我死了”
+    _giveReward();
+    game.checkWaveProgress();
 
     if (from != null) {
       final direction = (position - from).normalized();
       final knockbackTarget = position + direction * 480;
 
-      // ✅ 延迟演出效果，不影响主控判断
       final effect = MoveEffect.to(
         knockbackTarget,
         EffectController(duration: 1.0, curve: Curves.easeOut),
       )..onComplete = () {
-        removeFromParent(); // 🪦 最后清尸
+        removeFromParent();
       };
 
       Future.microtask(() {
@@ -213,7 +212,6 @@ class HellMonsterComponent extends SpriteComponent
     final reduced = damage - def;
 
     if (reduced <= 0) {
-      // ✅ 格挡文字
       _damageText.text = '格挡';
       _damageText.position = Vector2(0, -size.y / 2 - 2);
 
@@ -231,10 +229,8 @@ class HellMonsterComponent extends SpriteComponent
       return;
     }
 
-    // ✅ 扣血
     hp -= reduced;
 
-    // ✅ 飘字动画
     _damageText.text = '-$reduced';
     _damageText.position = Vector2(0, -size.y / 2 - 2);
 
@@ -250,11 +246,16 @@ class HellMonsterComponent extends SpriteComponent
       ),
     );
 
-    // ✅ 判断死亡
     if (hp <= 0) {
-      onDeath(from: from); // ⬅️ 独立封装的死亡逻辑
+      onDeath(from: from);
     }
   }
 
-  int get power => atk + def + hp ~/ 10;
+  int get power {
+    return PlayerStorage.calculatePower(
+      hp: hp,
+      atk: atk,
+      def: def,
+    );
+  }
 }

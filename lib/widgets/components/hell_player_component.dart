@@ -190,8 +190,6 @@ class HellPlayerComponent extends SpriteComponent
     // 可加角色受伤效果
   }
 
-  int get power => atk + def + hp ~/ 10;
-
   @override
   void onCollision(Set<Vector2> points, PositionComponent other) {
     super.onCollision(points, other);
