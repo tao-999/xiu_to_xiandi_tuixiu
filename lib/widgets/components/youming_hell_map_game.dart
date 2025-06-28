@@ -72,6 +72,8 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
     _loadWave(currentWave);
 
     monsterWaveInfo = MonsterWaveInfo(
+      gameRef: this,
+      mapRoot: mapRoot,
       currentWave: currentWave,
       totalWaves: totalWaves,
       currentAlive: monstersPerWave + 1,

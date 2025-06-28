@@ -4,6 +4,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/chiyangu_game.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/pickaxe_overlay.dart';
 
+import '../widgets/components/depth_and_reward_info.dart';
+
 class ChiyanguPage extends StatefulWidget {
   const ChiyanguPage({super.key});
 
@@ -65,35 +67,14 @@ class _ChiyanguPageState extends State<ChiyanguPage> {
             ),
           ),
 
-          // ✅ 深度信息（右上角）
+          // ✅ 深度信息
           Positioned(
             top: 16,
-            right: 16,
-            child: ValueListenableBuilder<int>(
-              valueListenable: ChiyanguGame.depthNotifier,
-              builder: (context, value, _) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Text(
-                    '深度：$value 米',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 4,
-                          color: Colors.black,
-                          offset: Offset(1, 1),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+            left: 16,
+            child: DepthAndRewardInfo(),
           ),
 
-          // ✅ 锄头 UI（左上角）
+          // ✅ 锄头 UI
           const PickaxeOverlay(),
 
           // ✅ 返回按钮（最上层）

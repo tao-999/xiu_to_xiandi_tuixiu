@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChiyanguStorage {
@@ -146,4 +147,50 @@ class ChiyanguStorage {
     }
   }
 
+  static const _rewardKeys = {
+    'spiritStoneLow': 'reward_low',
+    'spiritStoneMid': 'reward_mid',
+    'spiritStoneHigh': 'reward_high',
+    'spiritStoneSupreme': 'reward_supreme',
+  };
+  static final ValueNotifier<int> rewardVersion = ValueNotifier<int>(0);
+
+  /// ✅ 累加某种灵石数量
+  static Future<void> addReward(String type, int amount) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _rewardKeys[type];
+    if (key == null) return;
+
+    final current = prefs.getInt(key) ?? 0;
+    await prefs.setInt(key, current + amount);
+
+    // 🌟 通知监听者刷新
+    rewardVersion.value++;
+  }
+
+  /// ✅ 读取某种灵石数量
+  static Future<int> getRewardCount(String type) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _rewardKeys[type];
+    if (key == null) return 0;
+    return prefs.getInt(key) ?? 0;
+  }
+
+  /// ✅ 获取所有奖励统计（返回 Map）
+  static Future<Map<String, int>> getAllRewards() async {
+    final prefs = await SharedPreferences.getInstance();
+    final result = <String, int>{};
+    for (final entry in _rewardKeys.entries) {
+      result[entry.key] = prefs.getInt(entry.value) ?? 0;
+    }
+    return result;
+  }
+
+  /// ✅ 清空所有奖励（如果需要）
+  static Future<void> clearRewards() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final key in _rewardKeys.values) {
+      await prefs.remove(key);
+    }
+  }
 }

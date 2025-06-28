@@ -84,12 +84,13 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> with WidgetsBindingObse
 
     return Positioned(
       top: 24,
-      left: 16,
+      right: 16,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Row(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.end, // ✅ 右对齐
             children: [
               Text(
                 '⛏️ $pickaxeCount / ${ChiyanguStorage.maxPickaxe}',
@@ -122,7 +123,7 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> with WidgetsBindingObse
                                   '💛 下品灵石：其余概率保底\n\n'
                                   '📈 爆出的灵石数量 = 当前深度层数\n'
                                   '⛏️ 挖得越深，爆得越多，手越爽！',
-                                style: TextStyle(fontSize: 14, color: Colors.black87),
+                              style: TextStyle(fontSize: 14, color: Colors.black87),
                             ),
                           ],
                         ),
@@ -134,9 +135,15 @@ class _PickaxeOverlayState extends State<PickaxeOverlay> with WidgetsBindingObse
               ),
             ],
           ),
-          Text(
-            '$refillText 后+1',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.end, // ✅ 右对齐
+            children: [
+              Text(
+                '$refillText +1',
+                style: const TextStyle(color: Colors.white70, fontSize: 11),
+              ),
+            ],
           ),
         ],
       ),

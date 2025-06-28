@@ -163,8 +163,13 @@ class RockCellComponent extends PositionComponent
       label = '$depth下品灵石';
     }
 
+    // ✅ 累加到全局资源
     ResourcesStorage.add(key, amount);
-    // ✅ 新增：浮层提示（Toast）
+
+    // ✅ 新增：存储奖励
+    ChiyanguStorage.addReward(key, amount.toInt());
+
+    // ✅ 新增：浮层提示
     final color = _getSpiritStoneColor(label);
     ToastTip.show(context, label, backgroundColor: color);
     game.add(_showSpiritStoneReward(centerPos, label: label));
