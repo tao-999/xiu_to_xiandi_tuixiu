@@ -38,26 +38,23 @@ class GiftService {
 
   /// 计算当前奖励（用于展示或发放）
   static GiftRewardResult calculateReward(int claimCount) {
-    final isFirst = claimCount == 0;
-
+    final isFirst = claimCount == 1; // 第1次
     BigInt stone;
     BigInt ticket;
     BigInt charm;
-
     if (isFirst) {
       stone = BigInt.from(10000);
       ticket = BigInt.from(500);
       charm = BigInt.from(10);
     } else {
-      final base = 10000 + (claimCount - 1) * 500;
+      final base = 10000 + (claimCount - 2) * 500; // 第2次起递增
       stone = BigInt.from(base);
       ticket = BigInt.one;
       charm = BigInt.one;
     }
-
     return GiftRewardResult(
       isFirstTime: isFirst,
-      claimCount: claimCount + 1, // 对用户展示是 +1
+      claimCount: claimCount,
       spiritStone: stone,
       recruitTicket: ticket,
       fateCharm: charm,
@@ -68,9 +65,12 @@ class GiftService {
   static Future<GiftRewardResult> claimReward() async {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
-    final oldCount = prefs.getInt(_keyClaimCount) ?? 0;
 
-    final result = calculateReward(oldCount);
+    // ⚡改这里：首次就是1
+    final oldCount = prefs.getInt(_keyClaimCount);
+    final newCount = (oldCount ?? 0) + 1;
+
+    final result = calculateReward(newCount);
 
     // ✅ 发奖励
     await ResourcesStorage.add('spiritStoneLow', result.spiritStone);
@@ -79,7 +79,7 @@ class GiftService {
 
     // ✅ 写入记录
     await prefs.setInt(_keyLastClaimed, now.millisecondsSinceEpoch);
-    await prefs.setInt(_keyClaimCount, oldCount + 1);
+    await prefs.setInt(_keyClaimCount, newCount);
 
     return result;
   }
