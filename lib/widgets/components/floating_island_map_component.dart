@@ -38,9 +38,14 @@ class FloatingIslandMapComponent extends FlameGame
     );
     await _noiseMapGenerator.onLoad();
 
+    // ✅ 先创建网格
     _grid = InfiniteGridPainterComponent(generator: _noiseMapGenerator);
     debugPrint('[FloatingIslandMap] Grid created.');
 
+// ✅ 把_grid直接添加到地图
+    add(_grid);
+
+// ✅ 创建 DragMap（不再有childBuilder）
     _dragMap = DragMap(
       onDragged: (delta) {
         logicalOffset -= delta;
@@ -55,7 +60,6 @@ class FloatingIslandMapComponent extends FlameGame
         debugPrint('[Map] Tap to move and start following.');
       },
       showGrid: false,
-      childBuilder: () => _grid,
     );
 
     add(_dragMap);

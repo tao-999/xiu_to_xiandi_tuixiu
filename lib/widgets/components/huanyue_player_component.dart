@@ -31,6 +31,7 @@ class HuanyuePlayerComponent extends SpriteComponent
   late final Future<void> Function() _onPowerUpdate;
 
   double get _currentMoveSpeed => 75 + currentFloor * 0.01;
+  double _saveTimer = 0;
 
   HuanyuePlayerComponent({
     required this.tileSize,
@@ -125,6 +126,12 @@ class HuanyuePlayerComponent extends SpriteComponent
       }
 
       powerText.position = position - Vector2(0, size.y / 2 + 4);
+    }
+
+    _saveTimer += dt;
+    if (_saveTimer >= 1.0) {
+      _saveTimer = 0;
+      HuanyueStorage.savePlayerPosition(position);
     }
   }
 

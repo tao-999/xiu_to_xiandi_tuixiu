@@ -63,6 +63,13 @@ class RockCellComponent extends PositionComponent
 
   @override
   void onTapDown(TapDownEvent event) async {
+    // 🌟 节流判断：0.5秒内不响应
+    final now = DateTime.now();
+    if (game.lastTapTime != null && now.difference(game.lastTapTime!) < const Duration(milliseconds: 500)) {
+      return;
+    }
+    game.lastTapTime = now;
+
     if (broken || game.isShifting || isProcessingTap) return;
     if (!game.canBreak(gridKey)) return;
 
@@ -87,7 +94,7 @@ class RockCellComponent extends PositionComponent
         _onPickaxeStrike(
           event.localPosition,
           shouldShift: true,
-          context: game.buildContext!, // ✅ 传入 context
+          context: game.buildContext!,
         );
         isProcessingTap = false;
       },

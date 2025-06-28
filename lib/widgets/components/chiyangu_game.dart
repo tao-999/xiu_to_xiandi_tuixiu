@@ -26,6 +26,7 @@ class ChiyanguGame extends FlameGame {
 
   bool isShifting = false;
   String? lastTappedKey;
+  DateTime? lastTapTime;
 
   static final ValueNotifier<int> depthNotifier = ValueNotifier<int>(0);
 

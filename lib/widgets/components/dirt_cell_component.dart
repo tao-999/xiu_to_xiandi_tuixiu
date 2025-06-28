@@ -14,7 +14,7 @@ class DirtCellComponent extends PositionComponent
   final int depth;
   late String gridKey;
   bool broken = false;
-  bool tapped = false; // ✅ 点击加锁
+  bool tapped = false;
   late SpriteComponent fillSprite;
 
   DirtCellComponent({
@@ -43,20 +43,27 @@ class DirtCellComponent extends PositionComponent
 
   @override
   void onTapDown(TapDownEvent event) async {
+    // 🌟 节流：1秒内禁止再次点击
+    final now = DateTime.now();
+    if (game.lastTapTime != null &&
+        now.difference(game.lastTapTime!) < const Duration(seconds: 1)) {
+      return;
+    }
+    game.lastTapTime = now;
+
     if (tapped || broken || game.isShifting) return;
     if (!game.canBreak(gridKey)) return;
 
-    tapped = true; // ✅ 第一时间就加锁！
+    tapped = true;
 
     final count = await ChiyanguStorage.getPickaxeCount();
     if (count <= 0) {
       ToastTip.show(game.buildContext!, '⛏️ 你的锄头已经用完了！');
-      tapped = false; // ❗要恢复锁，否则就锁死了
+      tapped = false;
       return;
     }
 
     await ChiyanguStorage.consumePickaxe();
-
     game.lastTappedKey = gridKey;
 
     final globalClick = absolutePosition + size / 2;
@@ -73,7 +80,6 @@ class DirtCellComponent extends PositionComponent
 
   void externalBreak() {
     if (broken) return;
-    debugPrint('🔥 爆格子 $gridKey');
     _breakBlock(shouldShift: false);
   }
 
@@ -91,7 +97,6 @@ class DirtCellComponent extends PositionComponent
     }
   }
 
-  // ✅ 存档支持
   Map<String, dynamic> toStorage() {
     return {
       'type': 'dirt',
@@ -99,7 +104,6 @@ class DirtCellComponent extends PositionComponent
     };
   }
 
-  // ✅ 加载支持
   void restoreFromStorage(int level) {
     if (level >= 1) {
       broken = true;

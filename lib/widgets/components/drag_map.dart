@@ -1,16 +1,14 @@
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-import 'package:flame/collisions.dart';
 import 'package:flutter/cupertino.dart';
 
 class DragMap extends PositionComponent
-    with DragCallbacks, HasGameReference, GestureHitboxes {
+    with DragCallbacks, GestureHitboxes {
   final void Function(Vector2 delta) onDragged;
   final void Function(Vector2 position)? onTap;
   final ValueNotifier<bool>? isTapLocked;
 
   final bool showGrid;
-  final PositionComponent Function()? childBuilder;
 
   double scaleFactor = 1.0;
 
@@ -19,10 +17,10 @@ class DragMap extends PositionComponent
     this.onTap,
     this.isTapLocked,
     this.showGrid = false,
-    this.childBuilder,
   }) {
     size = Vector2(5000, 5000); // 交互区域
     priority = 9999;
+    debugPrint('🔥 DragMap created: hashCode=$hashCode');
   }
 
   Vector2? _startPosition;
@@ -32,17 +30,12 @@ class DragMap extends PositionComponent
   @override
   Future<void> onLoad() async {
     anchor = Anchor.topLeft;
-
-    // ✅ 可选添加网格背景组件
-    if (childBuilder != null) {
-      add(childBuilder!());
-    }
-
-    add(RectangleHitbox()
-      ..size = size
-      ..anchor = Anchor.topLeft
-      ..collisionType = CollisionType.passive);
+    // ❌ 不需要 RectangleHitbox
   }
+
+  // ✅ 这里最关键
+  @override
+  bool containsLocalPoint(Vector2 point) => true;
 
   @override
   void render(Canvas canvas) {

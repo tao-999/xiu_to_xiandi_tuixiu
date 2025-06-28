@@ -6,10 +6,8 @@ class FloatingIslandStorage {
 
   static Future<void> _ensureBox() async {
     if (_box != null) return;
-    final dir = await getApplicationDocumentsDirectory();
-    Hive.init(dir.path);
+    // 删掉这行！Hive.init(dir.path);
     _box = await Hive.openBox('floating_island');
-    print('[FloatingIslandStorage] Box initialized at ${dir.path}');
   }
 
   /// 保存角色位置

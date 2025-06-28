@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart';
@@ -160,7 +161,20 @@ class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
   Future<Vector2> _loadPlayerPosition() async {
     final saved = await HuanyueStorage.getPlayerPosition();
     if (saved != null && saved != Vector2.zero()) return saved;
-    return Vector2(5, 5) * tileSize + Vector2.all(tileSize / 2);
+
+    // 🚀 地图尺寸
+    final mapWidth = mapCols * tileSize;
+    final mapHeight = mapRows * tileSize;
+
+    final rand = Random();
+
+    // 四周留margin
+    const double margin = 50;
+
+    final x = margin + rand.nextDouble() * (mapWidth - margin * 2);
+    final y = margin + rand.nextDouble() * (mapHeight - margin * 2);
+
+    return Vector2(x, y);
   }
 
   Future<void> _enterNextFloor() async {

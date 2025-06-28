@@ -44,7 +44,7 @@ class HuanyueEnemySpawner extends Component with HasGameReference {
     required this.tileManager,
     this.enemyCount = 10,
   }) {
-    _rand = Random(floor); // ✅ 楼层种子，保证每层怪一致
+    _rand = Random(floor);
   }
 
   @override
@@ -52,22 +52,20 @@ class HuanyueEnemySpawner extends Component with HasGameReference {
     print('✅ HuanyueEnemySpawner loaded (floor $floor)');
 
     final bossId = 'boss-floor-$floor';
-    Vector2? bossTile = await HuanyueStorage.getEnemyPosition(bossId);
-    if (bossTile == null) {
-      bossTile = _randomValidPos(sizeInTiles: 4, spacing: 1);
-      await HuanyueStorage.saveEnemyPosition(bossId, bossTile);
+    Vector2? bossPos = await HuanyueStorage.getEnemyPosition(bossId);
+    if (bossPos == null) {
+      bossPos = _randomValidPixelPos();
+      await HuanyueStorage.saveEnemyPosition(bossId, bossPos);
     }
-    // 🚀 这里直接用bossTile（不管是不是新生成的）
-    if (!await HuanyueStorage.isEnemyKilled(bossId)) {
-      tileManager.occupy(bossTile.x.toInt(), bossTile.y.toInt(), 4, 4);
 
+    if (!await HuanyueStorage.isEnemyKilled(bossId)) {
       final bossSprite = await Sprite.load(_randomEnemyPath());
       add(HuanyueEnemyComponent(
         id: bossId,
         floor: floor,
         isBoss: true,
         sprite: bossSprite,
-        position: bossTile, // 这里直接存像素坐标
+        position: bossPos,
         size: Vector2.all(60),
       )..priority = 10);
     }
@@ -75,7 +73,6 @@ class HuanyueEnemySpawner extends Component with HasGameReference {
     int placed = 0;
     while (placed < enemyCount) {
       final id = 'enemy-${floor}-$placed';
-
       if (await HuanyueStorage.isEnemyKilled(id)) {
         placed++;
         continue;
@@ -83,11 +80,9 @@ class HuanyueEnemySpawner extends Component with HasGameReference {
 
       Vector2? pos = await HuanyueStorage.getEnemyPosition(id);
       if (pos == null) {
-        pos = _randomValidPos(sizeInTiles: 2, spacing: 1);
+        pos = _randomValidPixelPos();
         await HuanyueStorage.saveEnemyPosition(id, pos);
       }
-      // 🚀 同理，用pos，不用再 * tileSize
-      tileManager.occupy(pos.x.toInt(), pos.y.toInt(), 2, 2);
 
       final sprite = await Sprite.load(_randomEnemyPath());
       add(HuanyueEnemyComponent(
@@ -107,26 +102,12 @@ class HuanyueEnemySpawner extends Component with HasGameReference {
     return _enemyPaths[_rand.nextInt(_enemyPaths.length)];
   }
 
-  Vector2 _randomValidPos({required int sizeInTiles, int spacing = 0}) {
-    int attempts = 0;
-    while (attempts < 1000) {
-      final x = _rand.nextInt(cols - sizeInTiles - spacing * 2) + spacing;
-      final y = _rand.nextInt(rows - sizeInTiles - spacing * 2) + spacing;
-
-      if (x < 4 || y < 4 || x + sizeInTiles + spacing > cols - 2 || y + sizeInTiles + spacing > rows - 2) {
-        attempts++;
-        continue;
-      }
-
-      if (!tileManager.isOccupied(x - spacing, y - spacing, sizeInTiles + spacing * 2, sizeInTiles + spacing * 2)) {
-        return Vector2(x.toDouble(), y.toDouble());
-      }
-
-      attempts++;
-    }
-
-    print('⚠️ 找不到合法怪物出生点，fallback');
-    return Vector2.zero();
+  /// 🚀 在地图像素范围内随机
+  Vector2 _randomValidPixelPos() {
+    final rand = Random();
+    final x = rand.nextDouble() * cols * tileSize;
+    final y = rand.nextDouble() * rows * tileSize;
+    return Vector2(x, y);
   }
 }
 
@@ -142,7 +123,7 @@ class HuanyueEnemyComponent extends SpriteComponent with CollisionCallbacks, Has
   bool _isChasing = false;
   bool _isFacingLeft = true;
   Vector2? _patrolTarget;
-  double _saveTimer = 0; // 用于控制存储频率
+  double _saveTimer = 0;
 
   late TextComponent powerText;
 
@@ -168,7 +149,6 @@ class HuanyueEnemyComponent extends SpriteComponent with CollisionCallbacks, Has
 
     final power = PlayerStorage.calculatePower(hp: hp, atk: atk, def: def);
 
-    // ✅ 把数字挂到mapLayer（parent?.parent）
     powerText = TextComponent(
       text: '$power',
       textRenderer: TextPaint(
@@ -180,7 +160,6 @@ class HuanyueEnemyComponent extends SpriteComponent with CollisionCallbacks, Has
       ),
     )..anchor = Anchor.bottomCenter;
 
-    // 注意这里：把数字挂到上层
     parent?.parent?.add(powerText);
 
     add(RectangleHitbox()..collisionType = CollisionType.passive);
@@ -190,10 +169,8 @@ class HuanyueEnemyComponent extends SpriteComponent with CollisionCallbacks, Has
   void update(double dt) {
     super.update(dt);
 
-    // 更新头顶数字位置
     powerText.position = position - Vector2(0, size.y / 2 + 4);
 
-    // 获取玩家对象（2层parent->descendants）
     final player = parent?.parent?.descendants().whereType<HuanyuePlayerComponent>().firstOrNull;
 
     if (player != null) {
@@ -201,17 +178,16 @@ class HuanyueEnemyComponent extends SpriteComponent with CollisionCallbacks, Has
 
       if (distance <= 150) {
         _isChasing = true;
-        _moveTowards(player.position, dt, 40); // 追击速度
+        _moveTowards(player.position, dt, 40);
       } else {
         _isChasing = false;
-        _patrol(dt); // 巡逻
+        _patrol(dt);
       }
     } else {
       _isChasing = false;
-      _patrol(dt); // 没有玩家也巡逻
+      _patrol(dt);
     }
 
-    // 📝 每隔1秒自动持久化怪物位置（骚操作！）
     _saveTimer += dt;
     if (_saveTimer >= 1.0) {
       _saveTimer = 0;
@@ -225,14 +201,12 @@ class HuanyueEnemyComponent extends SpriteComponent with CollisionCallbacks, Has
     final dir = (target - position).normalized();
     position += dir * speed * dt;
 
-    // 判断翻转
     final shouldFaceLeft = (target.x - position.x) < 0;
     if (shouldFaceLeft != _isFacingLeft) {
       scale.x = shouldFaceLeft ? 1 : -1;
       _isFacingLeft = shouldFaceLeft;
     }
 
-    // 限制位置，防止跑到地图外
     final mapLayer = parent?.parent as PositionComponent?;
     final mapWidth = mapLayer?.size.x ?? 99999;
     final mapHeight = mapLayer?.size.y ?? 99999;
@@ -246,10 +220,8 @@ class HuanyueEnemyComponent extends SpriteComponent with CollisionCallbacks, Has
     final mapWidth = mapLayer?.size.x ?? 99999;
     final mapHeight = mapLayer?.size.y ?? 99999;
 
-    // 没有目标 或 接近目标，就生成新目标
     if (_patrolTarget == null || (position - _patrolTarget!).length < 5) {
       final rand = Random();
-      // 生成在地图内的安全目标点（边缘留 margin）
       const double margin = 20;
       _patrolTarget = Vector2(
         margin + rand.nextDouble() * (mapWidth - margin * 2),
@@ -257,81 +229,30 @@ class HuanyueEnemyComponent extends SpriteComponent with CollisionCallbacks, Has
       );
     }
 
-    // 先移动
     _moveTowards(_patrolTarget!, dt, 20);
-
-    // 如果撞到地图边缘，就弹回来（刷新巡逻目标点）
-    const double margin = 2;
-    bool bounced = false;
-
-    // 横向
-    if (position.x < margin) {
-      position.x = margin;
-      _patrolTarget = Vector2(
-        position.x + Random().nextDouble() * 80 + 40, // 往右弹
-        position.y + (Random().nextDouble() - 0.5) * 100,
-      );
-      bounced = true;
-    } else if (position.x > mapWidth - margin) {
-      position.x = mapWidth - margin;
-      _patrolTarget = Vector2(
-        position.x - Random().nextDouble() * 80 - 40, // 往左弹
-        position.y + (Random().nextDouble() - 0.5) * 100,
-      );
-      bounced = true;
-    }
-
-    // 纵向
-    if (position.y < margin) {
-      position.y = margin;
-      _patrolTarget = Vector2(
-        position.x + (Random().nextDouble() - 0.5) * 100,
-        position.y + Random().nextDouble() * 80 + 40, // 往下弹
-      );
-      bounced = true;
-    } else if (position.y > mapHeight - margin) {
-      position.y = mapHeight - margin;
-      _patrolTarget = Vector2(
-        position.x + (Random().nextDouble() - 0.5) * 100,
-        position.y - Random().nextDouble() * 80 - 40, // 往上弹
-      );
-      bounced = true;
-    }
-
-    if (bounced) {
-      // 防止弹出界后还卡住
-      _patrolTarget!.clamp(
-        Vector2(margin, margin),
-        Vector2(mapWidth - margin, mapHeight - margin),
-      );
-    }
   }
 
   int get spiritStoneReward => reward;
 
   @override
   void onRemove() {
-    // 确保删除数字
     powerText.removeFromParent();
     super.onRemove();
   }
 
   void _handleMonsterCollisions() {
-    // 只在非chase时管，追击时别乱推自己
     if (_isChasing) return;
 
-    // 遍历所有怪物，避免和自己比
     final others = parent?.parent?.descendants().whereType<HuanyueEnemyComponent>();
     if (others == null) return;
 
     for (final other in others) {
       if (identical(this, other)) continue;
 
-      final minDist = (size.x + other.size.x) / 2 - 2; // -2留一点重叠
+      final minDist = (size.x + other.size.x) / 2 - 2;
       final dir = position - other.position;
       final dist = dir.length;
       if (dist < minDist && dist > 0.01) {
-        // 推开距离
         final push = (minDist - dist) / 2;
         final move = dir.normalized() * push;
         position += move;
