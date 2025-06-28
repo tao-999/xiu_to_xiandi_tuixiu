@@ -112,7 +112,7 @@ class MonsterWaveInfo extends PositionComponent {
     final isHigher = playerPower > recommendedPower;
     final color = isHigher ? Colors.green : Colors.red;
 
-    _powerText.text = '推荐战力：$recommendedPower';
+    _powerText.text = '最低战力：$recommendedPower';
     _powerText.textRenderer = TextPaint(
       style: TextStyle(
         fontSize: 10,

@@ -125,8 +125,10 @@ class HellMonsterComponent extends SpriteComponent
 
     final playerPos = _target!.position;
     final playerInSafeZone = (playerPos - _safeZoneCenter!).length < _safeZoneRadius;
+    final distanceToPlayer = (playerPos - position).length;
 
-    if (playerInSafeZone) {
+    if (playerInSafeZone || distanceToPlayer > 200) {
+      // 玩家在安全区 或距离>200 → 游荡
       _isWandering = true;
       _wanderTimer -= dt;
 
@@ -138,6 +140,7 @@ class HellMonsterComponent extends SpriteComponent
 
       position += _wanderDirection.normalized() * (_moveSpeed * 0.4) * dt;
     } else {
+      // 玩家在视野内 → 追击
       _isWandering = false;
       final toPlayer = playerPos - position;
       if (toPlayer.length > 1e-2) {
