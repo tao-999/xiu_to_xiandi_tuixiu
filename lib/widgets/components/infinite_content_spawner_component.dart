@@ -101,12 +101,11 @@ class InfiniteContentSpawnerComponent extends Component {
         sprite: sprite,
         moveSpeed: 30.0,
         getTerrainType: getTerrainType,   // ✅ 直接传递地形判定方法
-        size: Vector2.all(64),
+        size: Vector2.all(32),
       );
 
       grid.add(monster);
 
-      debugPrint('[Spawner] Monster spawned in $terrainType at Tile ($tileX, $tileY)');
     }
   }
 

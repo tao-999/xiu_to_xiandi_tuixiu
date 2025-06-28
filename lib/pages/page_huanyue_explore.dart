@@ -19,7 +19,7 @@ class _HuanyueExplorePageState extends State<HuanyueExplorePage> {
   HuanyueExploreGame _createGame() {
     return HuanyueExploreGame(
       onReload: _reloadGame,
-      customTileSize: 8,
+      customTileSize: 15,
     );
   }
 

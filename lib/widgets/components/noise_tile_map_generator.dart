@@ -1,3 +1,5 @@
+// lib/widgets/components/noise_tile_map_generator.dart
+
 import 'dart:math';
 import 'dart:ui';
 
@@ -5,15 +7,14 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart' hide Image;
 
 import '../../utils/noise_utils.dart';
-import '../components/tile_overlay_renderer_manager.dart';
 
 class NoiseTileMapGenerator extends PositionComponent {
-  final double tileSize; // 不用了，这里用bigTileSize/smallTileSize
+  final double tileSize; // 大瓦片尺寸
   final int seed;
   final double frequency;
   final int octaves;
   final double persistence;
-  final double smallTileSize;
+  final double smallTileSize; // 小瓦片尺寸（用于细分边缘）
 
   double viewScale = 1.0;
   Vector2 viewSize = Vector2.zero();
@@ -21,9 +22,6 @@ class NoiseTileMapGenerator extends PositionComponent {
   Vector2 logicalOffset = Vector2.zero();
 
   late final NoiseUtils _noise;
-  late final TileOverlayRendererManager _overlayManager;
-
-  bool _overlayLoaded = false;
 
   NoiseTileMapGenerator({
     this.tileSize = 4.0,
@@ -34,15 +32,6 @@ class NoiseTileMapGenerator extends PositionComponent {
     this.persistence = 0.5,
   }) {
     _noise = NoiseUtils(seed);
-    _overlayManager = TileOverlayRendererManager(seed: seed);
-
-    _overlayManager.register(terrainType: 'forest', tileType: 'tree');
-  }
-
-  @override
-  Future<void> onLoad() async {
-    await _overlayManager.loadAllAssets();
-    _overlayLoaded = true;
   }
 
   final List<_TerrainRange> terrainRanges = [
@@ -71,8 +60,7 @@ class NoiseTileMapGenerator extends PositionComponent {
     final endX = bottomRight.x;
     final endY = bottomRight.y;
 
-    // 注意：bigTileSize不再写const，直接用 tileSize 和 smallTileSize
-    final double bigTileSize = tileSize; // tileSize是构造函数参数
+    final double bigTileSize = tileSize;
 
     for (double x = startX; x < endX; x += bigTileSize) {
       for (double y = startY; y < endY; y += bigTileSize) {
@@ -112,36 +100,15 @@ class NoiseTileMapGenerator extends PositionComponent {
     required _TerrainRange range,
     required double noiseVal,
   }) {
-    // ✅ 🌈 恢复渐变色
+    final dx = (screenX * scale).roundToDouble();
+    final dy = (screenY * scale).roundToDouble();
+    final size = (tileSize * scale).roundToDouble();
+
     final t = ((noiseVal - range.min) / (range.max - range.min)).clamp(0.0, 1.0);
     final color = Color.lerp(range.colorStart, range.colorEnd, t)!;
-
-    final dx = screenX * scale;
-    final dy = screenY * scale;
-    final size = tileSize * scale;
-
     final paint = Paint()..color = color;
-    canvas.drawRect(Rect.fromLTWH(dx, dy, size, size), paint);
 
-    if (_overlayLoaded) {
-      _overlayManager.renderIfNeeded(
-        canvas: canvas,
-        terrainType: range.name,
-        noiseVal: noiseVal,
-        worldPos: Vector2(worldX, worldY),
-        scale: scale,
-        cameraOffset: logicalOffset,
-        conditionCheck: (pos) {
-          final raw = (_noise.fbm(pos.x, pos.y, octaves, frequency, persistence) + 1) / 2;
-          final stretched = (raw - 0.3) / 0.4;
-          final adjusted = stretched.clamp(0.0, 1.0);
-          final terrainName = terrainRanges.firstWhere(
-                (r) => adjusted >= r.min && adjusted < r.max,
-          ).name;
-          return terrainName == range.name;
-        },
-      );
-    }
+    canvas.drawRect(Rect.fromLTWH(dx, dy, size, size), paint);
   }
 
   void _renderCoarseTile(Canvas canvas, double x, double y, double tileSize, double scale) {
@@ -197,7 +164,7 @@ class NoiseTileMapGenerator extends PositionComponent {
 
     final range = terrainRanges.firstWhere(
           (r) => noiseVal >= r.min && noiseVal < r.max,
-      orElse: () => terrainRanges.last, // 万一没匹配到，默认最后一个
+      orElse: () => terrainRanges.last,
     );
     return range.name;
   }

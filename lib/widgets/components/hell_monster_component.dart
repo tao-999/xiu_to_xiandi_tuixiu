@@ -96,8 +96,6 @@ class HellMonsterComponent extends SpriteComponent
       ),
     )..priority = 999;
     add(_damageText);
-
-    print('⚙️ 怪物 #$id（波次 $waveIndex）加载完成，速度: $_moveSpeed');
   }
 
   void trackTarget(

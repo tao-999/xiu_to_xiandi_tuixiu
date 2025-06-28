@@ -11,8 +11,8 @@ class BackButtonOverlay extends StatelessWidget {
       child: GestureDetector(
         onTap: () => Navigator.of(context).pop(),
         child: SizedBox(
-          width: 100,
-          height: 100,
+          width: 82,
+          height: 82,
           child: Image.asset(
             'assets/images/back.png', // 确保你放在了 assets/images/ 目录
             fit: BoxFit.contain,

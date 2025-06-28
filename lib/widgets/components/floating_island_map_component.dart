@@ -7,6 +7,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 import 'package:flutter/widgets.dart';
 
 import 'floating_island_monster_component.dart';
+import 'forest_tree_spawner_component.dart';
 import 'infinite_content_spawner_component.dart';
 import 'noise_tile_map_generator.dart';
 
@@ -23,17 +24,18 @@ class FloatingIslandMapComponent extends FlameGame
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+    add(FpsTextComponent());
 
     WidgetsBinding.instance.addObserver(this);
     debugPrint('[FloatingIslandMap] onLoad started.');
 
     // 地形生成器
     _noiseMapGenerator = NoiseTileMapGenerator(
-      tileSize: 10.0,
-      smallTileSize: 3.5,
+      tileSize: 16.0,
+      smallTileSize: 3,
       seed: 1337,
-      frequency: 0.0005,
-      octaves: 4,
+      frequency: 0.0001,
+      octaves: 5,
       persistence: 0.5,
     );
     await _noiseMapGenerator.onLoad();
@@ -42,10 +44,10 @@ class FloatingIslandMapComponent extends FlameGame
     _grid = InfiniteGridPainterComponent(generator: _noiseMapGenerator);
     debugPrint('[FloatingIslandMap] Grid created.');
 
-// ✅ 把_grid直接添加到地图
+    // ✅ 把_grid直接添加到地图
     add(_grid);
 
-// ✅ 创建 DragMap（不再有childBuilder）
+    // ✅ 创建 DragMap
     _dragMap = DragMap(
       onDragged: (delta) {
         logicalOffset -= delta;
@@ -104,6 +106,7 @@ class FloatingIslandMapComponent extends FlameGame
       });
     }
 
+    // 🌟 怪物生成器
     add(
       InfiniteContentSpawnerComponent(
         grid: _grid,
@@ -111,9 +114,34 @@ class FloatingIslandMapComponent extends FlameGame
         getViewSize: () => size,
         getTerrainType: (worldPos) => _noiseMapGenerator.getTerrainTypeAtPosition(worldPos),
         allowedTerrains: {'mud'}, // 换成你想刷怪的地形
-        tileSize: 128.0,
+        tileSize: 64.0,
       ),
     );
+
+    // 🌲 森林生成器（树木）
+    add(
+      ForestTreeSpawnerComponent(
+        grid: _grid,
+        getLogicalOffset: () => logicalOffset,
+        getViewSize: () => size,
+        getTerrainType: (pos) => _noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        terrainSpritesMap: {
+          'forest': [
+            'floating_island/tree_1.png',
+            'floating_island/tree_2.png',
+            'floating_island/tree_3.png',
+            'floating_island/tree_4.png',
+            'floating_island/tree_5.png',
+          ],
+        },
+        tileSize: 64.0,
+        seed: 8888,
+        minTreesPerTile: 2,
+        maxTreesPerTile: 5,
+      ),
+    );
+
+    debugPrint('[FloatingIslandMap] ForestTreeSpawnerComponent added.');
   }
 
   @override

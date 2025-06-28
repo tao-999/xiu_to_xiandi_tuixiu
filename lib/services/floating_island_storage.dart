@@ -5,8 +5,6 @@ class FloatingIslandStorage {
   static Box? _box;
 
   static Future<void> _ensureBox() async {
-    if (_box != null) return;
-    // 删掉这行！Hive.init(dir.path);
     _box = await Hive.openBox('floating_island');
   }
 

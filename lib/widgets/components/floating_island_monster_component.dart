@@ -44,7 +44,7 @@ class FloatingIslandMonsterComponent extends SpriteComponent
         super(
         sprite: sprite,
         position: Vector2.zero(),
-        size: size ?? Vector2.all(32),
+        size: size ?? Vector2.all(24),
         anchor: Anchor.center,
       );
 

@@ -38,6 +38,8 @@ class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
 
   @override
   Future<void> onLoad() async {
+    add(FpsTextComponent());
+
     final double screenHeight = size.y;
 
     // tileSize优先用外部传入，没有则自动适配
