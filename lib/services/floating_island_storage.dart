@@ -56,4 +56,24 @@ class FloatingIslandStorage {
     await _box!.clear();
     print('[FloatingIslandStorage] Storage cleared.');
   }
+
+  /// 保存seed
+  static Future<void> saveSeed(int seed) async {
+    await _ensureBox();
+    await _box!.put('seed', seed);
+    print('[FloatingIslandStorage] Saved seed: $seed');
+  }
+
+  /// 获取seed
+  static Future<int?> getSeed() async {
+    await _ensureBox();
+    final seed = _box!.get('seed') as int?;
+    if (seed != null) {
+      print('[FloatingIslandStorage] Loaded seed: $seed');
+    } else {
+      print('[FloatingIslandStorage] No seed found.');
+    }
+    return seed;
+  }
+
 }
