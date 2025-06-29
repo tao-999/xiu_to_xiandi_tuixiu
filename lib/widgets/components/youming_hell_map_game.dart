@@ -19,9 +19,6 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
   final BuildContext context;
   int level;
 
-  static const int tileSize = 512;
-  static const int mapSize = 4;
-
   late final World world;
   late final CameraComponent cameraComponent;
   late final PositionComponent mapRoot;
@@ -31,18 +28,17 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
   late Vector2 safeZoneCenter;
   final double safeZoneRadius = 64;
 
-  final int monstersPerWave = 100;
+  final int monstersPerWave = 50;
   final int totalWaves = 3;
   int currentWave = 1;
   final Map<int, List<HellMonsterComponent>> waves = {};
 
-  double _lightningCooldown = 0.0;
-  bool _isReleasingLightning = false;
-
-  late MonsterWaveInfo monsterWaveInfo;
+  double _lightningTimer = 3.0; // 冷却计时器
   bool _waveFinished = false;
   bool _hasPassed = false;
   bool _hasJustLoaded = false;
+
+  late MonsterWaveInfo monsterWaveInfo;
 
   YoumingHellMapGame(this.context, {this.level = 1});
 
@@ -51,9 +47,23 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
     add(FpsTextComponent());
     WidgetsBinding.instance.addObserver(this);
     await _initCameraAndWorld();
-    await _loadTileSprites();
-    _generateTileMap();
+
+    final bgSprite = await Sprite.load('hell/diyu_tile.webp');
+    mapRoot.add(HellMapBackground(bgSprite));
+
     _addInteractionLayer();
+
+    // ✅先创建UI
+    monsterWaveInfo = MonsterWaveInfo(
+      gameRef: this,
+      waves: waves,
+      currentWave: currentWave,
+      totalWaves: totalWaves,
+      currentAlive: monstersPerWave + 1,
+    );
+
+    cameraComponent.viewport.add(monsterWaveInfo);
+    cameraComponent.viewport.add(HellLevelOverlay(getLevel: () => level));
 
     final saved = await _loadSave();
     if (saved != null) {
@@ -67,21 +77,8 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
       currentWave = 1;
     }
 
-    // ✅ 每次加载完玩家后重新挂载安全区，避免旧 SafeZoneCircle 留下回调陷阱
     _addSafeZone();
-
     _loadWave(currentWave);
-
-    monsterWaveInfo = MonsterWaveInfo(
-      gameRef: this,
-      mapRoot: mapRoot,
-      currentWave: currentWave,
-      totalWaves: totalWaves,
-      currentAlive: monstersPerWave + 1,
-    );
-
-    cameraComponent.viewport.add(monsterWaveInfo);
-    cameraComponent.viewport.add(HellLevelOverlay(getLevel: () => level));
   }
 
   @override
@@ -101,67 +98,45 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
   void update(double dt) {
     super.update(dt);
 
-    _lightningCooldown -= dt;
-    if (_lightningCooldown <= 0 && !_isReleasingLightning) {
-      _isReleasingLightning = true;
-      _fireLightning().then((_) {
-        _lightningCooldown = 1.0;
-        _isReleasingLightning = false;
-      });
+    _lightningTimer -= dt;
+    if (_lightningTimer <= 0) {
+      _fireLightning();
+      _lightningTimer = 3.0;
     }
+  }
 
+  void checkWaveProgress() {
     final alive = getAliveMonsterCount(currentWave);
+
     monsterWaveInfo.updateInfo(
       waveIndex: currentWave,
       waveTotal: totalWaves,
       alive: alive,
+      total: monstersPerWave,
     );
-  }
-
-  void checkWaveProgress() {
-    print('\n🧠 [checkWaveProgress] ========================');
-    print('📍 当前波次: $currentWave');
-    print('📦 当前波次是否存在: ${waves.containsKey(currentWave)}');
-    print('👾 当前波怪物总数: ${waves[currentWave]?.length ?? 0}');
-    final alive = getAliveMonsterCount(currentWave);
-    print('💀 当前波挂载怪物剩余: $alive');
-    print('📍 _waveFinished 标记状态: $_waveFinished');
 
     if (alive == 0 && !_waveFinished) {
-      print('✅ [checkWaveProgress] 当前波怪物清空，准备进入下一波');
-
       _waveFinished = true;
 
       if (currentWave < totalWaves) {
-        Future.delayed(const Duration(seconds: 1), () {
-          currentWave += 1;
-          print('⏭️ 正在加载下一波: $currentWave');
-          _loadWave(currentWave);
-          _waveFinished = false;
-        });
+        currentWave += 1;
+        _loadWave(currentWave);
+        _waveFinished = false;
       } else {
-        print('🏁 所有波次已完成，胜利🎉');
         _onHellCleared();
       }
-    } else {
-      print('⏸️ 还有怪物活着，或者 _waveFinished 已被标记，不触发加载');
     }
-
-    print('🔚 [checkWaveProgress] ========================\n');
   }
 
   void _onHellCleared() {
-    print('✨ 地狱已通关，安全区开始发光');
-
-    // ✅ 假设你有个安全区组件
     final star = mapRoot.children.whereType<SafeZoneCircle>().firstOrNull;
-    star?.startGlow(); // ✅ 触发发光（你自己定义）
+    star?.startGlow();
   }
 
-  Future<void> _fireLightning() async {
+  void _fireLightning() {
     final rect = cameraComponent.visibleWorldRect;
     final random = math.Random();
-    final actualCount = random.nextInt(10) + 1;
+    final actualCount = random.nextInt(3) + 1;
 
     for (int i = 0; i < actualCount; i++) {
       final start = Vector2(
@@ -177,17 +152,16 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
         direction: dir,
         maxDistance: maxDistance,
       ));
-
-      await Future.delayed(const Duration(milliseconds: 30));
     }
   }
 
   Future<void> _initCameraAndWorld() async {
     mapRoot = PositionComponent(
-      size: Vector2(tileSize * mapSize.toDouble(), tileSize * mapSize.toDouble()),
+      size: Vector2(1024, 1024),
       position: Vector2.zero(),
       anchor: Anchor.topLeft,
     );
+
     world = World()..add(mapRoot);
 
     cameraComponent = CameraComponent.withFixedResolution(
@@ -196,34 +170,6 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
       height: size.y,
     );
     addAll([world, cameraComponent]);
-  }
-
-  Future<void> _loadTileSprites() async {
-    for (int i = 1; i <= 9; i++) {
-      tileSprites[i] = await loadSprite('hell/diyu_tile_$i.webp');
-    }
-  }
-
-  void _generateTileMap() {
-    final rng = Random(level);
-    final weighted = [
-      ...Iterable.generate(16, (_) => 1),
-      ...Iterable.generate(10, (_) => 2),
-      ...Iterable.generate(7, (_) => 3),
-      4, 4, 5, 5, 6, 7, 8, 9
-    ];
-
-    for (int row = 0; row < mapSize; row++) {
-      for (int col = 0; col < mapSize; col++) {
-        final spr = tileSprites[weighted[rng.nextInt(weighted.length)]]!;
-        mapRoot.add(SpriteComponent(
-          sprite: spr,
-          size: Vector2.all(tileSize.toDouble()),
-          position: Vector2(col * tileSize.toDouble(), row * tileSize.toDouble()),
-          anchor: Anchor.topLeft,
-        ));
-      }
-    }
   }
 
   void _addInteractionLayer() {
@@ -245,7 +191,6 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
   }
 
   void _addSafeZone() {
-    // ✅ 先复制，避免遍历中修改原集合导致异常
     final toRemove = List<SafeZoneCircle>.from(mapRoot.children.whereType<SafeZoneCircle>());
     for (final c in toRemove) {
       c.removeFromParent();
@@ -288,20 +233,15 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
       center: safeZoneCenter,
       radius: safeZoneRadius,
     ));
-
-    // ✅ 打印出生坐标（无论是否来自存档）
-    print('🎯 玩家加载完成，出生坐标: ${player.position}');
   }
 
   void _handleHellPassed() {
     if (_hasPassed || _hasJustLoaded) return;
     _hasPassed = true;
 
-    print('🌀 玩家进入安全区，准备进入下一层');
+    level += 1;
 
-    Future.delayed(const Duration(milliseconds: 300), () async {
-      level += 1;
-
+    Future.microtask(() async {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('hell_save', jsonEncode({
         'level': level,
@@ -315,21 +255,16 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
       }));
 
       _hasPassed = false;
-      _hasJustLoaded = true; // ✅ 标记刚进入新层，禁止立刻触发升层
+      _hasJustLoaded = true;
       _restartHellLevel();
 
-      // ✅ 1秒后解除标记，允许再次升层
       Future.delayed(const Duration(seconds: 1), () {
         _hasJustLoaded = false;
-        print('🟢 允许下一次安全区通关触发');
       });
     });
   }
 
   Future<void> _restartHellLevel() async {
-    print('🌋 正在初始化第 $level 层新地狱...');
-
-    // 清空波次数据和怪物
     for (final monsters in waves.values) {
       for (final m in monsters) {
         m.removeFromParent();
@@ -339,29 +274,23 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
     currentWave = 1;
     _waveFinished = false;
 
-    // 清空 UI 状态
     monsterWaveInfo.updateInfo(
       waveIndex: currentWave,
       waveTotal: totalWaves,
       alive: 0,
+      total: monstersPerWave,
     );
 
-    // 重置玩家状态
     player.hp = player.maxHp;
     player.position = safeZoneCenter.clone();
     cameraComponent.follow(player);
 
-    // ✅ 重新挂载新的安全区组件，移除旧的，避免继续触发 onHellPassed
     _addSafeZone();
 
-    // 重新生成怪物
     await _generateAllWaves();
     _loadWave(currentWave);
 
-    // 存档更新
     await saveCurrentState();
-
-    print('✅ 第 $level 层已加载完成');
   }
 
   Future<void> _generateAllWaves() async {
@@ -416,71 +345,52 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
   }
 
   void _loadWave(int waveIndex) {
-    // 🧼 修正非法波次（最小值为 1）
-    if (waveIndex < 1) {
-      waveIndex = 1;
-    }
+    if (waveIndex < 1) waveIndex = 1;
+    if (waveIndex > totalWaves) return;
 
-    // 🧱 不存在或该波为空？
     final waveEmpty = !waves.containsKey(waveIndex) || waves[waveIndex]!.isEmpty;
-
     if (waveEmpty) {
-      print('⏭️ 当前波 $waveIndex 不存在或为空');
-
-      if (waveIndex >= totalWaves) {
-        print('🏁 所有波次已完成，触发通关');
-        _onHellCleared(); // ✅ 提前触发五角星发光逻辑
-        return;
-      }
-
-      print('👉 继续尝试加载下一波 ${waveIndex + 1}');
       _loadWave(waveIndex + 1);
       return;
     }
 
-    // ✅ 真正加载该波次
     currentWave = waveIndex;
-    print('📣 正在加载波次 $currentWave，怪物数: ${waves[currentWave]!.length}');
-
     for (final monster in waves[currentWave]!) {
       mapRoot.add(monster);
     }
-
     _waveFinished = false;
-
-    // ✅ 延迟检查是否“加载即通关”
-    Future.delayed(const Duration(milliseconds: 100), () {
-      checkWaveProgress();
-    });
+    checkWaveProgress();
   }
 
   Vector2 _getValidSpawnPosition(Random rng) {
-    while (true) {
-      final pos = Vector2(
-        rng.nextInt(mapSize) * tileSize + tileSize / 2,
-        rng.nextInt(mapSize) * tileSize + tileSize / 2,
-      );
-      if ((pos - safeZoneCenter).length > safeZoneRadius + tileSize * 3) {
-        return pos;
-      }
-    }
+    final radius = safeZoneRadius + 100 + rng.nextDouble() * 500;
+    final angle = rng.nextDouble() * 2 * pi;
+    final pos = safeZoneCenter + Vector2(
+      cos(angle) * radius,
+      sin(angle) * radius,
+    );
+    return Vector2(
+      pos.x.clamp(0, mapRoot.size.x),
+      pos.y.clamp(0, mapRoot.size.y),
+    );
   }
 
   Vector2 _getBossSpawnPosition(Random rng) {
-    final edgeX = rng.nextBool()
-        ? rng.nextInt(mapSize ~/ 4) * tileSize + tileSize / 2
-        : (mapSize - rng.nextInt(mapSize ~/ 4)) * tileSize + tileSize / 2;
-    final edgeY = rng.nextBool()
-        ? rng.nextInt(mapSize ~/ 4) * tileSize + tileSize / 2
-        : (mapSize - rng.nextInt(mapSize ~/ 4)) * tileSize + tileSize / 2;
-    return Vector2(edgeX.toDouble(), edgeY.toDouble());
+    final radius = safeZoneRadius + 300 + rng.nextDouble() * 200;
+    final angle = rng.nextDouble() * 2 * pi;
+    final pos = safeZoneCenter + Vector2(
+      cos(angle) * radius,
+      sin(angle) * radius,
+    );
+    return Vector2(
+      pos.x.clamp(0, mapRoot.size.x),
+      pos.y.clamp(0, mapRoot.size.y),
+    );
   }
 
   Future<void> _restoreWavesFromSave(List<dynamic> savedList) async {
     waves.clear();
     final grouped = <int, List<HellMonsterComponent>>{};
-
-    print('📦 开始恢复怪物列表，总数: ${savedList.length}');
 
     for (final raw in savedList) {
       final waveIndex = raw['waveIndex'];
@@ -510,8 +420,6 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
     for (final entry in grouped.entries) {
       waves[entry.key] = entry.value;
     }
-
-    print('✅ 怪物恢复完成，共 ${waves.length} 个波次');
   }
 
   Future<void> saveCurrentState() async {
@@ -525,7 +433,7 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
 
     final monsterList = waves.entries
         .expand((entry) => entry.value)
-        .where((m) => m.hp > 0) // ✅ 只保存还活着的怪物
+        .where((m) => m.hp > 0)
         .map((m) => {
       'id': m.id,
       'x': m.position.x,
@@ -537,7 +445,8 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
       'atk': m.atk,
       'def': m.def,
       'maxHp': m.maxHp,
-    }).toList();
+    })
+        .toList();
 
     final state = {
       'level': level,
@@ -552,37 +461,31 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
   Future<Map<String, dynamic>?> _loadSave() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString('hell_save');
-
-    if (raw == null) {
-      print('📂 没有找到存档数据（首次进入或未保存）');
-      return null;
-    }
-
+    if (raw == null) return null;
     try {
-      final decoded = jsonDecode(raw);
-      print('📥 成功读取存档：');
-      print('🔹 Level: ${decoded['level']}');
-      print('🔹 当前波次: ${decoded['currentWave']}');
-      print('🔹 玩家位置: ${decoded['player']['x']}, ${decoded['player']['y']}');
-      print('🔹 玩家HP: ${decoded['player']['hp']}');
-      print('🔹 怪物数量: ${(decoded['monsters'] as List).length}');
-
-      final grouped = <int, int>{};
-      for (final m in decoded['monsters']) {
-        final idx = m['waveIndex'];
-        grouped[idx] = (grouped[idx] ?? 0) + 1;
-      }
-      for (final entry in grouped.entries) {
-        print('⚔️ 波次 ${entry.key} -> 怪物数量: ${entry.value}');
-      }
-
-      return decoded;
+      return jsonDecode(raw);
     } catch (e) {
-      print('❌ 存档解析失败: $e');
       return null;
     }
   }
 
   @override
   Color backgroundColor() => Colors.black;
+}
+
+class HellMapBackground extends Component {
+  final Sprite sprite;
+  HellMapBackground(this.sprite);
+
+  @override
+  void render(Canvas canvas) {
+    sprite.render(
+      canvas,
+      size: Vector2(1024, 1024),
+      anchor: Anchor.topLeft,
+    );
+  }
+
+  @override
+  void update(double dt) {}
 }

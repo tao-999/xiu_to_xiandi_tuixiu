@@ -34,9 +34,10 @@ class HellMonsterComponent extends SpriteComponent
   double _wanderTimer = 0;
   Vector2 _wanderDirection = Vector2.zero();
 
-  bool _isTouchingPlayer = false; // ✅ 只在第一次接触触发
+  bool _isTouchingPlayer = false;
 
   late final TextComponent _damageText;
+  final Random _rng = Random();
 
   HellMonsterComponent({
     required this.id,
@@ -91,7 +92,9 @@ class HellMonsterComponent extends SpriteComponent
         style: const TextStyle(
           fontSize: 12,
           color: Colors.red,
-          shadows: [Shadow(offset: Offset(1, 1), blurRadius: 1, color: Colors.black)],
+          shadows: [
+            Shadow(offset: Offset(1, 1), blurRadius: 1, color: Colors.black),
+          ],
         ),
       ),
     )..priority = 999;
@@ -117,36 +120,38 @@ class HellMonsterComponent extends SpriteComponent
     if (!isMounted || _target == null || _safeZoneCenter == null) return;
 
     final toSafeCenter = position - _safeZoneCenter!;
-    if (toSafeCenter.length < _safeZoneRadius) {
+    final distToSafe = toSafeCenter.length;
+
+    if (distToSafe < _safeZoneRadius) {
       position = _safeZoneCenter! + toSafeCenter.normalized() * (_safeZoneRadius + 1.0);
+      return; // 在安全区直接退出
     }
 
     final playerPos = _target!.position;
-    final playerInSafeZone = (playerPos - _safeZoneCenter!).length < _safeZoneRadius;
-    final distanceToPlayer = (playerPos - position).length;
+    final distToPlayer = (playerPos - position).length;
 
-    if (playerInSafeZone || distanceToPlayer > 200) {
-      // 玩家在安全区 或距离>200 → 游荡
+    if ((playerPos - _safeZoneCenter!).length < _safeZoneRadius || distToPlayer > 200) {
+      // 游荡逻辑
       _isWandering = true;
       _wanderTimer -= dt;
 
       if (_wanderTimer <= 0) {
-        _wanderTimer = 1.5 + Random().nextDouble() * 2.0;
-        final angle = Random().nextDouble() * 2 * pi;
+        _wanderTimer = 1.5 + _rng.nextDouble() * 2.0;
+        final angle = _rng.nextDouble() * 2 * pi;
         _wanderDirection = Vector2(cos(angle), sin(angle));
       }
 
-      position += _wanderDirection.normalized() * (_moveSpeed * 0.4) * dt;
+      position += _wanderDirection * (_moveSpeed * 0.4) * dt;
     } else {
-      // 玩家在视野内 → 追击
+      // 追击逻辑
       _isWandering = false;
       final toPlayer = playerPos - position;
       if (toPlayer.length > 1e-2) {
-        final move = toPlayer.normalized() * _moveSpeed * dt;
-        position += move;
+        position += toPlayer.normalized() * _moveSpeed * dt;
       }
     }
 
+    // 安全区外约束
     final toSafeCenter2 = position - _safeZoneCenter!;
     if (toSafeCenter2.length < _safeZoneRadius) {
       position = _safeZoneCenter! + toSafeCenter2.normalized() * (_safeZoneRadius + 1.0);
@@ -160,7 +165,7 @@ class HellMonsterComponent extends SpriteComponent
     if (other is HellPlayerComponent && !other.isDead && !_isTouchingPlayer) {
       final damage = atk;
       other.receiveDamage(damage);
-      _isTouchingPlayer = true; // 标记碰撞中
+      _isTouchingPlayer = true;
     }
   }
 
@@ -169,7 +174,7 @@ class HellMonsterComponent extends SpriteComponent
     super.onCollisionEnd(other);
 
     if (other is HellPlayerComponent) {
-      _isTouchingPlayer = false; // 离开后重置
+      _isTouchingPlayer = false;
     }
   }
 
@@ -223,7 +228,10 @@ class HellMonsterComponent extends SpriteComponent
       _damageText.add(
         MoveByEffect(
           Vector2(0, -16),
-          EffectController(duration: 0.4, curve: Curves.easeOut),
+          EffectController(
+            duration: 0.4,
+            curve: Curves.easeOut,
+          ),
           onComplete: () => _damageText.removeFromParent(),
         ),
       );
@@ -242,7 +250,10 @@ class HellMonsterComponent extends SpriteComponent
     _damageText.add(
       MoveByEffect(
         Vector2(0, -16),
-        EffectController(duration: 0.4, curve: Curves.easeOut),
+        EffectController(
+          duration: 0.4,
+          curve: Curves.easeOut,
+        ),
         onComplete: () => _damageText.removeFromParent(),
       ),
     );
