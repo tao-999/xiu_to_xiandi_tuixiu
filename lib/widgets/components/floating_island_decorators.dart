@@ -35,66 +35,97 @@ class FloatingIslandDecorators extends Component {
 
     // 🌲 森林
     add(
-      TerrainDecorationSpawnerComponent(
+      FloatingIslandDynamicSpawnerComponent(
         grid: grid,
         getLogicalOffset: getLogicalOffset,
         getViewSize: getViewSize,
         getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        terrainSpritesMap: {
+        allowedTerrains: {'forest'},
+        staticSpritesMap: {
           'forest': [
-            SpriteWeightEntry('floating_island/tree_1.png', 3),
-            SpriteWeightEntry('floating_island/tree_2.png', 2),
-            SpriteWeightEntry('floating_island/tree_3.png', 2),
-            SpriteWeightEntry('floating_island/tree_4.png', 1),
-            SpriteWeightEntry('floating_island/tree_5.png', 2),
+            StaticSpriteEntry('floating_island/tree_1.png', 3),
+            StaticSpriteEntry('floating_island/tree_2.png', 2),
+            StaticSpriteEntry('floating_island/tree_3.png', 2),
+            StaticSpriteEntry('floating_island/tree_4.png', 1),
+            StaticSpriteEntry('floating_island/tree_5.png', 2),
           ],
         },
-        tileSize: 84.0,
+        dynamicSpritesMap: {}, // 禁用动态
+        staticTileSize: 84.0,  // 对应原来的 tileSize
+        dynamicTileSize: 64.0, // 无用但必须填
         seed: seed,
-        minObjectsPerTile: 1,
-        maxObjectsPerTile: 9,
+        minStaticObjectsPerTile: 1,
+        maxStaticObjectsPerTile: 9,
+        minDynamicObjectsPerTile: 0, // 禁用动态
+        maxDynamicObjectsPerTile: 0,
+        minStaticObjectSize: 16.0,
+        maxStaticObjectSize: 48.0,
+        minDynamicObjectSize: 0.0,
+        maxDynamicObjectSize: 0.0,
+        minSpeed: 0.0,
+        maxSpeed: 0.0,
       ),
     );
 
     // 🌴 沙滩
     add(
-      TerrainDecorationSpawnerComponent(
+      FloatingIslandDynamicSpawnerComponent(
         grid: grid,
         getLogicalOffset: getLogicalOffset,
         getViewSize: getViewSize,
         getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        terrainSpritesMap: {
+        allowedTerrains: {'beach'},
+        staticSpritesMap: {
           'beach': [
-            SpriteWeightEntry('floating_island/beach_1.png', 1),
+            StaticSpriteEntry('floating_island/beach_1.png', 1),
           ],
         },
-        tileSize: 80.0,
+        dynamicSpritesMap: {}, // 禁用动态
+        staticTileSize: 80.0,  // 这里对应你原来的 tileSize
+        dynamicTileSize: 64.0, // 无用但必须填
         seed: seed,
-        minObjectsPerTile: 1,
-        maxObjectsPerTile: 8,
-        minObjectSize: 16.0,
-        maxObjectSize: 48.0,
+        minStaticObjectsPerTile: 1,
+        maxStaticObjectsPerTile: 8,
+        minDynamicObjectsPerTile: 0, // 禁用动态
+        maxDynamicObjectsPerTile: 0,
+        minStaticObjectSize: 16.0,
+        maxStaticObjectSize: 48.0,
+        minDynamicObjectSize: 0.0,
+        maxDynamicObjectSize: 0.0,
+        minSpeed: 0.0,
+        maxSpeed: 0.0,
       ),
     );
 
     // 🌿 草地
     add(
-      TerrainDecorationSpawnerComponent(
+      FloatingIslandDynamicSpawnerComponent(
         grid: grid,
         getLogicalOffset: getLogicalOffset,
         getViewSize: getViewSize,
         getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        terrainSpritesMap: {
+        allowedTerrains: {'grass'},
+        staticSpritesMap: {
           'grass': [
-            SpriteWeightEntry('floating_island/grass_1.png', 6),
-            SpriteWeightEntry('floating_island/grass_2.png', 1),
-            SpriteWeightEntry('floating_island/grass_3.png', 3),
+            StaticSpriteEntry('floating_island/grass_1.png', 6),
+            StaticSpriteEntry('floating_island/grass_2.png', 1),
+            StaticSpriteEntry('floating_island/grass_3.png', 3),
           ],
         },
-        tileSize: 64.0,
+        dynamicSpritesMap: {}, // 不要动态
+        staticTileSize: 64.0, // 新版这里要用 staticTileSize
+        dynamicTileSize: 64.0, // 随便填不会用
         seed: seed,
-        minObjectsPerTile: 1,
-        maxObjectsPerTile: 7,
+        minStaticObjectsPerTile: 1,
+        maxStaticObjectsPerTile: 7,
+        minDynamicObjectsPerTile: 0, // 禁用动态
+        maxDynamicObjectsPerTile: 0, // 禁用动态
+        minStaticObjectSize: 16.0,
+        maxStaticObjectSize: 48.0,
+        minDynamicObjectSize: 0.0,
+        maxDynamicObjectSize: 0.0,
+        minSpeed: 0.0,
+        maxSpeed: 0.0,
       ),
     );
 

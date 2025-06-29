@@ -78,9 +78,9 @@ class TerrainDecorationSpawnerComponent extends Component {
     // 🌿 每帧刷新所有装饰位置 & priority
     for (final deco in _decorations) {
       deco.component.position = deco.worldPosition - logicalOffset;
-      deco.component.priority = (deco.worldPosition.y * 1000).toInt();
+      // ✅ 加基数偏移，避免负数
+      deco.component.priority = ((deco.worldPosition.y + 10000) * 1000).toInt();
     }
-
   }
 
   Future<void> _spawnDecorationsForTile(int tileX, int tileY, String terrainType) async {

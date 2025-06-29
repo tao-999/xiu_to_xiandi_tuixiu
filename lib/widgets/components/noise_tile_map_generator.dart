@@ -43,7 +43,7 @@ class NoiseTileMapGenerator extends PositionComponent {
     final screenSize = viewSize;
 
     final visibleSize = screenSize / scale;
-    final topLeft = -(screenSize / 2) / scale;
+    final topLeft = -(screenSize / 2) / scale; // 画布左上角不加偏移
     final bottomRight = topLeft + visibleSize;
 
     final startX = topLeft.x;
@@ -53,7 +53,7 @@ class NoiseTileMapGenerator extends PositionComponent {
 
     for (double x = startX; x < endX; x += tileSize) {
       for (double y = startY; y < endY; y += tileSize) {
-        if (_isEdgeTile(x, y, tileSize)) {
+        if (_isEdgeTile(x + logicalOffset.x, y + logicalOffset.y, tileSize)) {
           _renderFineTile(canvas, x, y, tileSize, scale);
         } else {
           _renderCoarseTile(canvas, x, y, tileSize, scale);
@@ -62,30 +62,24 @@ class NoiseTileMapGenerator extends PositionComponent {
     }
   }
 
-  bool _isEdgeTile(double x, double y, double size) {
+  bool _isEdgeTile(double nx, double ny, double size) {
     final Set<String> types = {};
     for (double dx in [0, size]) {
       for (double dy in [0, size]) {
-        final nx = x + dx + logicalOffset.x;
-        final ny = y + dy + logicalOffset.y;
-        types.add(_getTerrainType(nx, ny));
+        types.add(_getTerrainType(nx + dx, ny + dy));
       }
     }
     return types.length > 1;
   }
 
   void _renderCoarseTile(Canvas canvas, double x, double y, double size, double scale) {
-    final nx = x + logicalOffset.x;
-    final ny = y + logicalOffset.y;
-    _drawTile(canvas, nx, ny, x, y, size, scale);
+    _drawTile(canvas, x + logicalOffset.x, y + logicalOffset.y, x, y, size, scale);
   }
 
   void _renderFineTile(Canvas canvas, double x, double y, double bigSize, double scale) {
     for (double sx = x; sx < x + bigSize; sx += smallTileSize) {
       for (double sy = y; sy < y + bigSize; sy += smallTileSize) {
-        final nx = sx + logicalOffset.x;
-        final ny = sy + logicalOffset.y;
-        _drawTile(canvas, nx, ny, sx, sy, smallTileSize, scale);
+        _drawTile(canvas, sx + logicalOffset.x, sy + logicalOffset.y, sx, sy, smallTileSize, scale);
       }
     }
   }
@@ -107,7 +101,6 @@ class NoiseTileMapGenerator extends PositionComponent {
     final h2 = (_noiseHumidity.fbm(nx + 10000, ny + 10000, octaves, frequency, persistence) + 1) / 2;
 
     final hMix = (h1 + h2) / 2;
-
     final wave = (sin(hMix * pi * 2 - pi / 2) + 1) / 2;
 
     if (wave < 0.05) return 'deep_ocean';
@@ -118,23 +111,30 @@ class NoiseTileMapGenerator extends PositionComponent {
     if (wave < 0.70) return 'snow';
     if (wave < 0.80) return 'forest';
     if (wave < 0.88) return 'grass';
-    if (wave < 0.93) return 'mud';              // 🟢 这里泥地
+    if (wave < 0.93) return 'mud';
     if (wave < 0.97) return 'beach';
     if (wave < 0.99) return 'shallow_ocean';
     return 'grass';
   }
 
-
   Color _getColorForTerrain(String terrain) {
     switch (terrain) {
-      case 'deep_ocean': return Color(0xFF001F2D);
-      case 'shallow_ocean': return Color(0xFF3E9DBF);
-      case 'beach': return Color(0xFFEED9A0);
-      case 'grass': return Color(0xFF6C9A5E);
-      case 'forest': return Color(0xFF2E5530);
-      case 'snow': return Color(0xFFE0E0E0);
-      case 'mud': return Color(0xFF4A3628);
-      default: return Color(0xFF6C9A5E);
+      case 'deep_ocean':
+        return Color(0xFF001F2D);
+      case 'shallow_ocean':
+        return Color(0xFF3E9DBF);
+      case 'beach':
+        return Color(0xFFEED9A0);
+      case 'grass':
+        return Color(0xFF6C9A5E);
+      case 'forest':
+        return Color(0xFF2E5530);
+      case 'snow':
+        return Color(0xFFE0E0E0);
+      case 'mud':
+        return Color(0xFF4A3628);
+      default:
+        return Color(0xFF6C9A5E);
     }
   }
 
