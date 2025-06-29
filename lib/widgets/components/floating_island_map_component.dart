@@ -7,6 +7,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 import 'package:flutter/widgets.dart';
 
 import 'floating_island_decorators.dart';
+import 'floating_island_dynamic_mover_component.dart';
 import 'floating_island_monster_component.dart';
 import 'noise_tile_map_generator.dart';
 
@@ -139,6 +140,10 @@ class FloatingIslandMapComponent extends FlameGame
       player!.position = player!.logicalPosition - logicalOffset;
       for (final monster in _grid.children.whereType<FloatingIslandMonsterComponent>()) {
         monster.position = monster.logicalPosition - logicalOffset;
+      }
+      // 🌟 ✅ 小船（动态漂浮组件）位置
+      for (final mover in _grid.children.whereType<FloatingIslandDynamicMoverComponent>()) {
+        mover.updateVisualPosition(logicalOffset);
       }
     }
   }

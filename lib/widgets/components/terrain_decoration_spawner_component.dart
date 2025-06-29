@@ -80,6 +80,7 @@ class TerrainDecorationSpawnerComponent extends Component {
       deco.component.position = deco.worldPosition - logicalOffset;
       deco.component.priority = (deco.worldPosition.y * 1000).toInt();
     }
+
   }
 
   Future<void> _spawnDecorationsForTile(int tileX, int tileY, String terrainType) async {

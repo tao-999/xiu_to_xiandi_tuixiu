@@ -1,8 +1,8 @@
 import 'package:flame/components.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/terrain_decoration_spawner_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/infinite_content_spawner_component.dart';
+import 'floating_island_dynamic_spawner_component.dart';
 import 'noise_tile_map_generator.dart';
-import 'floating_island_monster_component.dart';
 
 class FloatingIslandDecorators extends Component {
   final Component grid;
@@ -98,24 +98,41 @@ class FloatingIslandDecorators extends Component {
       ),
     );
 
-    // 🌊 浅海
     add(
-      TerrainDecorationSpawnerComponent(
+      FloatingIslandDynamicSpawnerComponent(
         grid: grid,
         getLogicalOffset: getLogicalOffset,
         getViewSize: getViewSize,
         getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        terrainSpritesMap: {
+        allowedTerrains: {'shallow_ocean'},
+        staticSpritesMap: {
           'shallow_ocean': [
-            SpriteWeightEntry('floating_island/shallow_ocean_1.png', 1),
+            StaticSpriteEntry('floating_island/shallow_ocean_1.png', 1),
           ],
         },
-        tileSize: 512.0,
+        dynamicSpritesMap: {
+          'shallow_ocean': [
+            DynamicSpriteEntry('floating_island/shallow_ocean_2.png', 10),
+          ],
+        },
+        staticTileSize: 256,
+        dynamicTileSize: 128,
+        // 🌿静态尺寸
+        minStaticObjectSize: 64,
+        maxStaticObjectSize: 64,
+        // 🌿动态尺寸
+        minDynamicObjectSize: 16,
+        maxDynamicObjectSize: 48,
+        // 🌿动态速度
+        minSpeed: 10,
+        maxSpeed: 30,
+        // 🌿静态数量（自己设定）
+        minStaticObjectsPerTile: 0,
+        maxStaticObjectsPerTile: 1,
+        // 🌿动态数量（自己设定）
+        minDynamicObjectsPerTile: 1,
+        maxDynamicObjectsPerTile: 3,
         seed: seed,
-        minObjectsPerTile: 0,
-        maxObjectsPerTile: 1,
-        minObjectSize: 128.0,
-        maxObjectSize: 128.0,
       ),
     );
   }
