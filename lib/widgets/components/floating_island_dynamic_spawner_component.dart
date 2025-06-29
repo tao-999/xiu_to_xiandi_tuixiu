@@ -139,7 +139,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     // 🌿 每帧刷新静态装饰位置
     for (final deco in _decorations) {
       deco.component.position = deco.worldPosition - offset;
-      deco.component.priority = ((deco.worldPosition.y + 10000) * 1000).toInt();
+      deco.component.priority = ((deco.worldPosition.y + 1e14) * 1000).toInt();
     }
   }
 

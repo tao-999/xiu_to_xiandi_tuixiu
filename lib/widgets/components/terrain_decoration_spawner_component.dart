@@ -79,7 +79,7 @@ class TerrainDecorationSpawnerComponent extends Component {
     for (final deco in _decorations) {
       deco.component.position = deco.worldPosition - logicalOffset;
       // ✅ 加基数偏移，避免负数
-      deco.component.priority = ((deco.worldPosition.y + 10000) * 1000).toInt();
+      deco.component.priority = ((deco.worldPosition.y + 1e14) * 1000).toInt();
     }
   }
 

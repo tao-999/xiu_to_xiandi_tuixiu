@@ -98,7 +98,7 @@ class FloatingIslandMonsterComponent extends SpriteComponent
     _handleMonsterCollisions();
 
     // 🌟 动态Y排序
-    priority = ((logicalPosition.y + 10000) * 1000).toInt();
+    priority = ((logicalPosition.y + 1e14) * 1000).toInt();
   }
 
   void setRandomDirection() {
