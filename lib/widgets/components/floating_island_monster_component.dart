@@ -2,6 +2,7 @@
 
 import 'dart:math';
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flame/extensions.dart';
 import 'package:flame/collisions.dart';   // 🟢 别忘了！
 import 'package:flutter/material.dart';
@@ -93,7 +94,11 @@ class FloatingIslandMonsterComponent extends SpriteComponent
       setRandomDirection();
     }
 
+    // 碰撞处理
     _handleMonsterCollisions();
+
+    // 🌟 动态Y排序
+    priority = (logicalPosition.y * 1000).toInt();
   }
 
   void setRandomDirection() {
@@ -106,34 +111,73 @@ class FloatingIslandMonsterComponent extends SpriteComponent
     super.onCollision(intersectionPoints, other);
 
     if (other is FloatingIslandPlayerComponent) {
-      // 怪物反弹
+      // 🚀 计算反弹方向
       final delta = logicalPosition - other.logicalPosition;
-      final rebound = delta.length > 0.01 ? delta.normalized() : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
-      logicalPosition += rebound * 24;
-      velocity = -velocity;
+      final rebound = delta.length > 0.01
+          ? delta.normalized()
+          : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
+
+      // 🚀 立刻逻辑坐标小弹一下
+      logicalPosition += rebound * 5;
+
+      // 🚀 Clamp区域
+      if (!allowedArea.contains(Offset(logicalPosition.x, logicalPosition.y))) {
+        logicalPosition.x = logicalPosition.x.clamp(
+          allowedArea.left,
+          allowedArea.right,
+        );
+        logicalPosition.y = logicalPosition.y.clamp(
+          allowedArea.top,
+          allowedArea.bottom,
+        );
+      }
+
+      // 🚀 暂停运动
+      velocity = Vector2.zero();
+
       setRandomDirection();
-      debugPrint('[碰撞] 怪物撞主角！双方弹飞，怪物掉头跑路！');
+
+      debugPrint('[碰撞] 怪物被主角撞飞，小弹一下！');
     }
   }
 
   void _handleMonsterCollisions() {
-    // ⚡ 遍历同一 parent 下的所有怪物
     final siblings = parent?.children.whereType<FloatingIslandMonsterComponent>();
     if (siblings == null) return;
 
     for (final other in siblings) {
       if (identical(this, other)) continue;
+
       final minDist = (size.x + other.size.x) / 2 - 2;
       final delta = logicalPosition - other.logicalPosition;
       final dist = delta.length;
+
       if (dist < minDist && dist > 0.01) {
         final push = (minDist - dist) / 2;
         final move = delta.normalized() * push;
         logicalPosition += move;
         other.logicalPosition -= move;
-        // ⚠️ 也可以顺便掉头
+
+        // 🌿 反弹方向
         setRandomDirection();
         other.setRandomDirection();
+
+        // 🟢 新增: 检查是否踩到不合法地形或超界
+        final currentTerrain = getTerrainType(logicalPosition);
+        if (currentTerrain != homeTerrain ||
+            !allowedArea.contains(Offset(logicalPosition.x, logicalPosition.y))) {
+          // 把自己拉回allowedArea内
+          logicalPosition.x = logicalPosition.x.clamp(
+            allowedArea.left,
+            allowedArea.right,
+          );
+          logicalPosition.y = logicalPosition.y.clamp(
+            allowedArea.top,
+            allowedArea.bottom,
+          );
+          // 随机掉头
+          setRandomDirection();
+        }
       }
     }
   }

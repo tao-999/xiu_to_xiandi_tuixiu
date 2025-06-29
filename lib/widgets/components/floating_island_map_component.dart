@@ -7,7 +7,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 import 'package:flutter/widgets.dart';
 
 import 'floating_island_monster_component.dart';
-import 'forest_tree_spawner_component.dart';
+import 'terrain_decoration_spawner_component.dart';
 import 'infinite_content_spawner_component.dart';
 import 'noise_tile_map_generator.dart';
 
@@ -31,11 +31,11 @@ class FloatingIslandMapComponent extends FlameGame
 
     // 地形生成器
     _noiseMapGenerator = NoiseTileMapGenerator(
-      tileSize: 16.0,
-      smallTileSize: 3,
-      seed: 1337,
-      frequency: 0.0001,
-      octaves: 5,
+      tileSize: 24.0,
+      smallTileSize: 3.5,
+      seed: 44,
+      frequency: 0.00025,
+      octaves: 7,
       persistence: 0.5,
     );
     await _noiseMapGenerator.onLoad();
@@ -118,9 +118,9 @@ class FloatingIslandMapComponent extends FlameGame
       ),
     );
 
-    // 🌲 森林生成器（树木）
+    // 🌲 森林生成器
     add(
-      ForestTreeSpawnerComponent(
+      TerrainDecorationSpawnerComponent(
         grid: _grid,
         getLogicalOffset: () => logicalOffset,
         getViewSize: () => size,
@@ -134,14 +134,76 @@ class FloatingIslandMapComponent extends FlameGame
             'floating_island/tree_5.png',
           ],
         },
-        tileSize: 64.0,
+        tileSize: 84.0,
         seed: 8888,
-        minTreesPerTile: 2,
-        maxTreesPerTile: 5,
+        minObjectsPerTile: 2,
+        maxObjectsPerTile: 6,
       ),
     );
 
-    debugPrint('[FloatingIslandMap] ForestTreeSpawnerComponent added.');
+    // 沙滩生成器
+    add(
+      TerrainDecorationSpawnerComponent(
+        grid: _grid,
+        getLogicalOffset: () => logicalOffset,
+        getViewSize: () => size,
+        getTerrainType: (pos) => _noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        terrainSpritesMap: {
+          'beach': [
+            'floating_island/beach_1.png',
+          ],
+        },
+        tileSize: 128.0,
+        seed: 8888,
+        minObjectsPerTile: 1,
+        maxObjectsPerTile: 6,
+        minObjectSize: 16.0,
+        maxObjectSize: 84.0,
+      ),
+    );
+
+    // 草地生成器
+    add(
+      TerrainDecorationSpawnerComponent(
+        grid: _grid,
+        getLogicalOffset: () => logicalOffset,
+        getViewSize: () => size,
+        getTerrainType: (pos) => _noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        terrainSpritesMap: {
+          'grass': [
+            'floating_island/grass_1.png',
+            'floating_island/grass_2.png',
+          ],
+        },
+        tileSize: 128.0,
+        seed: 8888,
+        minObjectsPerTile: 1,
+        maxObjectsPerTile: 7,
+        minObjectSize: 16.0,
+        maxObjectSize: 64.0,
+      ),
+    );
+
+    // 浅海生成器
+    add(
+      TerrainDecorationSpawnerComponent(
+        grid: _grid,
+        getLogicalOffset: () => logicalOffset,
+        getViewSize: () => size,
+        getTerrainType: (pos) => _noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        terrainSpritesMap: {
+          'shallow_ocean': [
+            'floating_island/shallow_ocean_1.png',
+          ],
+        },
+        tileSize: 512.0,
+        seed: 8888,
+        minObjectsPerTile: 0,
+        maxObjectsPerTile: 1,
+        minObjectSize: 128.0,
+        maxObjectSize: 128.0,
+      ),
+    );
   }
 
   @override

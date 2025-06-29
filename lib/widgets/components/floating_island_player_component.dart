@@ -10,7 +10,7 @@ import 'floating_island_monster_component.dart';
 class FloatingIslandPlayerComponent extends SpriteComponent
     with HasGameReference, CollisionCallbacks {
   FloatingIslandPlayerComponent()
-      : super(size: Vector2.all(48), anchor: Anchor.center);
+      : super(size: Vector2.all(32), anchor: Anchor.center);
 
   /// 🚀 逻辑世界坐标
   Vector2 logicalPosition = Vector2.zero();
@@ -18,18 +18,12 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   Vector2? _targetPosition;
   final double moveSpeed = 160;
 
-  // ✅ 撞墙瞬间锁定
-  bool _blocked = false;
-  double _blockedTimer = 0.0;
-
   // ✅ 用于外部监听逻辑坐标变化
   final StreamController<Vector2> _positionStreamController = StreamController.broadcast();
   Stream<Vector2> get onPositionChangedStream => _positionStreamController.stream;
 
   void moveTo(Vector2 target) {
     _targetPosition = target;
-    _blocked = false;
-    _blockedTimer = 0;
   }
 
   @override
@@ -59,35 +53,9 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   void update(double dt) {
     super.update(dt);
 
-    if (_blocked) {
-      // 被弹后，短暂禁止移动
-      _blockedTimer += dt;
-      if (_blockedTimer > 0.18) { // 180ms冷却
-        _blocked = false;
-        _blockedTimer = 0;
-      }
-      return;
-    }
-
     if (_targetPosition != null) {
       final delta = _targetPosition! - logicalPosition;
       final distance = delta.length;
-
-      // 检查目标点是否有怪物阻挡
-      bool blockedByMonster = false;
-      for (final monster in game.children.whereType<FloatingIslandMonsterComponent>()) {
-        if ((monster.logicalPosition - (logicalPosition + delta.normalized() * 16)).length < 32) {
-          blockedByMonster = true;
-          break;
-        }
-      }
-
-      if (blockedByMonster) {
-        // 被怪物阻挡，立刻停止移动
-        _targetPosition = null;
-        debugPrint('[移动阻断] 有怪物在路上，主角自动停住');
-        return;
-      }
 
       if (distance <= 1.0) {
         logicalPosition = _targetPosition!;
@@ -110,6 +78,8 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       // 通知
       _positionStreamController.add(logicalPosition);
     }
+    // ✅ 实时Y排序
+    priority = (logicalPosition.y * 1000).toInt();
   }
 
   @override
@@ -127,19 +97,20 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     super.onCollision(intersectionPoints, other);
 
     if (other is FloatingIslandMonsterComponent) {
-      // 主角弹弹反向
+      // 计算反弹方向
       final delta = logicalPosition - other.logicalPosition;
-      final rebound = delta.length > 0.01 ? delta.normalized() : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
-      logicalPosition += rebound * 24; // 24像素弹飞
+      final rebound = delta.length > 0.01
+          ? delta.normalized()
+          : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
+
+      // 🚀 立刻逻辑坐标小弹一下
+      logicalPosition += rebound * 5;
+
+      // 怪物也弹飞
       other.velocity = -other.velocity;
       other.setRandomDirection();
 
-      // 🚀 禁止主角移动，防穿模
-      _blocked = true;
-      _blockedTimer = 0;
-      _targetPosition = null;
-
-      debugPrint('[碰撞] 角色撞怪物！双方弹飞，主角停下！');
+      debugPrint('[碰撞] 角色撞怪物！双方立刻小弹一下');
     }
   }
 }

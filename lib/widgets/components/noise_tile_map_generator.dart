@@ -14,14 +14,15 @@ class NoiseTileMapGenerator extends PositionComponent {
   final double frequency;
   final int octaves;
   final double persistence;
-  final double smallTileSize; // 小瓦片尺寸（用于细分边缘）
+  final double smallTileSize;
 
   double viewScale = 1.0;
   Vector2 viewSize = Vector2.zero();
-
   Vector2 logicalOffset = Vector2.zero();
 
-  late final NoiseUtils _noise;
+  late final NoiseUtils _noiseHeight;
+  late final NoiseUtils _noiseHumidity;
+  late final NoiseUtils _noiseTemperature;
 
   NoiseTileMapGenerator({
     this.tileSize = 4.0,
@@ -31,20 +32,10 @@ class NoiseTileMapGenerator extends PositionComponent {
     this.octaves = 4,
     this.persistence = 0.5,
   }) {
-    _noise = NoiseUtils(seed);
+    _noiseHeight = NoiseUtils(seed);
+    _noiseHumidity = NoiseUtils(seed + 999);
+    _noiseTemperature = NoiseUtils(seed - 999);
   }
-
-  final List<_TerrainRange> terrainRanges = [
-    _TerrainRange('deep_ocean', 0.0, 0.18, Color(0xFF001F2D), Color(0xFF00334D)),
-    _TerrainRange('shallow_ocean', 0.18, 0.32, Color(0xFF3E9DBF), Color(0xFF4DA6C3)),
-    _TerrainRange('beach', 0.32, 0.42, Color(0xFFEED9A0), Color(0xFFF3E2B7)),
-    _TerrainRange('grass', 0.42, 0.52, Color(0xFF6C9A5E), Color(0xFF77A865)),
-    _TerrainRange('mud', 0.52, 0.61, Color(0xFF4A3628), Color(0xFF5C4431)),
-    _TerrainRange('forest', 0.61, 0.70, Color(0xFF2E5530), Color(0xFF3A663A)),
-    _TerrainRange('hill', 0.70, 0.79, Color(0xFF607548), Color(0xFF6D8355)),
-    _TerrainRange('snow', 0.79, 0.88, Color(0xFFE0E0E0), Color(0xFFF5F5F5)),
-    _TerrainRange('lava', 0.88, 1.01, Color(0xFF5A1A1A), Color(0xFF702222)),
-  ];
 
   @override
   void render(Canvas canvas) {
@@ -60,121 +51,95 @@ class NoiseTileMapGenerator extends PositionComponent {
     final endX = bottomRight.x;
     final endY = bottomRight.y;
 
-    final double bigTileSize = tileSize;
-
-    for (double x = startX; x < endX; x += bigTileSize) {
-      for (double y = startY; y < endY; y += bigTileSize) {
-        if (_isEdgeTile(x, y, bigTileSize)) {
-          _renderFineTile(canvas, x, y, bigTileSize, scale);
+    for (double x = startX; x < endX; x += tileSize) {
+      for (double y = startY; y < endY; y += tileSize) {
+        if (_isEdgeTile(x, y, tileSize)) {
+          _renderFineTile(canvas, x, y, tileSize, scale);
         } else {
-          _renderCoarseTile(canvas, x, y, bigTileSize, scale);
+          _renderCoarseTile(canvas, x, y, tileSize, scale);
         }
       }
     }
   }
 
-  bool _isEdgeTile(double x, double y, double tileSize) {
-    final List<String> types = [];
-    for (double dx in [0, tileSize]) {
-      for (double dy in [0, tileSize]) {
+  bool _isEdgeTile(double x, double y, double size) {
+    final Set<String> types = {};
+    for (double dx in [0, size]) {
+      for (double dy in [0, size]) {
         final nx = x + dx + logicalOffset.x;
         final ny = y + dy + logicalOffset.y;
-        final noiseVal = (_noise.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
-        final stretched = (noiseVal - 0.3) / 0.4;
-        final clamped = stretched.clamp(0.0, 1.0);
-        final terrain = terrainRanges.firstWhere((r) => clamped >= r.min && clamped < r.max).name;
-        types.add(terrain);
+        types.add(_getTerrainType(nx, ny));
       }
     }
-    return types.toSet().length > 1;
+    return types.length > 1;
   }
 
-  void _drawTile({
-    required Canvas canvas,
-    required double worldX,
-    required double worldY,
-    required double screenX,
-    required double screenY,
-    required double tileSize,
-    required double scale,
-    required _TerrainRange range,
-    required double noiseVal,
-  }) {
-    final dx = (screenX * scale).roundToDouble();
-    final dy = (screenY * scale).roundToDouble();
-    final size = (tileSize * scale).roundToDouble();
-
-    final t = ((noiseVal - range.min) / (range.max - range.min)).clamp(0.0, 1.0);
-    final color = Color.lerp(range.colorStart, range.colorEnd, t)!;
-    final paint = Paint()..color = color;
-
-    canvas.drawRect(Rect.fromLTWH(dx, dy, size, size), paint);
-  }
-
-  void _renderCoarseTile(Canvas canvas, double x, double y, double tileSize, double scale) {
+  void _renderCoarseTile(Canvas canvas, double x, double y, double size, double scale) {
     final nx = x + logicalOffset.x;
     final ny = y + logicalOffset.y;
-    final rawNoise = (_noise.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
-    final stretched = (rawNoise - 0.3) / 0.4;
-    final noiseVal = stretched.clamp(0.0, 1.0);
-    final range = terrainRanges.firstWhere((r) => noiseVal >= r.min && noiseVal < r.max);
-
-    _drawTile(
-      canvas: canvas,
-      worldX: nx,
-      worldY: ny,
-      screenX: x,
-      screenY: y,
-      tileSize: tileSize,
-      scale: scale,
-      range: range,
-      noiseVal: noiseVal,
-    );
+    _drawTile(canvas, nx, ny, x, y, size, scale);
   }
 
-  void _renderFineTile(Canvas canvas, double x, double y, double bigTileSize, double scale) {
-    for (double sx = x; sx < x + bigTileSize; sx += smallTileSize) {
-      for (double sy = y; sy < y + bigTileSize; sy += smallTileSize) {
+  void _renderFineTile(Canvas canvas, double x, double y, double bigSize, double scale) {
+    for (double sx = x; sx < x + bigSize; sx += smallTileSize) {
+      for (double sy = y; sy < y + bigSize; sy += smallTileSize) {
         final nx = sx + logicalOffset.x;
         final ny = sy + logicalOffset.y;
-        final rawNoise = (_noise.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
-        final stretched = (rawNoise - 0.3) / 0.4;
-        final noiseVal = stretched.clamp(0.0, 1.0);
-        final range = terrainRanges.firstWhere((r) => noiseVal >= r.min && noiseVal < r.max);
-
-        _drawTile(
-          canvas: canvas,
-          worldX: nx,
-          worldY: ny,
-          screenX: sx,
-          screenY: sy,
-          tileSize: smallTileSize,
-          scale: scale,
-          range: range,
-          noiseVal: noiseVal,
-        );
+        _drawTile(canvas, nx, ny, sx, sy, smallTileSize, scale);
       }
     }
   }
 
-  String getTerrainTypeAtPosition(Vector2 worldPos) {
-    final rawNoise = (_noise.fbm(worldPos.x, worldPos.y, octaves, frequency, persistence) + 1) / 2;
-    final stretched = (rawNoise - 0.3) / 0.4;
-    final noiseVal = stretched.clamp(0.0, 1.0);
+  void _drawTile(Canvas canvas, double nx, double ny, double screenX, double screenY, double size, double scale) {
+    final terrain = _getTerrainType(nx, ny);
+    final color = _getColorForTerrain(terrain);
 
-    final range = terrainRanges.firstWhere(
-          (r) => noiseVal >= r.min && noiseVal < r.max,
-      orElse: () => terrainRanges.last,
-    );
-    return range.name;
+    final dx = (screenX * scale).roundToDouble();
+    final dy = (screenY * scale).roundToDouble();
+    final pxSize = (size * scale).roundToDouble();
+
+    final paint = Paint()..color = color;
+    canvas.drawRect(Rect.fromLTWH(dx, dy, pxSize, pxSize), paint);
   }
-}
 
-class _TerrainRange {
-  final String name;
-  final double min;
-  final double max;
-  final Color colorStart;
-  final Color colorEnd;
-  const _TerrainRange(this.name, this.min, this.max, this.colorStart, this.colorEnd);
+  String _getTerrainType(double nx, double ny) {
+    final h1 = (_noiseHeight.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
+    final h2 = (_noiseHumidity.fbm(nx + 10000, ny + 10000, octaves, frequency, persistence) + 1) / 2;
+
+    final hMix = (h1 + h2) / 2;
+
+    final wave = (sin(hMix * pi * 2 - pi / 2) + 1) / 2;
+
+    if (wave < 0.05) return 'deep_ocean';
+    if (wave < 0.10) return 'shallow_ocean';
+    if (wave < 0.15) return 'beach';
+    if (wave < 0.40) return 'grass';
+    if (wave < 0.60) return 'forest';
+    if (wave < 0.70) return 'snow';
+    if (wave < 0.80) return 'forest';
+    if (wave < 0.88) return 'grass';
+    if (wave < 0.93) return 'mud';              // 🟢 这里泥地
+    if (wave < 0.97) return 'beach';
+    if (wave < 0.99) return 'shallow_ocean';
+    return 'grass';
+  }
+
+
+  Color _getColorForTerrain(String terrain) {
+    switch (terrain) {
+      case 'deep_ocean': return Color(0xFF001F2D);
+      case 'shallow_ocean': return Color(0xFF3E9DBF);
+      case 'beach': return Color(0xFFEED9A0);
+      case 'grass': return Color(0xFF6C9A5E);
+      case 'forest': return Color(0xFF2E5530);
+      case 'snow': return Color(0xFFE0E0E0);
+      case 'mud': return Color(0xFF4A3628);
+      default: return Color(0xFF6C9A5E);
+    }
+  }
+
+  /// 给外部用
+  String getTerrainTypeAtPosition(Vector2 worldPos) {
+    return _getTerrainType(worldPos.x, worldPos.y);
+  }
 }
