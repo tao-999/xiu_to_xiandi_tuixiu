@@ -9,8 +9,8 @@ class MapTileLayer extends PositionComponent {
   final int currentFloor;
 
   late final NoiseUtils noise;
-  double frequency = 0.05;   // 可根据地图风格微调
-  int octaves = 2;
+  double frequency = 0.025;   // 可根据地图风格微调
+  int octaves = 4;
   double persistence = 0.4;
 
   MapTileLayer({

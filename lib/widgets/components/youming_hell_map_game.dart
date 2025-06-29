@@ -19,8 +19,8 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
   final BuildContext context;
   int level;
 
-  static const int tileSize = 32;
-  static const int mapSize = 64;
+  static const int tileSize = 512;
+  static const int mapSize = 4;
 
   late final World world;
   late final CameraComponent cameraComponent;

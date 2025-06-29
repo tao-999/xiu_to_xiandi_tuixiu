@@ -14,13 +14,13 @@ class LightningEffectComponent extends Component with HasGameReference {
 
   final Paint _beamPaint = Paint()
     ..color = Colors.white // ✅ 改成白色
-    ..strokeWidth = 2
+    ..strokeWidth = 1
     ..style = PaintingStyle.stroke;
 
   LightningEffectComponent({
     required this.start,
     required this.direction,
-    this.maxDistance = 160,
+    this.maxDistance = 260,
     this.lightningCount = 1,
   });
 
@@ -36,7 +36,7 @@ class LightningEffectComponent extends Component with HasGameReference {
     }).toList() ?? [];
 
     targets.shuffle();
-    final maxCount = lightningCount.clamp(1, 20);
+    final maxCount = lightningCount.clamp(1, 5);
 
     for (int i = 0; i < min(maxCount, targets.length); i++) {
       final target = targets[i];
@@ -129,7 +129,7 @@ class LightningBeam extends ShapeComponent {
     // ⚡ 发光边框效果（先画 Glow）
     final glowPaint = Paint()
       ..color = Colors.white.withOpacity(0.25)
-      ..strokeWidth = 5
+      ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
     canvas.drawPath(path, glowPaint);

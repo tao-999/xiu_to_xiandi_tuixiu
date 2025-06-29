@@ -52,7 +52,7 @@ class HellPlayerComponent extends SpriteComponent
     sprite = await Sprite.load(spritePath);
 
     final sizeMultiplier = await PlayerStorage.getSizeMultiplier();
-    size = Vector2.all(18.0 * sizeMultiplier);
+    size = Vector2.all(24.0 * sizeMultiplier);
 
     maxHp = PlayerStorage.getHp(_player);
     hp = maxHp;
