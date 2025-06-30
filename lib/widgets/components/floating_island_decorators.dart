@@ -2,8 +2,8 @@ import 'package:flame/components.dart';
 import 'floating_island_decorators/beach_decorator.dart';
 import 'floating_island_decorators/forest_decorator.dart';
 import 'floating_island_decorators/grass_decorator.dart';
+import 'floating_island_decorators/mud_decorator.dart';
 import 'floating_island_decorators/shallow_ocean_decorator.dart';
-import 'infinite_content_spawner_component.dart';
 import 'noise_tile_map_generator.dart';
 
 class FloatingIslandDecorators extends Component {
@@ -23,15 +23,13 @@ class FloatingIslandDecorators extends Component {
 
   @override
   Future<void> onLoad() async {
-    // 怪物生成
     add(
-      InfiniteContentSpawnerComponent(
+      MudDecorator(
         grid: grid,
         getLogicalOffset: getLogicalOffset,
         getViewSize: getViewSize,
-        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        allowedTerrains: {'mud'},
-        tileSize: 64.0,
+        noiseMapGenerator: noiseMapGenerator,
+        seed: seed,
       ),
     );
 

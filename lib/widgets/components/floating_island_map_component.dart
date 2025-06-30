@@ -9,6 +9,7 @@ import 'package:flutter/widgets.dart';
 import '../../utils/floating_island_cleanup_manager.dart';
 import 'floating_island_decorators.dart';
 import 'floating_island_dynamic_mover_component.dart';
+import 'floating_island_dynamic_spawner_component.dart';
 import 'floating_island_monster_component.dart';
 import 'noise_tile_map_generator.dart';
 
@@ -19,6 +20,7 @@ class FloatingIslandMapComponent extends FlameGame
   late final NoiseTileMapGenerator _noiseMapGenerator;
 
   final int seed; // 🌟 外部可传入seed
+  late final FloatingIslandDynamicSpawnerComponent spawner;
 
   FloatingIslandPlayerComponent? player;
   Vector2 logicalOffset = Vector2.zero();
@@ -44,7 +46,7 @@ class FloatingIslandMapComponent extends FlameGame
     // 地形生成器
     _noiseMapGenerator = NoiseTileMapGenerator(
       tileSize: 24.0,
-      smallTileSize: 3,
+      smallTileSize: 3.5,
       seed: seed, // 🌟 使用统一seed
       frequency: 0.0005,
       octaves: 6,
@@ -133,8 +135,7 @@ class FloatingIslandMapComponent extends FlameGame
         grid: _grid,
         getLogicalOffset: () => logicalOffset,
         getViewSize: () => size,
-        bufferSize: 500,
-        excludeComponents: {player!}, // 🌟把主角排除
+        excludeComponents: {player!},
       ),
     );
 
@@ -143,7 +144,8 @@ class FloatingIslandMapComponent extends FlameGame
   @override
   void update(double dt) {
     super.update(dt);
-
+// 🌟打印子组件数量
+//     debugPrint('[FloatingIslandMap] 子组件数量: ${_grid.children.length}');
     _grid
       ..viewScale = 1.0
       ..viewSize = size.clone();

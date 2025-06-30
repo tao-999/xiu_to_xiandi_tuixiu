@@ -76,4 +76,30 @@ class FloatingIslandStorage {
     return seed;
   }
 
+  /// 保存某个tile的动态对象列表
+  static Future<void> saveDynamicObjectsForTile(
+      String tileKey,
+      List<Map<String, dynamic>> objects,
+      ) async {
+    await _ensureBox();
+    await _box!.put('dynamic_$tileKey', objects);
+  }
+
+  /// 加载某个tile的动态对象列表
+  static Future<List<Map<String, dynamic>>?> getDynamicObjectsForTile(String tileKey) async {
+    await _ensureBox();
+    final result = _box!.get('dynamic_$tileKey');
+    if (result is List) {
+      print('[FloatingIslandStorage] Loaded dynamic objects for $tileKey: ${result.length} objects.');
+      return List<Map<String, dynamic>>.from(result);
+    }
+    return null;
+  }
+
+  /// 删除某个tile的动态对象
+  static Future<void> removeDynamicObjectsForTile(String tileKey) async {
+    await _ensureBox();
+    await _box!.delete('dynamic_$tileKey');
+  }
+
 }

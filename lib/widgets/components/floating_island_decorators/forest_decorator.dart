@@ -1,6 +1,8 @@
 import 'package:flame/components.dart';
+import '../floating_island_static_spawner_component.dart';
 import '../floating_island_dynamic_spawner_component.dart';
 import '../noise_tile_map_generator.dart';
+import '../dynamic_sprite_entry.dart';
 
 class ForestDecorator extends Component {
   final Component grid;
@@ -19,13 +21,13 @@ class ForestDecorator extends Component {
 
   @override
   Future<void> onLoad() async {
+    // 🌿静态树
     add(
-      FloatingIslandDynamicSpawnerComponent(
+      FloatingIslandStaticSpawnerComponent(
         grid: grid,
         getLogicalOffset: getLogicalOffset,
         getViewSize: getViewSize,
         getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        noiseMapGenerator: noiseMapGenerator,
         allowedTerrains: {'forest'},
         staticSpritesMap: {
           'forest': [
@@ -45,6 +47,24 @@ class ForestDecorator extends Component {
             ),
           ],
         },
+        staticTileSize: 84.0,
+        seed: seed,
+        minCount: 1,
+        maxCount: 9,
+        minSize: 16.0,
+        maxSize: 48.0,
+      ),
+    );
+
+    // 🌲动态移动的树
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'forest'},
         dynamicSpritesMap: {
           'forest': [
             DynamicSpriteEntry('floating_island/tree_d_1.png', 1),
@@ -52,15 +72,10 @@ class ForestDecorator extends Component {
             DynamicSpriteEntry('floating_island/tree_d_3.png', 1),
           ],
         },
-        staticTileSize: 84.0,
         dynamicTileSize: 128.0,
         seed: seed,
-        minStaticObjectsPerTile: 1,
-        maxStaticObjectsPerTile: 9,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 2,
-        minStaticObjectSize: 16.0,
-        maxStaticObjectSize: 48.0,
         minDynamicObjectSize: 8.0,
         maxDynamicObjectSize: 64.0,
         minSpeed: 10.0,

@@ -1,6 +1,8 @@
 import 'package:flame/components.dart';
+import '../floating_island_static_spawner_component.dart';
 import '../floating_island_dynamic_spawner_component.dart';
 import '../noise_tile_map_generator.dart';
+import '../dynamic_sprite_entry.dart';
 
 class GrassDecorator extends Component {
   final Component grid;
@@ -19,13 +21,13 @@ class GrassDecorator extends Component {
 
   @override
   Future<void> onLoad() async {
+    // 🌿 静态草
     add(
-      FloatingIslandDynamicSpawnerComponent(
+      FloatingIslandStaticSpawnerComponent(
         grid: grid,
         getLogicalOffset: getLogicalOffset,
         getViewSize: getViewSize,
         getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        noiseMapGenerator: noiseMapGenerator,
         allowedTerrains: {'grass'},
         staticSpritesMap: {
           'grass': [
@@ -37,21 +39,34 @@ class GrassDecorator extends Component {
             StaticSpriteEntry('floating_island/grass_6.png', 1),
           ],
         },
+        staticTileSize: 64.0,
+        seed: seed,
+        minCount: 0,
+        maxCount: 7,
+        minSize: 8.0,
+        maxSize: 48.0,
+      ),
+    );
+
+    // 🌱 动态草
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'grass'},
         dynamicSpritesMap: {
           'grass': [
             DynamicSpriteEntry('floating_island/grass_d_1.png', 1),
             DynamicSpriteEntry('floating_island/grass_d_2.png', 1),
           ],
         },
-        staticTileSize: 64.0,
-        dynamicTileSize: 150.0,
+        dynamicTileSize: 128.0,
         seed: seed,
-        minStaticObjectsPerTile: 0,
-        maxStaticObjectsPerTile: 7,
         minDynamicObjectsPerTile: 0,
-        maxDynamicObjectsPerTile: 1,
-        minStaticObjectSize: 8.0,
-        maxStaticObjectSize: 48.0,
+        maxDynamicObjectsPerTile: 2,
         minDynamicObjectSize: 8.0,
         maxDynamicObjectSize: 32.0,
         minSpeed: 10.0,

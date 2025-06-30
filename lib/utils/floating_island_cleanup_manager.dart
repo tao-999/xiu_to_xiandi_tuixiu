@@ -1,13 +1,17 @@
 import 'dart:ui';
 import 'package:flame/components.dart';
 
+import '../services/floating_island_storage.dart';
+import '../widgets/components/floating_island_dynamic_mover_component.dart';
+import '../widgets/components/has_logical_position.dart';
+
 class FloatingIslandCleanupManager extends Component {
   final Component grid;
   final Vector2 Function() getLogicalOffset;
   final Vector2 Function() getViewSize;
   final double bufferSize;
 
-  /// 🌟 新增：排除组件列表
+  /// 🌟 排除组件
   final Set<Component> excludeComponents;
 
   FloatingIslandCleanupManager({
@@ -30,13 +34,36 @@ class FloatingIslandCleanupManager extends Component {
       height: viewSize.y + bufferSize * 2,
     );
 
+    // key = tileKey, value = list of states
+    final Map<String, List<Map<String, dynamic>>> tileStates = {};
+
     final toRemove = <Component>[];
 
     for (final c in grid.children) {
-      // 🌟 如果在排除列表，跳过
       if (excludeComponents.contains(c)) continue;
 
-      if (c is PositionComponent) {
+      if (c is FloatingIslandDynamicMoverComponent) {
+        final pos = c.logicalPosition;
+        if (!visibleRect.contains(Offset(pos.x, pos.y))) {
+          final dynamicTileSize = c.spawner.dynamicTileSize;
+          final tileX = (pos.x / dynamicTileSize).floor();
+          final tileY = (pos.y / dynamicTileSize).floor();
+          final tileKey = '${tileX}_${tileY}';
+
+          tileStates.putIfAbsent(tileKey, () => []).add({
+            'path': c.spritePath,
+            'x': pos.x,
+            'y': pos.y,
+            'size': c.size.x,
+            'speed': c.speed,
+          });
+
+          // 🌟移除加载状态，只移除它所属Spawner
+          c.spawner.loadedDynamicTiles.remove(tileKey);
+
+          toRemove.add(c);
+        }
+      } else if (c is PositionComponent) {
         final pos = c is HasLogicalPosition
             ? (c as HasLogicalPosition).logicalPosition
             : c.position + offset;
@@ -47,13 +74,14 @@ class FloatingIslandCleanupManager extends Component {
       }
     }
 
+    // 🌟写入Hive
+    tileStates.forEach((tileKey, states) async {
+      await FloatingIslandStorage.saveDynamicObjectsForTile(tileKey, states);
+    });
+
+    // 🌟移除
     for (final c in toRemove) {
       c.removeFromParent();
     }
   }
-}
-
-/// 可选：让需要“逻辑坐标”的组件实现这个接口
-mixin HasLogicalPosition {
-  Vector2 get logicalPosition;
 }
