@@ -44,7 +44,12 @@ class YoumingHellMapGame extends FlameGame with HasCollisionDetection, WidgetsBi
 
   @override
   Future<void> onLoad() async {
-    add(FpsTextComponent());
+    add(
+      FpsTextComponent()
+        ..anchor = Anchor.topLeft
+        ..position = Vector2(10, 10),
+    );
+
     WidgetsBinding.instance.addObserver(this);
     await _initCameraAndWorld();
 

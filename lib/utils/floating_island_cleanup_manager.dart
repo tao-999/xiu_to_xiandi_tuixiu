@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:flame/components.dart';
 
 class FloatingIslandCleanupManager extends Component {
@@ -8,11 +7,15 @@ class FloatingIslandCleanupManager extends Component {
   final Vector2 Function() getViewSize;
   final double bufferSize;
 
+  /// 🌟 新增：排除组件列表
+  final Set<Component> excludeComponents;
+
   FloatingIslandCleanupManager({
     required this.grid,
     required this.getLogicalOffset,
     required this.getViewSize,
-    this.bufferSize = 500, // 视口外额外保留500像素
+    this.bufferSize = 500,
+    this.excludeComponents = const {},
   });
 
   @override
@@ -27,9 +30,12 @@ class FloatingIslandCleanupManager extends Component {
       height: viewSize.y + bufferSize * 2,
     );
 
-    // 遍历所有子组件
     final toRemove = <Component>[];
+
     for (final c in grid.children) {
+      // 🌟 如果在排除列表，跳过
+      if (excludeComponents.contains(c)) continue;
+
       if (c is PositionComponent) {
         final pos = c is HasLogicalPosition
             ? (c as HasLogicalPosition).logicalPosition
@@ -41,14 +47,13 @@ class FloatingIslandCleanupManager extends Component {
       }
     }
 
-    // 批量移除
     for (final c in toRemove) {
       c.removeFromParent();
     }
   }
 }
 
-// 可选：让需要“逻辑坐标”的组件实现这个接口
+/// 可选：让需要“逻辑坐标”的组件实现这个接口
 mixin HasLogicalPosition {
   Vector2 get logicalPosition;
 }

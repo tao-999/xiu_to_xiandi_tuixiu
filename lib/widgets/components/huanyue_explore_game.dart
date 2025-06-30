@@ -40,7 +40,12 @@ class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
 
   @override
   Future<void> onLoad() async {
-    add(FpsTextComponent());
+    add(
+      FpsTextComponent()
+        ..anchor = Anchor.topLeft
+        ..position = Vector2(10, 10),
+    );
+
 
     final double screenHeight = size.y;
 

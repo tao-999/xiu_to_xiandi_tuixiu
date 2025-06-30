@@ -1,5 +1,3 @@
-// lib/widgets/components/floating_island_dynamic_spawner_component.dart
-
 import 'dart:math';
 import 'dart:ui';
 import 'package:flame/collisions.dart';
@@ -42,9 +40,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
   final void Function(FloatingIslandStaticDecorationComponent deco, String terrainType)?
   onStaticComponentCreated;
-
-  final Set<String> generatedStaticTiles = {};
-  final Set<String> generatedDynamicTiles = {};
 
   FloatingIslandDynamicSpawnerComponent({
     required this.grid,
@@ -103,20 +98,29 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
     for (int tx = sStartX; tx < sEndX; tx++) {
       for (int ty = sStartY; ty < sEndY; ty++) {
-        final key = '$tx:$ty';
-        if (generatedStaticTiles.contains(key)) continue;
-
         final tileCenter = Vector2(
           tx * staticTileSize + staticTileSize / 2,
           ty * staticTileSize + staticTileSize / 2,
         );
 
         final terrain = getTerrainType(tileCenter);
-        if (allowedTerrains.contains(terrain)) {
-          _spawnStaticComponentsForTile(tx, ty, terrain);
-        }
+        if (!allowedTerrains.contains(terrain)) continue;
 
-        generatedStaticTiles.add(key);
+        // 🌟 检查是否已有组件
+        final alreadyExists = grid.children.any((c) {
+          if (c is FloatingIslandStaticDecorationComponent) {
+            final pos = c.worldPosition;
+            return pos.x >= tx * staticTileSize &&
+                pos.x < (tx + 1) * staticTileSize &&
+                pos.y >= ty * staticTileSize &&
+                pos.y < (ty + 1) * staticTileSize;
+          }
+          return false;
+        });
+
+        if (alreadyExists) continue;
+
+        _spawnStaticComponentsForTile(tx, ty, terrain);
       }
     }
   }
@@ -129,20 +133,29 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
     for (int tx = dStartX; tx < dEndX; tx++) {
       for (int ty = dStartY; ty < dEndY; ty++) {
-        final key = '$tx:$ty';
-        if (generatedDynamicTiles.contains(key)) continue;
-
         final tileCenter = Vector2(
           tx * dynamicTileSize + dynamicTileSize / 2,
           ty * dynamicTileSize + dynamicTileSize / 2,
         );
 
         final terrain = getTerrainType(tileCenter);
-        if (allowedTerrains.contains(terrain)) {
-          _spawnDynamicComponentsForTile(tx, ty, terrain);
-        }
+        if (!allowedTerrains.contains(terrain)) continue;
 
-        generatedDynamicTiles.add(key);
+        // 🌟 检查是否已有组件
+        final alreadyExists = grid.children.any((c) {
+          if (c is FloatingIslandDynamicMoverComponent) {
+            final pos = c.logicalPosition;
+            return pos.x >= tx * dynamicTileSize &&
+                pos.x < (tx + 1) * dynamicTileSize &&
+                pos.y >= ty * dynamicTileSize &&
+                pos.y < (ty + 1) * dynamicTileSize;
+          }
+          return false;
+        });
+
+        if (alreadyExists) continue;
+
+        _spawnDynamicComponentsForTile(tx, ty, terrain);
       }
     }
   }
@@ -152,16 +165,13 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     if (entries.isEmpty) return;
 
     final rand = Random(seed + tx * 92821 + ty * 53987 + 1);
-
     final tileSpawnChance = 0.5;
     if (rand.nextDouble() > tileSpawnChance) return;
 
     final selected = _pickStaticByWeight(entries, rand);
-
     final minCount = selected.minCount ?? minStaticObjectsPerTile;
     final maxCount = selected.maxCount ?? maxStaticObjectsPerTile;
     final tileSize = selected.tileSize ?? staticTileSize;
-
     final count = rand.nextInt(maxCount - minCount + 1) + minCount;
 
     for (int i = 0; i < count; i++) {
@@ -175,7 +185,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
       final sprite = await Sprite.load(selected.path);
-
       final minSize = selected.minSize ?? minStaticObjectSize;
       final maxSize = selected.maxSize ?? maxStaticObjectSize;
       final sizeValue = minSize + rand.nextDouble() * (maxSize - minSize);
@@ -197,22 +206,18 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     if (entries.isEmpty) return;
 
     final rand = Random(seed + tx * 92821 + ty * 53987 + 2);
-
     final tileSpawnChance = 0.5;
     if (rand.nextDouble() > tileSpawnChance) return;
 
     final selected = _pickDynamicByWeight(entries, rand);
-
     final minCount = selected.minCount ?? minDynamicObjectsPerTile;
     final maxCount = selected.maxCount ?? maxDynamicObjectsPerTile;
     final tileSize = selected.tileSize ?? dynamicTileSize;
-
     final count = rand.nextInt(maxCount - minCount + 1) + minCount;
 
     for (int i = 0; i < count; i++) {
       final offsetX = rand.nextDouble() * tileSize;
       final offsetY = rand.nextDouble() * tileSize;
-
       final worldPos = Vector2(
         tx * tileSize + offsetX,
         ty * tileSize + offsetY,
@@ -221,11 +226,9 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
       final sprite = await Sprite.load(selected.path);
-
       final minSize = selected.minSize ?? minDynamicObjectSize;
       final maxSize = selected.maxSize ?? maxDynamicObjectSize;
       final sizeValue = minSize + rand.nextDouble() * (maxSize - minSize);
-
       final minSpd = selected.minSpeed ?? minSpeed;
       final maxSpd = selected.maxSpeed ?? maxSpeed;
       final speedValue = minSpd + rand.nextDouble() * (maxSpd - minSpd);

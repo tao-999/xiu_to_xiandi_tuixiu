@@ -31,7 +31,12 @@ class FloatingIslandMapComponent extends FlameGame
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    add(FpsTextComponent());
+    add(
+      FpsTextComponent()
+        ..anchor = Anchor.topLeft
+        ..position = Vector2(10, 10),
+    );
+
 
     WidgetsBinding.instance.addObserver(this);
     debugPrint('[FloatingIslandMap] onLoad started.');
@@ -128,7 +133,8 @@ class FloatingIslandMapComponent extends FlameGame
         grid: _grid,
         getLogicalOffset: () => logicalOffset,
         getViewSize: () => size,
-        bufferSize: 1000, // 视口外保留1km区域
+        bufferSize: 500,
+        excludeComponents: {player!}, // 🌟把主角排除
       ),
     );
 
