@@ -11,6 +11,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/huanyue_door_component.d
 import 'package:xiu_to_xiandi_tuixiu/services/huanyue_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/tile_manager.dart';
 
+import '../../utils/floating_island_cleanup_manager.dart';
+
 class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
   late int mapRows;
   late int mapCols;
@@ -150,6 +152,16 @@ class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
     ));
 
     _centerMapOn(startPos);
+
+    add(
+      FloatingIslandCleanupManager(
+        grid: mapLayer!,
+        getLogicalOffset: () => -mapLayer!.position, // 因为拖拽偏移
+        getViewSize: () => size,
+        bufferSize: 100,
+      ),
+    );
+
   }
 
   @override

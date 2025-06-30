@@ -6,6 +6,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_player_c
 import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../utils/floating_island_cleanup_manager.dart';
 import 'floating_island_decorators.dart';
 import 'floating_island_dynamic_mover_component.dart';
 import 'floating_island_monster_component.dart';
@@ -121,6 +122,16 @@ class FloatingIslandMapComponent extends FlameGame
         seed: seed, // 🌟 使用统一seed
       ),
     );
+
+    add(
+      FloatingIslandCleanupManager(
+        grid: _grid,
+        getLogicalOffset: () => logicalOffset,
+        getViewSize: () => size,
+        bufferSize: 1000, // 视口外保留1km区域
+      ),
+    );
+
   }
 
   @override

@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
+import 'package:flame/extensions.dart';
 
 class FloatingIslandDynamicMoverComponent extends SpriteComponent
     with CollisionCallbacks, HasGameReference {
@@ -33,7 +34,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     Vector2? size,
     this.speed = 30,
     required this.movementBounds,
-    this.spritePath, // 🌟新增
+    this.spritePath,
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
@@ -66,15 +67,19 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       logicalPosition += dir * speed * dt;
     }
 
-    // 边界限制
-    logicalPosition.x = logicalPosition.x.clamp(
-      movementBounds.left + size.x / 2,
-      movementBounds.right - size.x / 2,
-    );
-    logicalPosition.y = logicalPosition.y.clamp(
-      movementBounds.top + size.y / 2,
-      movementBounds.bottom - size.y / 2,
-    );
+    // 🌟 边界安全限制
+    final minX = movementBounds.left + size.x / 2;
+    final maxX = movementBounds.right - size.x / 2;
+    final minY = movementBounds.top + size.y / 2;
+    final maxY = movementBounds.bottom - size.y / 2;
+
+    if (minX > maxX || minY > maxY) {
+      // 范围非法，重置到中心
+      logicalPosition = movementBounds.center.toVector2();
+    } else {
+      logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
+      logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
+    }
   }
 
   void updateVisualPosition(Vector2 logicalOffset) {
