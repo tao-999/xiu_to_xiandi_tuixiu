@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'floating_island_dynamic_mover_component.dart';
+import 'floating_island_static_decoration_component.dart';
 
 /// 🌈 通用动态漂移 + 静态生成器（数量、尺寸、tileSize都分开）
 class FloatingIslandDynamicSpawnerComponent extends Component {
@@ -27,15 +28,15 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
   final int minDynamicObjectsPerTile;
   final int maxDynamicObjectsPerTile;
 
-  // 静态尺寸
+  /// 静态尺寸
   final double minStaticObjectSize;
   final double maxStaticObjectSize;
 
-  // 动态尺寸
+  /// 动态尺寸
   final double minDynamicObjectSize;
   final double maxDynamicObjectSize;
 
-  // 动态速度
+  /// 动态速度
   final double minSpeed;
   final double maxSpeed;
 
@@ -45,13 +46,19 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
   /// 动态tileSize
   final double dynamicTileSize;
 
+  /// 随机种子
   final int seed;
+
+  /// 回调：动态逻辑
+  final void Function(FloatingIslandDynamicMoverComponent mover, String terrainType)?
+  onDynamicComponentCreated;
+
+  /// 回调：静态逻辑
+  final void Function(FloatingIslandStaticDecorationComponent deco, String terrainType)?
+  onStaticComponentCreated;
 
   final Set<String> generatedStaticTiles = {};
   final Set<String> generatedDynamicTiles = {};
-
-  /// 存储所有静态装饰
-  final List<_DecorationWrapper> _decorations = [];
 
   FloatingIslandDynamicSpawnerComponent({
     required this.grid,
@@ -74,6 +81,8 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     this.maxDynamicObjectSize = 64.0,
     this.minSpeed = 10.0,
     this.maxSpeed = 50.0,
+    this.onDynamicComponentCreated,
+    this.onStaticComponentCreated,
   });
 
   @override
@@ -136,14 +145,14 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       }
     }
 
-    // 🌿 每帧刷新静态装饰位置
-    for (final deco in _decorations) {
-      deco.component.position = deco.worldPosition - offset;
-      deco.component.priority = ((deco.worldPosition.y + 1e14) * 1000).toInt();
+    // 🌿 刷新所有静态装饰
+    for (final deco in grid.children.whereType<FloatingIslandStaticDecorationComponent>()) {
+      deco.updateVisualPosition(offset);
+      deco.priority = ((deco.worldPosition.y + 1e14) * 1000).toInt();
     }
   }
 
-  /// 生成静态
+  /// 🌿 生成静态组件
   Future<void> _spawnStaticComponentsForTile(int tileX, int tileY, String terrain) async {
     final entries = staticSpritesMap[terrain] ?? [];
     if (entries.isEmpty) return;
@@ -153,7 +162,8 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     final tileSpawnChance = 0.5;
     if (rand.nextDouble() > tileSpawnChance) return;
 
-    final count = rand.nextInt(maxStaticObjectsPerTile - minStaticObjectsPerTile + 1) + minStaticObjectsPerTile;
+    final count = rand.nextInt(maxStaticObjectsPerTile - minStaticObjectsPerTile + 1) +
+        minStaticObjectsPerTile;
 
     for (int i = 0; i < count; i++) {
       final offsetX = rand.nextDouble() * staticTileSize;
@@ -173,27 +183,22 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       final sizeValue = minStaticObjectSize +
           rand.nextDouble() * (maxStaticObjectSize - minStaticObjectSize);
 
-      final deco = SpriteComponent(
+      final deco = FloatingIslandStaticDecorationComponent(
         sprite: sprite,
         size: Vector2.all(sizeValue),
-        anchor: Anchor.center,
-      )
-        ..add(
-            RectangleHitbox()
-              ..collisionType = CollisionType.passive
-        );
-
-      deco.priority = worldPos.y.toInt();
-      grid.add(deco);
-
-      _decorations.add(_DecorationWrapper(
-        component: deco,
         worldPosition: worldPos,
-      ));
+        spritePath: selected.path,
+      )..add(
+        RectangleHitbox()..collisionType = CollisionType.passive,
+      );
+
+      onStaticComponentCreated?.call(deco, terrain);
+
+      grid.add(deco);
     }
   }
 
-  /// 生成动态
+  /// 🌊 生成动态组件
   Future<void> _spawnDynamicComponentsForTile(int tileX, int tileY, String terrain) async {
     final entries = dynamicSpritesMap[terrain] ?? [];
     if (entries.isEmpty) return;
@@ -203,7 +208,8 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     final tileSpawnChance = 0.5;
     if (rand.nextDouble() > tileSpawnChance) return;
 
-    final count = rand.nextInt(maxDynamicObjectsPerTile - minDynamicObjectsPerTile + 1) + minDynamicObjectsPerTile;
+    final count = rand.nextInt(maxDynamicObjectsPerTile - minDynamicObjectsPerTile + 1) +
+        minDynamicObjectsPerTile;
 
     for (int i = 0; i < count; i++) {
       final offsetX = rand.nextDouble() * dynamicTileSize;
@@ -234,7 +240,11 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         ),
         speed: minSpeed + rand.nextDouble() * (maxSpeed - minSpeed),
         size: Vector2.all(sizeValue),
+        spritePath: selected.path,
       );
+
+      onDynamicComponentCreated?.call(mover, terrain);
+
       grid.add(mover);
     }
   }
@@ -264,16 +274,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     }
     return entries.first;
   }
-}
-
-class _DecorationWrapper {
-  final SpriteComponent component;
-  final Vector2 worldPosition;
-
-  _DecorationWrapper({
-    required this.component,
-    required this.worldPosition,
-  });
 }
 
 class StaticSpriteEntry {

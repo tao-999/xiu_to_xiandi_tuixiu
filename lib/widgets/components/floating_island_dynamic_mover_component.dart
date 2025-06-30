@@ -20,12 +20,20 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   /// 碰撞冷却
   double collisionCooldown = 0.0;
 
+  /// 当前贴图路径（用于打印）
+  String? spritePath;
+
+  /// 碰撞回调
+  void Function(Set<Vector2> intersectionPoints, PositionComponent other)?
+  onCustomCollision;
+
   FloatingIslandDynamicMoverComponent({
     required Sprite sprite,
     required Vector2 position,
     Vector2? size,
     this.speed = 30,
     required this.movementBounds,
+    this.spritePath, // 🌟新增
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
@@ -36,8 +44,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
   @override
   Future<void> onLoad() async {
-    add(RectangleHitbox()
-      ..collisionType = CollisionType.active);
+    add(RectangleHitbox()..collisionType = CollisionType.active);
     _pickNewTarget();
   }
 
@@ -50,7 +57,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       collisionCooldown -= dt;
     }
 
-    // 移动到目标点
+    // 移动到目标
     final dir = targetPosition - logicalPosition;
     if (dir.length < 5) {
       _pickNewTarget();
@@ -70,28 +77,27 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     );
   }
 
-  /// 更新显示坐标
   void updateVisualPosition(Vector2 logicalOffset) {
     position = logicalPosition - logicalOffset;
   }
 
-  /// 随机新目标
   void _pickNewTarget() {
     final rand = Random();
     targetPosition = Vector2(
-      movementBounds.left +
-          rand.nextDouble() * movementBounds.width,
-      movementBounds.top +
-          rand.nextDouble() * movementBounds.height,
+      movementBounds.left + rand.nextDouble() * movementBounds.width,
+      movementBounds.top + rand.nextDouble() * movementBounds.height,
     );
   }
 
-  /// 碰到东西时换目标
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
-    if (collisionCooldown <= 0) {
-      _pickNewTarget();
-      collisionCooldown = 0.5; // 防止一直抖
+    if (onCustomCollision != null) {
+      onCustomCollision!(intersectionPoints, other);
+    } else {
+      if (collisionCooldown <= 0) {
+        _pickNewTarget();
+        collisionCooldown = 0.5;
+      }
     }
     super.onCollision(intersectionPoints, other);
   }
