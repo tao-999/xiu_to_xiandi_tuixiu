@@ -28,6 +28,7 @@ class ShallowOceanDecorator extends Component {
         getLogicalOffset: getLogicalOffset,
         getViewSize: getViewSize,
         getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
         allowedTerrains: {'shallow_ocean'},
         staticSpritesMap: {
           'shallow_ocean': [

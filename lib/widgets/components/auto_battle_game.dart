@@ -30,7 +30,10 @@ class AutoBattleGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
+    add(FpsTextComponent());
     await _loadMap(currentMapStage);
+
+    await _preloadEnemySprites();
 
     player = await _loadPlayer();
     add(player);
@@ -45,6 +48,19 @@ class AutoBattleGame extends FlameGame {
 
     attackTimer = Timer(1.0, repeat: true, onTick: _fireProjectile)..start();
     clearWaveTimer = Timer(30.0, repeat: true, onTick: _clearAllEnemies)..start();
+  }
+
+  Future<void> _preloadEnemySprites() async {
+    final stages = [1, 4, 7];
+    for (var stage in stages) {
+      for (var i = 1; i <= 5; i++) {
+        final path = 'assets/images/enemies/enemy_stage${stage}_$i.png';
+        if (!_enemySpriteCache.containsKey(path)) {
+          final img = await images.load(path.replaceFirst('assets/images/', ''));
+          _enemySpriteCache[path] = Sprite(img);
+        }
+      }
+    }
   }
 
   void updatePlayerImage(String newPath, {bool assetImage = true}) async {
@@ -82,10 +98,8 @@ class AutoBattleGame extends FlameGame {
   }
 
   Future<void> _loadMap(int stage) async {
-    // 🔄 移除旧背景
     bg?.removeFromParent();
 
-    // 🖼️ 选择背景路径
     String bgPath;
     if (stage >= 1 && stage <= 22) {
       bgPath = 'assets/images/hell_stage_$stage.webp';
@@ -93,16 +107,13 @@ class AutoBattleGame extends FlameGame {
       bgPath = 'assets/images/hell_stage_default.webp';
     }
 
-    // 🎨 加载精灵图
     final sprite = await Sprite.load(bgPath.replaceFirst('assets/images/', ''));
     final spriteSize = sprite.srcSize;
 
-    // 📐 计算缩放比例（等比铺满，可能裁切）
     final scaleX = size.x / spriteSize.x;
     final scaleY = size.y / spriteSize.y;
-    final scale = scaleX > scaleY ? scaleX : scaleY; // ⚠️ 取最大值，保证覆盖全屏
+    final scale = scaleX > scaleY ? scaleX : scaleY;
 
-    // 🧱 创建背景组件
     bg = SpriteComponent()
       ..sprite = sprite
       ..size = spriteSize * scale
@@ -110,7 +121,6 @@ class AutoBattleGame extends FlameGame {
       ..anchor = Anchor.topLeft
       ..priority = -1;
 
-    // ➕ 加入游戏
     add(bg!);
   }
 
@@ -184,14 +194,16 @@ class AutoBattleGame extends FlameGame {
   void _fireProjectile() {
     if (enemies.isEmpty) return;
 
-    final count = currentMapStage.clamp(1, enemies.length);
+    final count = currentMapStage.clamp(1, 5);
+
     final visibleEnemies = enemies.where((e) {
       final pos = e.position;
       return pos.x >= 0 && pos.x <= size.x && pos.y >= 0 && pos.y <= size.y - 60;
     }).toList();
 
     visibleEnemies.sort((a, b) =>
-        player.position.distanceTo(a.position).compareTo(player.position.distanceTo(b.position)));
+        player.position.distanceToSquared(a.position)
+            .compareTo(player.position.distanceToSquared(b.position)));
 
     for (final target in visibleEnemies.take(count)) {
       final lightning = LightningEffectComponent(
@@ -286,12 +298,13 @@ class AutoBattleGame extends FlameGame {
     attackTimer.update(dt);
     clearWaveTimer.update(dt);
 
-    for (final enemy in List<PositionComponent>.from(enemies)) {
+    for (int i = 0; i < enemies.length; i++) {
+      final enemy = enemies[i];
       final dir = (player.position - enemy.position).normalized();
       enemy.position += dir * 40 * dt;
 
-      final distance = player.position.distanceTo(enemy.position);
-      if (distance < 30) {
+      final distSquared = player.position.distanceToSquared(enemy.position);
+      if (distSquared < 900) {
         _showDamageText(enemy.position, text: '💥');
         enemiesToRemove.add(enemy);
       }

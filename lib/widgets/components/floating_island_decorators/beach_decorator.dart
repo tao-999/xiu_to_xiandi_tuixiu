@@ -26,6 +26,7 @@ class BeachDecorator extends Component {
         getLogicalOffset: getLogicalOffset,
         getViewSize: getViewSize,
         getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
         allowedTerrains: {'beach'},
         staticSpritesMap: {
           'beach': [

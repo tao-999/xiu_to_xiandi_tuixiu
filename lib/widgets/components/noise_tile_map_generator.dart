@@ -120,7 +120,7 @@ class NoiseTileMapGenerator extends PositionComponent {
   Color _getColorForTerrain(String terrain) {
     switch (terrain) {
       case 'deep_ocean':
-        return Color(0xFF001F2D);
+        return Color(0xFF00334F);
       case 'shallow_ocean':
         return Color(0xFF3E9DBF);
       case 'beach':

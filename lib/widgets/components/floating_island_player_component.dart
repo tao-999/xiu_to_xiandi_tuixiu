@@ -79,7 +79,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       _positionStreamController.add(logicalPosition);
     }
     // ✅ 实时Y排序（避免负数）
-    priority = ((logicalPosition.y + 10000) * 1000).toInt();
+    priority = ((logicalPosition.y + 1e14) * 1000).toInt();
   }
 
   @override
