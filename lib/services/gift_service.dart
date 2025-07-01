@@ -20,7 +20,7 @@ class GiftRewardResult {
 class GiftService {
   static const String _keyLastClaimed = 'lastClaimedGiftAt';
   static const String _keyClaimCount = 'giftClaimCount';
-  static const Duration cooldown = Duration(seconds: 12);
+  static const Duration cooldown = Duration(hours: 12);
 
   /// 获取上次领取时间（null 表示首次）
   static Future<DateTime?> getLastClaimedAt() async {
