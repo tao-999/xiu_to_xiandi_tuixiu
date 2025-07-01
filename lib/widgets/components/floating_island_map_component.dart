@@ -48,10 +48,11 @@ class FloatingIslandMapComponent extends FlameGame
       tileSize: 24.0,
       smallTileSize: 3,
       seed: seed, // 🌟 使用统一seed
-      frequency: 0.0005,
-      octaves: 8,
-      persistence: 0.6,
+      frequency: 0.00018,
+      octaves: 9,
+      persistence: 0.6
     );
+
     await _noiseMapGenerator.onLoad();
 
     // ✅ 创建网格

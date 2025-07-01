@@ -194,14 +194,29 @@ class NoiseTileMapGenerator extends PositionComponent {
     return _getTerrainType(worldPos.x, worldPos.y);
   }
 
+  double getWaveOffset(double nx, double ny) {
+    // 用一层 Perlin 噪声做平滑偏移
+    final raw = (_noiseTemperature.perlin(nx * 0.0005, ny * 0.0005) + 1) / 2;
+    // raw = 0~1
+    // 映射到 -0.3 ~ +0.3
+    return (raw - 0.5) * 0.6;
+  }
+
   String _getTerrainType(double nx, double ny) {
     final h1 = (_noiseHeight.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
-    final h2 = (_noiseHumidity.fbm(nx + 10000, ny + 10000, octaves, frequency, persistence) + 1) / 2;
-    final hMix = (h1 + h2) / 2;
-    final wave = (sin(hMix * pi * 2 - pi / 2) + 1) / 2;
+    final h2 = (_noiseHumidity.fbm(nx + 1e14, ny + 1e14, octaves, frequency, persistence) + 1) / 2;
+    final h3 = (_noiseTemperature.fbm(nx - 1e14, ny - 1e14, octaves, frequency, persistence) + 1) / 2;
 
-    if (wave < 0.03) return 'deep_ocean';
-    if (wave < 0.08) return 'shallow_ocean';
+    final mixed = (h1 * 0.4 + h2 * 0.3 + h3 * 0.3).clamp(0,1);
+
+    // 极限拉伸
+    double wave = ((mixed - 0.4) / 0.2).clamp(0,1);
+
+    // 🌈这里平移波峰
+    final offset = getWaveOffset(nx, ny);
+    wave = (wave + offset).clamp(0,1);
+
+    if (wave < 0.08) return 'shallow_ocean'; // 合并深海
     if (wave < 0.13) return 'beach';
     if (wave < 0.25) return 'mud';
     if (wave < 0.40) return 'grass';
@@ -211,9 +226,9 @@ class NoiseTileMapGenerator extends PositionComponent {
     if (wave < 0.80) return 'flower_field';
     if (wave < 0.88) return 'volcanic';
     if (wave < 0.94) return 'glacier';
-    if (wave < 0.99) return 'shallow_ocean';
-    return 'grass';
+    return 'shallow_ocean';
   }
+
 
   ui.Color _getColorForTerrain(String terrain) {
     switch (terrain) {
@@ -239,6 +254,8 @@ class NoiseTileMapGenerator extends PositionComponent {
         return const ui.Color(0xFF774444); // 火山
       case 'glacier':
         return const ui.Color(0xFFCFE5F5); // 冰川
+      case 'black_zone':
+        return const ui.Color(0xFF000000); // 黑色禁区
       default:
         return const ui.Color(0xFF88A76C); // 默认草地
     }
