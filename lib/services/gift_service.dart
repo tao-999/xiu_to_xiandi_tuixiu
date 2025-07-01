@@ -20,7 +20,7 @@ class GiftRewardResult {
 class GiftService {
   static const String _keyLastClaimed = 'lastClaimedGiftAt';
   static const String _keyClaimCount = 'giftClaimCount';
-  static const Duration cooldown = Duration(hours: 12);
+  static const Duration cooldown = Duration(seconds: 12);
 
   /// 获取上次领取时间（null 表示首次）
   static Future<DateTime?> getLastClaimedAt() async {
@@ -47,7 +47,7 @@ class GiftService {
       ticket = BigInt.from(500);
       charm = BigInt.from(10);
     } else {
-      final base = 10000 + (claimCount - 2) * 500; // 第2次起递增
+      final base = 10000 + (claimCount - 1) * 500; // 第2次起递增
       stone = BigInt.from(base);
       ticket = BigInt.one;
       charm = BigInt.one;

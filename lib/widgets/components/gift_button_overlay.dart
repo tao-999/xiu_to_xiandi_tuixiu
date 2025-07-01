@@ -69,7 +69,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindi
 
   Future<void> _showGiftDialog() async {
     final count = await GiftService.getClaimCount();
-    final preview = GiftService.calculateReward(count);
+    final preview = GiftService.calculateReward(count + 1);
 
     await showDialog(
       context: context,
