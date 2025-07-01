@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flame/components.dart';
-import 'package:flutter/cupertino.dart';
 
 /// 🌿 地形工具方法
 class TerrainUtils {
@@ -31,7 +30,6 @@ class TerrainUtils {
       visited.add(key);
 
       final terrain = getTerrainType(current);
-
       if (terrain != terrainType) continue;
 
       minX = min(minX, current.x);
@@ -46,6 +44,14 @@ class TerrainUtils {
       queue.add(current + Vector2(0, -sampleStep));
 
       steps++;
+    }
+
+    // 🛡️ 修正退化矩形：最小1像素
+    if ((maxX - minX).abs() < 1.0) {
+      maxX = minX + 1.0;
+    }
+    if ((maxY - minY).abs() < 1.0) {
+      maxY = minY + 1.0;
     }
 
     return Rect.fromLTRB(minX, minY, maxX, maxY);

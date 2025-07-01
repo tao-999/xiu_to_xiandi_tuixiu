@@ -72,26 +72,31 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     dir.normalize();
     final nextPos = logicalPosition + dir * speed * dt;
 
-    // 🌟 先检测下一帧位置地形
+    // 🌟 检测下一帧位置的地形
     final nextTerrain = spawner.getTerrainType(nextPos);
 
     if (!spawner.allowedTerrains.contains(nextTerrain)) {
-      // 🚀 如果即将越界，不移动，换目标
+      // 🚀 即将越界，换目标
       _pickNewTarget();
       return;
     }
 
-    // 🚀 只有合法才更新逻辑坐标
+    // 🚀 合法则更新逻辑坐标
     logicalPosition = nextPos;
 
-    // 🚀 可选: Clamp到物理边界
+    // 🚀 Clamp到边界
     final minX = movementBounds.left + size.x / 2;
     final maxX = movementBounds.right - size.x / 2;
     final minY = movementBounds.top + size.y / 2;
     final maxY = movementBounds.bottom - size.y / 2;
 
-    logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
-    logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
+    if (minX >= maxX || minY >= maxY) {
+      // 🚀 边界太小，重置到中心
+      logicalPosition = movementBounds.center.toVector2();
+    } else {
+      logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
+      logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
+    }
   }
 
   void updateVisualPosition(Vector2 logicalOffset) {

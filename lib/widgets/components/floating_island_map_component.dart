@@ -48,9 +48,9 @@ class FloatingIslandMapComponent extends FlameGame
       tileSize: 24.0,
       smallTileSize: 3,
       seed: seed, // 🌟 使用统一seed
-      frequency: 0.0001555,
-      octaves: 7,
-      persistence: 0.5,
+      frequency: 0.0005,
+      octaves: 8,
+      persistence: 0.6,
     );
     await _noiseMapGenerator.onLoad();
 
@@ -135,7 +135,7 @@ class FloatingIslandMapComponent extends FlameGame
         grid: _grid,
         getLogicalOffset: () => logicalOffset,
         getViewSize: () => size,
-        bufferSize: 250,
+        bufferSize: 512,
         excludeComponents: {player!},
       ),
     );
@@ -199,5 +199,15 @@ class FloatingIslandMapComponent extends FlameGame
     logicalOffset = Vector2.zero();
     isCameraFollowing = false;
     _grid.position = size / 2;
+  }
+
+  void centerOnPlayer() {
+    if (player != null) {
+      // 如果用 logicalOffset
+      logicalOffset = player!.logicalPosition.clone();
+
+      // 如果用 camera
+      // camera.followVector2(player!.position);
+    }
   }
 }

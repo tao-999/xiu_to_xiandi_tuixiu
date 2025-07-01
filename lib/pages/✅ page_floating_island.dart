@@ -28,13 +28,13 @@ class _FloatingIslandPageState extends State<FloatingIslandPage> {
     return Scaffold(
       body: Stack(
         children: [
-          // 🌟 地图最底层（只有当seed已经确定时才加载）
+          // 🌟 地图
           if (_mapComponent != null)
             Positioned.fill(
               child: GameWidget(game: _mapComponent!),
             ),
 
-          // 🌟 地图加载器（如果没有seed就显示）
+          // 🌟 地图加载器
           if (!_hasSeed)
             FloatingIslandMapLoader(
               onSeedReady: (seed) {
@@ -58,13 +58,14 @@ class _FloatingIslandPageState extends State<FloatingIslandPage> {
               child: IconButton(
                 icon: const Icon(Icons.my_location, color: Colors.white),
                 onPressed: () {
-                  _mapComponent!.resetToCenter();
+                  // 🚀 定位到角色
+                  _mapComponent!.centerOnPlayer();
                 },
               ),
             ),
           ],
 
-          // 🌟 返回按钮一定在最顶层
+          // 🌟 返回按钮
           const BackButtonOverlay(),
         ],
       ),
