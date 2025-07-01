@@ -28,12 +28,10 @@ class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
   final StreamController<int> _floorController = StreamController<int>.broadcast();
   Stream<int> get floorStream => _floorController.stream;
 
-  // 🟢 支持自定义tileSize
-  final double? customTileSize;
+  double? customTileSize;
 
   HuanyueExploreGame({
     this.onReload,
-    this.customTileSize,
   });
 
   @override
@@ -44,10 +42,9 @@ class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
         ..position = Vector2(10, 10),
     );
 
-
+    customTileSize = 4.5;
     final double screenHeight = size.y;
 
-    // tileSize优先用外部传入，没有则自动适配
     if (customTileSize != null && customTileSize! > 0) {
       tileSize = customTileSize!;
     } else {
@@ -88,6 +85,11 @@ class HuanyueExploreGame extends FlameGame with HasCollisionDetection {
       cols: mapCols,
       tileSize: tileSize,
       currentFloor: currentFloor,
+      minCount: 1,
+      maxCount: 4,
+      minSize: 8,
+      maxSize: 48,
+      decorationTileSize: 64,
     );
     mapLayer!.add(mapTileLayer);
 
