@@ -71,20 +71,27 @@ class NoiseTileMapGenerator extends PositionComponent {
     final endChunkX = (bottomRight.x / chunkPixelSize).ceil();
     final endChunkY = (bottomRight.y / chunkPixelSize).ceil();
 
-    // 🚀 提前加载范围：每边多1块
-    final preloadStartX = startChunkX - 1;
-    final preloadStartY = startChunkY - 1;
-    final preloadEndX = endChunkX + 1;
-    final preloadEndY = endChunkY + 1;
+    // 🚀 提前加载范围：每边多2块
+    final preloadStartX = startChunkX - 2;
+    final preloadStartY = startChunkY - 2;
+    final preloadEndX = endChunkX + 2;
+    final preloadEndY = endChunkY + 2;
 
-    // 🌟 记录当前需要的chunk key
-    final activeKeys = <String>{};
+    // 🌈 保留范围：每边多3块（比预加载再大一圈）
+    final keepStartX = startChunkX - 3;
+    final keepStartY = startChunkY - 3;
+    final keepEndX = endChunkX + 3;
+    final keepEndY = endChunkY + 3;
 
-    // 🟢 先批量触发生成（包含预加载区域）
+    final preloadKeys = <String>{};
+    final keepKeys = <String>{};
+
+    // 🟢 先批量触发生成（预加载区域）
     for (int cx = preloadStartX; cx < preloadEndX; cx++) {
       for (int cy = preloadStartY; cy < preloadEndY; cy++) {
         final key = '${cx}_$cy';
-        activeKeys.add(key);
+        preloadKeys.add(key);
+        keepKeys.add(key);
         if (!_chunkCache.containsKey(key)) {
           _chunkCache[key] = null;
           _generateChunkImage(cx, cy).then((img) {
@@ -94,8 +101,15 @@ class NoiseTileMapGenerator extends PositionComponent {
       }
     }
 
-    // 🌈 移除不在视口周围的chunk，释放内存
-    _chunkCache.removeWhere((k, _) => !activeKeys.contains(k));
+    // 🌟 把保留区域里额外的chunk也标记上（只保留，不生成）
+    for (int cx = keepStartX; cx < keepEndX; cx++) {
+      for (int cy = keepStartY; cy < keepEndY; cy++) {
+        keepKeys.add('${cx}_$cy');
+      }
+    }
+
+    // 🌈 移除不在保留区域的chunk
+    _chunkCache.removeWhere((k, _) => !keepKeys.contains(k));
 
     // 🟢 再绘制可视区域（只画视口范围）
     for (int cx = startChunkX; cx < endChunkX; cx++) {

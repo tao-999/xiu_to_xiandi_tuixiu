@@ -12,7 +12,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   FloatingIslandPlayerComponent()
       : super(size: Vector2.all(32), anchor: Anchor.center);
 
-  /// 🚀 逻辑世界坐标
+  /// 🚀 逻辑世界坐标（用来移动、碰撞）
   Vector2 logicalPosition = Vector2.zero();
 
   Vector2? _targetPosition;
@@ -53,21 +53,17 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   void update(double dt) {
     super.update(dt);
 
+    // 🚀 更新逻辑坐标
     if (_targetPosition != null) {
       final delta = _targetPosition! - logicalPosition;
       final distance = delta.length;
+      final moveStep = moveSpeed * dt;
 
-      if (distance <= 1.0) {
+      if (distance <= moveStep) {
         logicalPosition = _targetPosition!;
         _targetPosition = null;
       } else {
-        final moveStep = moveSpeed * dt;
-        if (distance <= moveStep) {
-          logicalPosition = _targetPosition!;
-          _targetPosition = null;
-        } else {
-          logicalPosition += delta.normalized() * moveStep;
-        }
+        logicalPosition += delta.normalized() * moveStep;
       }
 
       // 翻转
@@ -78,7 +74,16 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       // 通知
       _positionStreamController.add(logicalPosition);
     }
-    // ✅ 实时Y排序（避免负数）
+
+    // ✅ 这里把逻辑偏移同步到最新位置（关键）
+    final mapGame = game as dynamic;
+
+// 如果角色在移动，就更新逻辑Offset，保证自动跟随
+    if (_targetPosition != null) {
+      mapGame.logicalOffset = logicalPosition.clone();
+    }
+
+    // ✅ 实时Y排序
     priority = ((logicalPosition.y + 1e14) * 1000).toInt();
   }
 
