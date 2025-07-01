@@ -77,12 +77,15 @@ class NoiseTileMapGenerator extends PositionComponent {
     final preloadEndX = endChunkX + 1;
     final preloadEndY = endChunkY + 1;
 
+    // 🌟 记录当前需要的chunk key
+    final activeKeys = <String>{};
+
     // 🟢 先批量触发生成（包含预加载区域）
     for (int cx = preloadStartX; cx < preloadEndX; cx++) {
       for (int cy = preloadStartY; cy < preloadEndY; cy++) {
         final key = '${cx}_$cy';
+        activeKeys.add(key);
         if (!_chunkCache.containsKey(key)) {
-          // 先放null防止重复生成
           _chunkCache[key] = null;
           _generateChunkImage(cx, cy).then((img) {
             _chunkCache[key] = img;
@@ -90,6 +93,9 @@ class NoiseTileMapGenerator extends PositionComponent {
         }
       }
     }
+
+    // 🌈 移除不在视口周围的chunk，释放内存
+    _chunkCache.removeWhere((k, _) => !activeKeys.contains(k));
 
     // 🟢 再绘制可视区域（只画视口范围）
     for (int cx = startChunkX; cx < endChunkX; cx++) {
