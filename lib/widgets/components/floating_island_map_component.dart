@@ -45,12 +45,12 @@ class FloatingIslandMapComponent extends FlameGame
 
     // 地形生成器
     _noiseMapGenerator = NoiseTileMapGenerator(
-      tileSize: 24.0,
-      smallTileSize: 4,
+      tileSize: 64.0,
+      smallTileSize: 6,
       seed: seed, // 🌟 使用统一seed
-      frequency: 0.00018,
+      frequency: 0.0001,
       octaves: 8,
-      persistence: 0.6
+      persistence: 0.7,
     );
 
     await _noiseMapGenerator.onLoad();
@@ -136,7 +136,7 @@ class FloatingIslandMapComponent extends FlameGame
         grid: _grid,
         getLogicalOffset: () => logicalOffset,
         getViewSize: () => size,
-        bufferSize: 1024,
+        bufferSize: 256,
         excludeComponents: {player!},
       ),
     );

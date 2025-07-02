@@ -264,7 +264,6 @@ class NoiseTileMapGenerator extends PositionComponent {
     return terrains[index];
   }
 
-
   ui.Color _getColorForTerrain(String terrain) {
     switch (terrain) {
       case 'deep_ocean':
