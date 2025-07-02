@@ -211,4 +211,6 @@ class FloatingIslandMapComponent extends FlameGame
       // camera.followVector2(player!.position);
     }
   }
+
+  NoiseTileMapGenerator get noiseMapGenerator => _noiseMapGenerator;
 }

@@ -170,6 +170,11 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
       await Hive.box<double>('noise_cache').close();
       print('[Hive] Closed box: noise_cache');
     }
+    // terrain_events: 没加泛型
+    if (Hive.isBoxOpen('terrain_events')) {
+      await Hive.box('terrain_events').close();
+      print('[Hive] Closed box: terrain_events');
+    }
   }
 
   @override

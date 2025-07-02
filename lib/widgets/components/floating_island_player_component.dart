@@ -5,6 +5,7 @@ import 'package:flutter/material.dart' hide Image;
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/player_sprite_util.dart';
 
+import '../../utils/terrain_event_util.dart';
 import 'floating_island_monster_component.dart';
 
 class FloatingIslandPlayerComponent extends SpriteComponent
@@ -75,16 +76,26 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       _positionStreamController.add(logicalPosition);
     }
 
-    // ✅ 这里把逻辑偏移同步到最新位置（关键）
+    // ✅ 同步逻辑Offset
     final mapGame = game as dynamic;
-
-// 如果角色在移动，就更新逻辑Offset，保证自动跟随
     if (_targetPosition != null) {
       mapGame.logicalOffset = logicalPosition.clone();
     }
 
     // ✅ 实时Y排序
     priority = ((logicalPosition.y + 1e14) * 1000).toInt();
+
+    // ✅ 获取地形
+    final noiseGenerator = mapGame.noiseMapGenerator;
+    final currentTerrain = noiseGenerator.getTerrainTypeAtPosition(logicalPosition);
+
+// ✅ 调用工具类 (不阻塞主线程)
+    Future.microtask(() async {
+      final triggered = await TerrainEventUtil.checkAndTrigger(currentTerrain, logicalPosition, game);
+      if (triggered) {
+        _targetPosition = null; // 停止移动
+      }
+    });
   }
 
   @override
