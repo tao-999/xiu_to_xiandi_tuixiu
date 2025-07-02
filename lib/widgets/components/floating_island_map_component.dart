@@ -136,7 +136,7 @@ class FloatingIslandMapComponent extends FlameGame
         grid: _grid,
         getLogicalOffset: () => logicalOffset,
         getViewSize: () => size,
-        bufferSize: 512,
+        bufferSize: 1024,
         excludeComponents: {player!},
       ),
     );

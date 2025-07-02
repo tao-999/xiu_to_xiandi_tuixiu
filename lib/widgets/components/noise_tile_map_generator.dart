@@ -236,17 +236,32 @@ class NoiseTileMapGenerator extends PositionComponent {
     final offset = getWaveOffset(nx, ny);
     wave = (wave + offset).clamp(0,1);
 
-    if (wave < 0.08) return 'shallow_ocean'; // 合并深海
-    if (wave < 0.13) return 'beach';
-    if (wave < 0.25) return 'mud';
-    if (wave < 0.40) return 'grass';
-    if (wave < 0.50) return 'forest';
-    if (wave < 0.60) return 'rock';
-    if (wave < 0.70) return 'snow';
-    if (wave < 0.80) return 'flower_field';
-    if (wave < 0.88) return 'volcanic';
-    if (wave < 0.94) return 'glacier';
-    return 'shallow_ocean';
+    final terrains = [
+      'shallow_ocean',
+      'beach',
+      'mud',
+      'grass',
+      'forest',
+      'rock',
+      'snow',
+      'flower_field',
+      'volcanic',
+    ];
+
+    double interval = 0.5 / terrains.length;
+    int index;
+
+    if (wave < 0.5) {
+      index = (wave / interval).floor();
+    } else {
+      double reversed = 1.0 - wave; // 0.5~0.0
+      index = (reversed / interval).floor();
+    }
+
+// 保险：确保 index在0~8
+    index = index.clamp(0, terrains.length - 1);
+
+    return terrains[index];
   }
 
 
@@ -272,8 +287,6 @@ class NoiseTileMapGenerator extends PositionComponent {
         return const ui.Color(0xFFB8D1B0); // 花田
       case 'volcanic':
         return const ui.Color(0xFF333333); // 火山
-      case 'glacier':
-        return const ui.Color(0xFFCFE5F5); // 冰川
       case 'black_zone':
         return const ui.Color(0xFF000000); // 黑色禁区
       default:

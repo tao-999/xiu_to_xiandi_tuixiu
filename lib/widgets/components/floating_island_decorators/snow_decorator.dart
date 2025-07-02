@@ -39,6 +39,7 @@ class SnowDecorator extends Component {
             StaticSpriteEntry('floating_island/snow_2.png', 1),
             StaticSpriteEntry('floating_island/snow_3.png', 1),
             StaticSpriteEntry('floating_island/snow_4.png', 1),
+            StaticSpriteEntry('floating_island/snow_5.png', 1),
           ],
         },
         staticTileSize: 48.0,
