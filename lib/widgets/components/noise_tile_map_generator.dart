@@ -255,7 +255,7 @@ class NoiseTileMapGenerator extends PositionComponent {
       case 'deep_ocean':
         return const ui.Color(0xFF223344); // 深海蓝
       case 'shallow_ocean':
-        return const ui.Color(0xFF447799); // 浅海蓝
+        return const ui.Color(0xFF88CCE0); // 浅海蓝
       case 'beach':
         return const ui.Color(0xFFDDCCAA); // 沙滩
       case 'mud':
@@ -271,7 +271,7 @@ class NoiseTileMapGenerator extends PositionComponent {
       case 'flower_field':
         return const ui.Color(0xFFB8D1B0); // 花田
       case 'volcanic':
-        return const ui.Color(0xFF774444); // 火山
+        return const ui.Color(0xFF333333); // 火山
       case 'glacier':
         return const ui.Color(0xFFCFE5F5); // 冰川
       case 'black_zone':

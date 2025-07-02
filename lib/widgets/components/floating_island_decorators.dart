@@ -6,6 +6,8 @@ import 'floating_island_decorators/grass_decorator.dart';
 import 'floating_island_decorators/mud_decorator.dart';
 import 'floating_island_decorators/shallow_ocean_decorator.dart';
 import 'floating_island_decorators/rock_decorator.dart';
+import 'floating_island_decorators/snow_decorator.dart';
+import 'floating_island_decorators/volcanic_decorator.dart';
 import 'noise_tile_map_generator.dart';
 
 class FloatingIslandDecorators extends Component {
@@ -34,6 +36,8 @@ class FloatingIslandDecorators extends Component {
       GrassDecorator.new,
       RockDecorator.new,
       FlowerFieldDecorator.new,
+      SnowDecorator.new,
+      VolcanicDecorator.new,
     ];
 
     // 🟢 批量add，每个自动注入所有公共参数
