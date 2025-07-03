@@ -10,7 +10,6 @@ import '../../utils/floating_island_cleanup_manager.dart';
 import 'floating_island_decorators.dart';
 import 'floating_island_dynamic_mover_component.dart';
 import 'floating_island_dynamic_spawner_component.dart';
-import 'floating_island_monster_component.dart';
 import 'noise_tile_map_generator.dart';
 
 class FloatingIslandMapComponent extends FlameGame

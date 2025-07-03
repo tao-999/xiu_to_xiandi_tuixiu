@@ -49,7 +49,7 @@ class _FloatingIslandPageState extends State<FloatingIslandPage> {
           if (_mapComponent != null) ...[
             Positioned(
               top: 40,
-              left: 20,
+              left: 0,
               child: PlayerDistanceIndicator(mapComponent: _mapComponent!),
             ),
             Positioned(
