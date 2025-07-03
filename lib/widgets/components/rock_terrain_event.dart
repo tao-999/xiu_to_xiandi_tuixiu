@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
+
 import '../../services/resources_storage.dart';
 import '../../services/terrain_event_storage_service.dart';
 import '../../utils/lingshi_util.dart';
@@ -9,27 +10,50 @@ import 'floating_lingshi_popup_component.dart';
 class RockTerrainEvent {
   static final Random _rand = Random();
 
+  /// 🚀 按照距离区间抽取灵石品级
+  static LingShiType pickLingShiType(double distance) {
+    final roll = _rand.nextDouble();
+
+    if (distance < 100_000) {
+      // 100% 下品
+      return LingShiType.lower;
+    } else if (distance < 1_000_000) {
+      // 50% 下品，50% 中品
+      return roll < 0.5 ? LingShiType.lower : LingShiType.middle;
+    } else if (distance < 10_000_000) {
+      // 33% 下品，中品，上品
+      if (roll < 1/3) {
+        return LingShiType.lower;
+      } else if (roll < 2/3) {
+        return LingShiType.middle;
+      } else {
+        return LingShiType.upper;
+      }
+    } else {
+      // 25% 四种
+      if (roll < 0.25) {
+        return LingShiType.lower;
+      } else if (roll < 0.5) {
+        return LingShiType.middle;
+      } else if (roll < 0.75) {
+        return LingShiType.upper;
+      } else {
+        return LingShiType.supreme;
+      }
+    }
+  }
+
   static Future<bool> trigger(Vector2 pos, FlameGame game) async {
     final distance = pos.length;
 
-    // 🌟先判定是否触发
+    // 🌟5%概率触发
     final chanceRoll = _rand.nextDouble();
-    if (chanceRoll >= 0.10) {
+    if (chanceRoll >= 0.05) {
       return false;
     }
 
-    // 🌟随机灵石品级概率（你的逻辑保留）
-    final roll = _rand.nextDouble();
-    LingShiType type;
-    if (roll < 0.01) {
-      type = LingShiType.supreme;
-    } else if (roll < 0.10) {
-      type = LingShiType.upper;
-    } else if (roll < 0.30) {
-      type = LingShiType.middle;
-    } else {
-      type = LingShiType.lower;
-    }
+    // 🌟灵石品级
+    final type = pickLingShiType(distance);
 
     // 🌟数量根据距离
     int base = (distance / 20).round();
@@ -50,15 +74,11 @@ class RockTerrainEvent {
         break;
     }
 
-    if (quantity <= 0) {
-      quantity = 1;
-    }
-
     final name = lingShiNames[type];
     final imagePath = getLingShiImagePath(type);
     final text = '$name x$quantity';
 
-    // 🌟直接放在屏幕中心
+    // 🌟放在屏幕中心
     final centerPos = game.size / 2;
 
     final popup = FloatingLingShiPopupComponent(
@@ -67,9 +87,9 @@ class RockTerrainEvent {
       position: centerPos.clone(),
     );
 
-    // 🌟挂在UI层（Viewport）
     game.camera.viewport.add(popup);
 
+    // 🌟写入事件
     await TerrainEventStorageService.markTriggered(
       'rock',
       pos,
@@ -81,6 +101,7 @@ class RockTerrainEvent {
       status: 'completed',
     );
 
+    // 🌟加到资源
     await ResourcesStorage.add(
       lingShiFieldMap[type]!,
       BigInt.from(quantity),
