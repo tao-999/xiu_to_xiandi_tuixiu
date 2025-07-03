@@ -84,6 +84,7 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
     const Set<BeibaoItemType> _showLevelTypes = {
       BeibaoItemType.weapon,
       BeibaoItemType.pill,
+      BeibaoItemType.herb,
       // 后续扩展直接加
     };
 

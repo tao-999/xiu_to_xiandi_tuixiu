@@ -16,7 +16,7 @@ class FloatingLingShiPopupComponent extends PositionComponent {
     required this.text,
     required this.imagePath,
     required Vector2 position,
-    this.duration = 1.5,
+    this.duration = 2,
   }) {
     this.position = position.clone();
   }

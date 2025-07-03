@@ -21,7 +21,7 @@ class TerrainEventUtil {
 
     switch (terrain) {
       case 'forest':
-        hasEvent = await ForestTerrainEvent.trigger(pos);
+        hasEvent = await ForestTerrainEvent.trigger(pos, game);
         break;
       case 'rock':
         hasEvent = await RockTerrainEvent.trigger(pos, game);

@@ -6,6 +6,7 @@ import 'package:xiu_to_xiandi_tuixiu/data/beibao_resource_config.dart';
 
 import '../models/beibao_item_type.dart';
 import '../models/pill.dart';
+import '../services/herb_material_service.dart';
 import '../services/pill_storage_service.dart';
 import '../services/weapons_storage.dart';
 
@@ -111,6 +112,24 @@ class _BeibaoPageState extends State<BeibaoPage> {
         description: '效果：$effect',
         type: BeibaoItemType.pill, // 你要加这个类型
       ));
+    }
+
+    // 🔹4. 加载所有草药
+    final allHerbs = HerbMaterialService.generateAllMaterials();
+    final herbInventory = await HerbMaterialService.loadInventory();
+
+    for (final herb in allHerbs) {
+      final count = herbInventory[herb.name] ?? 0;
+      if (count > 0) {
+        newItems.add(BeibaoItem(
+          name: herb.name,
+          imagePath: herb.image,
+          level: herb.level,
+          quantity: BigInt.from(count),
+          description: '炼制${herb.level}阶丹药',
+          type: BeibaoItemType.herb,
+        ));
+      }
     }
 
     // ✅ 刷新 UI
