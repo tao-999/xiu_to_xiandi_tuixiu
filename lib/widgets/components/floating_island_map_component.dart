@@ -159,9 +159,7 @@ class FloatingIslandMapComponent extends FlameGame
       _grid.generator.logicalOffset = logicalOffset;
 
       player!.position = player!.logicalPosition - logicalOffset;
-      for (final monster in _grid.children.whereType<FloatingIslandMonsterComponent>()) {
-        monster.position = monster.logicalPosition - logicalOffset;
-      }
+
       // 🌟 ✅ 小船（动态漂浮组件）位置
       for (final mover in _grid.children.whereType<FloatingIslandDynamicMoverComponent>()) {
         mover.updateVisualPosition(logicalOffset);

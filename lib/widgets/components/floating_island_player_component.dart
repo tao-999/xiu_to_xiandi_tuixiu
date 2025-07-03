@@ -6,7 +6,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/player_sprite_util.dart';
 
 import '../../utils/terrain_event_util.dart';
-import 'floating_island_monster_component.dart';
+import 'floating_island_dynamic_mover_component.dart';
 
 class FloatingIslandPlayerComponent extends SpriteComponent
     with HasGameReference, CollisionCallbacks {
@@ -112,8 +112,8 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
 
-    if (other is FloatingIslandMonsterComponent) {
-      // 计算反弹方向
+    if (other is FloatingIslandDynamicMoverComponent) {
+      // 🚀 和漂浮小怪碰撞：双方立刻弹一下
       final delta = logicalPosition - other.logicalPosition;
       final rebound = delta.length > 0.01
           ? delta.normalized()
@@ -122,11 +122,11 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       // 🚀 立刻逻辑坐标小弹一下
       logicalPosition += rebound * 5;
 
-      // 怪物也弹飞
-      other.velocity = -other.velocity;
-      other.setRandomDirection();
+      // 小怪弹飞 + 换目标
+      other.logicalPosition -= rebound * 5;
+      other.pickNewTarget();
 
-      debugPrint('[碰撞] 角色撞怪物！双方立刻小弹一下');
+      debugPrint('[碰撞] 角色撞漂浮组件！双方立刻小弹一下');
     }
   }
 }

@@ -4,6 +4,7 @@ import 'package:flame/collisions.dart';
 import 'package:flame/extensions.dart';
 
 import 'floating_island_dynamic_spawner_component.dart';
+import 'floating_island_player_component.dart';
 
 class FloatingIslandDynamicMoverComponent extends SpriteComponent
     with CollisionCallbacks, HasGameReference {
@@ -50,7 +51,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   @override
   Future<void> onLoad() async {
     add(RectangleHitbox()..collisionType = CollisionType.active);
-    _pickNewTarget();
+    pickNewTarget();
   }
 
   @override
@@ -65,7 +66,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     final distance = dir.length;
 
     if (distance < 2) {
-      _pickNewTarget();
+      pickNewTarget();
       return;
     }
 
@@ -77,7 +78,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (!spawner.allowedTerrains.contains(nextTerrain)) {
       // 🚀 即将越界，换目标
-      _pickNewTarget();
+      pickNewTarget();
       return;
     }
 
@@ -103,7 +104,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     position = logicalPosition - logicalOffset;
   }
 
-  void _pickNewTarget() {
+  void pickNewTarget() {
     final rand = Random();
     targetPosition = Vector2(
       movementBounds.left + rand.nextDouble() * movementBounds.width,
@@ -114,11 +115,29 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   @override
   void onCollision(Set<Vector2> points, PositionComponent other) {
     if (onCustomCollision != null) {
+      // 如果外部有自定义碰撞回调
       onCustomCollision!(points, other);
     } else if (collisionCooldown <= 0) {
-      _pickNewTarget();
-      collisionCooldown = 0.5;
+      if (other is FloatingIslandPlayerComponent) {
+        // 🚀 和角色碰撞：双方弹开
+        final delta = logicalPosition - other.logicalPosition;
+        final rebound = delta.length > 0.01
+            ? delta.normalized()
+            : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
+
+        logicalPosition += rebound * 10; // 自己弹开
+        other.logicalPosition -= rebound * 5; // 角色也弹开
+
+        // 换目标
+        pickNewTarget();
+        collisionCooldown = 0.5;
+      } else {
+        // 🚀 和其他漂浮物或物体碰撞：只自己换目标
+        pickNewTarget();
+        collisionCooldown = 0.5;
+      }
     }
+
     super.onCollision(points, other);
   }
 }
