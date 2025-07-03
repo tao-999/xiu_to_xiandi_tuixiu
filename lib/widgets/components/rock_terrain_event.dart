@@ -21,10 +21,10 @@ class RockTerrainEvent {
       // 50% 下品，50% 中品
       return roll < 0.5 ? LingShiType.lower : LingShiType.middle;
     } else if (distance < 10_000_000) {
-      // 33% 下品，中品，上品
-      if (roll < 1/3) {
+      // 33% 下品、中品、上品
+      if (roll < 1 / 3) {
         return LingShiType.lower;
-      } else if (roll < 2/3) {
+      } else if (roll < 2 / 3) {
         return LingShiType.middle;
       } else {
         return LingShiType.upper;
@@ -74,6 +74,12 @@ class RockTerrainEvent {
         break;
     }
 
+    // 🌟50%概率触发2倍
+    final doubleReward = _rand.nextBool();
+    if (doubleReward) {
+      quantity *= 2;
+    }
+
     final name = lingShiNames[type];
     final imagePath = getLingShiImagePath(type);
     final text = '$name x$quantity';
@@ -97,6 +103,7 @@ class RockTerrainEvent {
       data: {
         'type': type.toString(),
         'quantity': quantity,
+        'doubleReward': doubleReward,
       },
       status: 'completed',
     );
