@@ -8,6 +8,7 @@ import '../models/beibao_item_type.dart';
 import '../models/pill.dart';
 import '../services/herb_material_service.dart';
 import '../services/pill_storage_service.dart';
+import '../services/refine_material_service.dart';
 import '../services/weapons_storage.dart';
 
 class BeibaoPage extends StatefulWidget {
@@ -128,6 +129,24 @@ class _BeibaoPageState extends State<BeibaoPage> {
           quantity: BigInt.from(count),
           description: '炼制${herb.level}阶丹药',
           type: BeibaoItemType.herb,
+        ));
+      }
+    }
+
+    // 🔹5. 加载所有炼器材料
+    final allMats = RefineMaterialService.generateAllMaterials();
+    final matInventory = await RefineMaterialService.loadInventory();
+
+    for (final mat in allMats) {
+      final count = matInventory[mat.name] ?? 0;
+      if (count > 0) {
+        newItems.add(BeibaoItem(
+          name: mat.name,
+          imagePath: mat.image,
+          level: mat.level,
+          quantity: BigInt.from(count),
+          description: '炼制${mat.level}阶武器',
+          type: BeibaoItemType.refineMaterial,
         ));
       }
     }

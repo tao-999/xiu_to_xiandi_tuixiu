@@ -3,6 +3,7 @@ import 'package:flame/game.dart';
 import '../services/terrain_event_storage_service.dart';
 import '../widgets/components/forest_terrain_event.dart';
 import '../widgets/components/rock_terrain_event.dart';
+import '../widgets/components/volcanic_terrain_event.dart';
 
 class TerrainEventUtil {
   /// game参数必须传
@@ -25,6 +26,9 @@ class TerrainEventUtil {
         break;
       case 'rock':
         hasEvent = await RockTerrainEvent.trigger(pos, game);
+        break;
+      case 'volcanic':
+        hasEvent = await VolcanicTerrainEvent.trigger(pos, game);
         break;
     }
 

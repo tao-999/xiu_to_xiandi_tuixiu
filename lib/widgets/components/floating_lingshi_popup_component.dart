@@ -25,8 +25,6 @@ class FloatingLingShiPopupComponent extends PositionComponent {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    debugPrint('✨加载灵石图片: $imagePath');
-
     final sprite = await Sprite.load(imagePath.replaceFirst('assets/images/', ''));
 
     // 🔹创建 TextPaint

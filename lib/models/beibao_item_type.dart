@@ -5,4 +5,5 @@ enum BeibaoItemType {
   weapon,   // 炼制完成的独立武器
   pill, // 丹药
   herb, // 草药
+  refineMaterial,
 }

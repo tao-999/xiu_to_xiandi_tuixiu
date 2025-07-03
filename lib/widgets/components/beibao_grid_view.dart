@@ -85,6 +85,7 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
       BeibaoItemType.weapon,
       BeibaoItemType.pill,
       BeibaoItemType.herb,
+      BeibaoItemType.refineMaterial,
       // 后续扩展直接加
     };
 
