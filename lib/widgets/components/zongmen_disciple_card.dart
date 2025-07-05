@@ -3,6 +3,8 @@ import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_disciple_detail.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/aptitude_color_util.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/portrait_selection_service.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 class ZongmenDiscipleCard extends StatefulWidget {
   final Disciple disciple;
@@ -14,14 +16,6 @@ class ZongmenDiscipleCard extends StatefulWidget {
 }
 
 class _ZongmenDiscipleCardState extends State<ZongmenDiscipleCard> {
-  late Future<String> _imagePathFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _imagePathFuture = _loadSelectedImagePath();
-  }
-
   Future<String> _loadSelectedImagePath() async {
     final index = await PortraitSelectionService.getSelection(widget.disciple.id);
 
@@ -40,8 +34,15 @@ class _ZongmenDiscipleCardState extends State<ZongmenDiscipleCard> {
   @override
   Widget build(BuildContext context) {
     final d = widget.disciple;
+
+    final int power = PlayerStorage.calculatePower(
+      hp: d.hp,
+      atk: d.atk,
+      def: d.def,
+    );
+
     return FutureBuilder<String>(
-      future: _imagePathFuture,
+      future: _loadSelectedImagePath(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return Container(
@@ -72,10 +73,7 @@ class _ZongmenDiscipleCardState extends State<ZongmenDiscipleCard> {
                 builder: (context) => DiscipleDetailPage(disciple: d),
               ),
             ).then((_) {
-              // 返回后刷新立绘
-              setState(() {
-                _imagePathFuture = _loadSelectedImagePath();
-              });
+              setState(() {});
             });
           },
           child: Container(
@@ -122,20 +120,36 @@ class _ZongmenDiscipleCardState extends State<ZongmenDiscipleCard> {
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start, // 左对齐
                       children: [
-                        Text(
-                          d.name,
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontFamily: 'ZcoolCangEr',
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                d.name,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontFamily: 'ZcoolCangEr',
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.favorite, color: Colors.pinkAccent, size: 12),
+                            const SizedBox(width: 2),
+                            Text(
+                              "${d.favorability}",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontFamily: 'ZcoolCangEr',
+                              ),
+                            ),
+                          ],
                         ),
                         Text(
                           d.realm,
-                          textAlign: TextAlign.right,
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 11,
@@ -144,10 +158,18 @@ class _ZongmenDiscipleCardState extends State<ZongmenDiscipleCard> {
                         ),
                         Text(
                           "${d.age}岁",
-                          textAlign: TextAlign.right,
                           style: const TextStyle(
                             color: Colors.white54,
                             fontSize: 10,
+                            fontFamily: 'ZcoolCangEr',
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "战力 ${formatAnyNumber(power)}",
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 11,
                             fontFamily: 'ZcoolCangEr',
                           ),
                         ),

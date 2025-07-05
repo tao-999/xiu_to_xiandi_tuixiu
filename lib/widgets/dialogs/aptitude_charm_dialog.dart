@@ -5,6 +5,8 @@ import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/constants/aptitude_table.dart';
 
+import '../../services/zongmen_disciple_service.dart';
+
 class AptitudeCharmDialog extends StatefulWidget {
   final Disciple disciple;
   final VoidCallback? onUpdated; // ✅ 外部刷新回调
@@ -54,6 +56,8 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
     currentAptitude += useCount;
     widget.disciple.aptitude = currentAptitude;
     await DiscipleStorage.save(widget.disciple);
+// ✅ 这里直接刷新属性
+    await ZongmenDiscipleService.syncAllRealmWithPlayer();
 
     widget.onUpdated?.call(); // ✅ 通知外部刷新
     Navigator.pop(context);

@@ -10,6 +10,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_quick_menu.dart'
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_header_widget.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_resource_bar.dart';
 
+import '../services/zongmen_disciple_service.dart';
+
 class ZongmenPage extends StatefulWidget {
   const ZongmenPage({super.key});
 
@@ -37,6 +39,9 @@ class _ZongmenPageState extends State<ZongmenPage> {
         _checkingZongmen = false;
       });
     } else {
+      // 🌟 先同步一次境界
+      await ZongmenDiscipleService.syncAllRealmWithPlayer();
+
       final list = await ZongmenStorage.loadDisciples();
       setState(() {
         zongmen = stored;

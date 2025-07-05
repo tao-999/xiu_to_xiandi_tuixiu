@@ -39,9 +39,6 @@ class ZongmenStorage {
     for (final d in box.values) {
       if (d.joinedAt == null) continue; // 🚫 未加入宗门，跳过
 
-      // ✅ 放在这，保证是宗门弟子才打印
-      print('🧬 加载宗门弟子：${d.name}（id=${d.id}）→ assignedRoom=${d.assignedRoom}');
-
       final passed = (now - d.joinedAt!) * timeRate;
       final years = (passed / (3600 * 24 * 365)).floor();
 
@@ -66,6 +63,11 @@ class ZongmenStorage {
     if (!box.containsKey(d.id)) {
       await box.put(d.id, d);
     }
+  }
+
+  static Future<void> saveDisciple(Disciple d) async {
+    final box = await Hive.openBox<Disciple>('disciples');
+    await box.put(d.id, d);
   }
 
   static Future<void> removeDisciple(Disciple d) async {

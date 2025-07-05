@@ -5,6 +5,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/aptitude_color_util.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
 import '../../services/resources_storage.dart';
+import '../../services/zongmen_disciple_service.dart';
 
 class DiscipleListDialog extends StatefulWidget {
   final List<Disciple> disciples;
@@ -180,6 +181,8 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                               final updated = d.copyWith(joinedAt: now);
 
                               await DiscipleStorage.save(updated);
+                              await ZongmenDiscipleService.syncAllRealmWithPlayer();
+
                               widget.disciples.removeWhere((e) => e.id == d.id);
 
                               if (mounted) setState(() {});

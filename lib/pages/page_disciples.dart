@@ -6,9 +6,10 @@ import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_disciple_card.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/disciple_limit_info_dialog.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/disciple_list_header.dart';
 
-// ✅ 全局 route observer
-final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+import '../services/zongmen_disciple_service.dart';
+import '../utils/route_observer.dart';
 
 class DiscipleListPage extends StatefulWidget {
   const DiscipleListPage({super.key});
@@ -21,6 +22,9 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
   List<Disciple> disciples = [];
   int maxDiscipleCount = 0;
 
+  // 当前排序方式
+  String _sortOption = 'apt_desc';
+
   @override
   void initState() {
     super.initState();
@@ -30,23 +34,28 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    routeObserver.subscribe(this, ModalRoute.of(context)!); // ✅ 注册监听
+    routeObserver.subscribe(this, ModalRoute.of(context)! as PageRoute);
   }
 
   @override
   void dispose() {
-    routeObserver.unsubscribe(this); // ✅ 注销监听
+    routeObserver.unsubscribe(this);
     super.dispose();
   }
 
-  // ✅ 当从其他页面 pop 回来时触发
   @override
   void didPopNext() {
-    _loadDisciples(); // ✅ 自动刷新弟子列表
+    _loadDisciples();
   }
 
   Future<void> _loadDisciples() async {
     final list = await ZongmenStorage.loadDisciples();
+
+    debugPrint('🔄 [DiscipleListPage] 加载弟子数据：');
+    for (var d in list) {
+      debugPrint('   ${d.name}｜资质=${d.aptitude}｜战力=${d.atk}｜境界=${d.realm}');
+    }
+
     final zongmen = await ZongmenStorage.loadZongmen();
     int max = 0;
     if (zongmen != null) {
@@ -62,6 +71,43 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    final sortedDisciples = [...disciples];
+
+    switch (_sortOption) {
+      case 'apt_desc':
+        sortedDisciples.sort((a, b) => b.aptitude.compareTo(a.aptitude));
+        break;
+      case 'apt_asc':
+        sortedDisciples.sort((a, b) => a.aptitude.compareTo(b.aptitude));
+        break;
+      case 'age_desc':
+        sortedDisciples.sort((a, b) => b.age.compareTo(a.age));
+        break;
+      case 'age_asc':
+        sortedDisciples.sort((a, b) => a.age.compareTo(b.age));
+        break;
+      case 'atk_desc':
+        sortedDisciples.sort((a, b) {
+          final powerA = ZongmenDiscipleService.calculatePower(a);
+          final powerB = ZongmenDiscipleService.calculatePower(b);
+          return powerB.compareTo(powerA);
+        });
+        break;
+      case 'atk_asc':
+        sortedDisciples.sort((a, b) {
+          final powerA = ZongmenDiscipleService.calculatePower(a);
+          final powerB = ZongmenDiscipleService.calculatePower(b);
+          return powerA.compareTo(powerB);
+        });
+        break;
+      case 'favor_desc':
+        sortedDisciples.sort((a, b) => b.favorability.compareTo(a.favorability));
+        break;
+      case 'favor_asc':
+        sortedDisciples.sort((a, b) => a.favorability.compareTo(b.favorability));
+        break;
+    }
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Stack(
@@ -78,44 +124,23 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Text(
-                      "弟子管理",
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: Colors.white,
-                        fontFamily: 'ZcoolCangEr',
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => const DiscipleLimitInfoDialog(),
-                        );
-                      },
-                      child: const Icon(
-                        Icons.info_outline,
-                        size: 18,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${disciples.length} / $maxDiscipleCount',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                        fontFamily: 'ZcoolCangEr',
-                      ),
-                    ),
-                  ],
+                DiscipleListHeader(
+                  count: sortedDisciples.length,
+                  maxCount: maxDiscipleCount,
+                  sortOption: _sortOption,
+                  onSortChanged: (v) {
+                    setState(() => _sortOption = v);
+                  },
+                  onInfoTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => const DiscipleLimitInfoDialog(),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: disciples.isEmpty
+                  child: sortedDisciples.isEmpty
                       ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -129,27 +154,19 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFF9F5E3),
                             foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                           ),
                           onPressed: () async {
                             await Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const ZhaomuPage(),
-                              ),
+                              MaterialPageRoute(builder: (context) => const ZhaomuPage()),
                             );
                             _loadDisciples();
                           },
                           child: const Text(
                             "前往招募",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontFamily: 'ZcoolCangEr',
-                            ),
+                            style: TextStyle(fontSize: 16, fontFamily: 'ZcoolCangEr'),
                           ),
                         ),
                       ],
@@ -163,9 +180,9 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
                       mainAxisSpacing: 12,
                       childAspectRatio: 3 / 4.5,
                     ),
-                    itemCount: disciples.length,
+                    itemCount: sortedDisciples.length,
                     itemBuilder: (context, index) {
-                      final disciple = disciples[index];
+                      final disciple = sortedDisciples[index];
                       return GestureDetector(
                         onTap: () async {
                           await Navigator.push(
@@ -174,9 +191,11 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
                               builder: (_) => DiscipleDetailPage(disciple: disciple),
                             ),
                           );
-                          // ❌ 不需要主动刷新，交给 didPopNext 自动刷新
                         },
-                        child: ZongmenDiscipleCard(disciple: disciple),
+                        child: ZongmenDiscipleCard(
+                            key: ValueKey(disciple.id),
+                            disciple: disciple
+                        ),
                       );
                     },
                   ),
