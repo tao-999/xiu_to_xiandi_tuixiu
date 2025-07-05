@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import '../models/disciple.dart';
@@ -86,4 +87,19 @@ class ZongmenDiscipleService {
     // fallback: 炼气1层
     return 1;
   }
+
+  static const _sortOptionKey = 'zongmen_disciple_sort_option';
+
+  /// 📋 保存宗门弟子排序选项
+  static Future<void> saveSortOption(String option) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_sortOptionKey, option);
+  }
+
+  /// 📋 加载宗门弟子排序选项
+  static Future<String> loadSortOption() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_sortOptionKey) ?? 'apt_desc';
+  }
+
 }

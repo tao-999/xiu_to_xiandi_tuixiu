@@ -28,6 +28,7 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
   @override
   void initState() {
     super.initState();
+    _loadSortOption();
     _loadDisciples();
   }
 
@@ -46,6 +47,13 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
   @override
   void didPopNext() {
     _loadDisciples();
+  }
+
+  Future<void> _loadSortOption() async {
+    final option = await ZongmenDiscipleService.loadSortOption();
+    setState(() {
+      _sortOption = option;
+    });
   }
 
   Future<void> _loadDisciples() async {
@@ -128,7 +136,8 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
                   count: sortedDisciples.length,
                   maxCount: maxDiscipleCount,
                   sortOption: _sortOption,
-                  onSortChanged: (v) {
+                  onSortChanged: (v) async {
+                    await ZongmenDiscipleService.saveSortOption(v);
                     setState(() => _sortOption = v);
                   },
                   onInfoTap: () {
@@ -193,8 +202,8 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
                           );
                         },
                         child: ZongmenDiscipleCard(
-                            key: ValueKey(disciple.id),
-                            disciple: disciple
+                          key: ValueKey(disciple.id),
+                          disciple: disciple,
                         ),
                       );
                     },
