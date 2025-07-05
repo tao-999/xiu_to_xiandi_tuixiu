@@ -360,7 +360,7 @@ final List<Map<String, dynamic>> initialDiscipleRawPool = [
     'atk': 20 + (aptitude - 31),
     'def': 10 + (aptitude - 31),
     'age': 0,
-    'imagePath': 'assets/images/$aptitude.png',
+    'imagePath': 'assets/images/disciples/$aptitude.png',
     'description': entry['description'],
   };
 }).toList();

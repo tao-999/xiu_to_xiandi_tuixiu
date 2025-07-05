@@ -18,7 +18,7 @@ Widget _buildDiscipleAvatar(String aptitude, Set<int> ownedAptitudes) {
         height: 48,
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/$aptitude.png'),
+            image: AssetImage('assets/images/disciples/$aptitude.png'),
             fit: BoxFit.contain,
             alignment: Alignment.topCenter, // ✅ 显示上半身
           ),

@@ -1,4 +1,4 @@
-// lib/models/disciple.dart
+// lib/models/disciples.dart
 
 import 'package:hive/hive.dart';
 

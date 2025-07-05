@@ -49,6 +49,7 @@ flutter:
     - assets/images/hell/
     - assets/images/floating_island/
     - assets/images/huanyue/
+    - assets/images/disciples/
   fonts:
     - family: ZcoolCangEr
       fonts:

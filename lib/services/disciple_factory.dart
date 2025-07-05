@@ -62,14 +62,14 @@ Future<int> generateHumanAptitude() async {
 
 /// 🖼️ 炮灰通用贴图
 String getImageForAptitude(int apt) {
-  if (apt <= 4) return 'assets/images/lianqi.png';
-  if (apt <= 8) return 'assets/images/zhuji.png';
-  if (apt <= 12) return 'assets/images/jindan.png';
-  if (apt <= 16) return 'assets/images/yuanying.png';
-  if (apt <= 20) return 'assets/images/huashen.png';
-  if (apt <= 24) return 'assets/images/lianxu.png';
-  if (apt <= 27) return 'assets/images/heti.png';
-  return 'assets/images/dacheng.png'; // 28~30 默认封顶贴图
+  if (apt <= 4) return 'assets/images/disciples/lianqi.png';
+  if (apt <= 8) return 'assets/images/disciples/zhuji.png';
+  if (apt <= 12) return 'assets/images/disciples/jindan.png';
+  if (apt <= 16) return 'assets/images/disciples/yuanying.png';
+  if (apt <= 20) return 'assets/images/disciples/huashen.png';
+  if (apt <= 24) return 'assets/images/disciples/lianxu.png';
+  if (apt <= 27) return 'assets/images/disciples/heti.png';
+  return 'assets/images/disciples/dacheng.png'; // 28~30 默认封顶贴图
 }
 
 /// 🧙‍♀️ 弟子工厂（整合所有招募逻辑）

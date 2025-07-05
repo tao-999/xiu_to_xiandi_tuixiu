@@ -3,6 +3,8 @@ import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_disciple_info_panel.dart';
 
+import '../widgets/components/swipeable_portrait.dart';
+
 class DiscipleDetailPage extends StatefulWidget {
   final Disciple disciple;
 
@@ -94,16 +96,17 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                     child: Transform.scale(
                       scale: scale,
                       alignment: Alignment.topCenter,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          image: disciple.imagePath.isNotEmpty
-                              ? DecorationImage(
-                            image: AssetImage(disciple.imagePath),
-                            fit: BoxFit.contain,
-                            alignment: Alignment.topCenter,
-                          )
-                              : null,
-                        ),
+                      child: SwipeablePortrait(
+                        imagePath: disciple.imagePath,
+                        favorability: disciple.favorability,
+                        discipleId: disciple.id,
+                        isHidden: isHidden,
+                        onTap: () {
+                          if (!isHidden) return;
+
+                          animateTo(collapsedOffset); // 让面板展开
+                          isHidden = false;
+                        },
                       ),
                     ),
                   ),

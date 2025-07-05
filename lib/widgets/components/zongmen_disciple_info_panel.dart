@@ -33,7 +33,6 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
         _buildInfoRow('忠诚', '${d.loyalty}%'),
         _buildInfoRow('特长', d.specialty.isNotEmpty ? d.specialty : '暂无'),
         _buildInfoRow('战力', '攻 ${d.atk} / 防 ${d.def} / 血 ${formatAnyNumber(d.hp)}'),
-        _buildInfoRow('修为', formatAnyNumber(d.cultivation)),
         _buildInfoRow(
           '资质',
           '${d.aptitude}',
