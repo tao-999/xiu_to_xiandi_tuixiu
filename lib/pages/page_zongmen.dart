@@ -8,7 +8,6 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/create_zongmen_card.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_quick_menu.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_header_widget.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_resource_bar.dart';
 
 import '../services/zongmen_disciple_service.dart';
 
@@ -96,10 +95,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
                   const SizedBox(height: 24),
                   // 弟子数量卡片
                   _buildZongmenInfoCard(),
-                  const SizedBox(height: 16),
-                  // 资源条
-                  ZongmenResourceBar(zongmen: zongmen!),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 64),
                   // 快捷菜单
                   const ZongmenQuickMenu(),
                 ],
