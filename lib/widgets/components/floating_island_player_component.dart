@@ -119,9 +119,6 @@ class FloatingIslandPlayerComponent extends SpriteComponent
           ? delta.normalized()
           : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
 
-      // 🚀 立刻逻辑坐标小弹一下
-      logicalPosition += rebound * 5;
-
       // 小怪弹飞 + 换目标
       other.logicalPosition -= rebound * 5;
       other.pickNewTarget();

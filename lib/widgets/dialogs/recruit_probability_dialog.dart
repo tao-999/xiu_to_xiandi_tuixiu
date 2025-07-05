@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 class RecruitProbabilityDialog {
   static void show(BuildContext context) {
-    const title = '招募资质概率';
+    const title = '招募概率';
 
     final data = <Map<String, String>>[
       // 资质段位
-      {'资质范围': '1-30',    '概率': '92.5%',  '最高可修炼境界': '炮灰'},
+      {'资质范围': '1-30',    '概率': '98.75%',  '最高可修炼境界': '炮灰'},
       {'资质范围': '31-40',   '概率': '1.25%',  '最高可修炼境界': '元婴期'},
       {'资质范围': '41-50',   '概率': '1.25%',  '最高可修炼境界': '化神期'},
       {'资质范围': '51-60',   '概率': '1.25%',  '最高可修炼境界': '炼虚期'},

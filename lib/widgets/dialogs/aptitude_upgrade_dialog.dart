@@ -133,7 +133,7 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: Text(
-                  '☯️ 确认提升',
+                  '☯️ 提升资质',
                   style: TextStyle(
                     fontSize: 14,
                     fontFamily: 'ZcoolCangEr',

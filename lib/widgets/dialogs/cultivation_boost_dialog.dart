@@ -128,14 +128,8 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
       ),
       actionsAlignment: MainAxisAlignment.center,
       actions: [
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFD28C41),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-          ),
-          onPressed: () async {
+        InkWell(
+          onTap: () async {
             final lowBI = _parse(lowStr);
             final midBI = _parse(midStr);
             final highBI = _parse(highStr);
@@ -165,7 +159,24 @@ class _CultivationBoostDialogState extends State<CultivationBoostDialog> {
               },
             );
           },
-          child: const Text('提升修为', style: TextStyle(fontSize: 14)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.upgrade, color: Color(0xFFD28C41)),
+                const SizedBox(width: 6),
+                const Text(
+                  '提升修为',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFFD28C41),
+                    fontFamily: 'ZcoolCangEr',
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
