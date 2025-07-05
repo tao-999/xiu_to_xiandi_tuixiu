@@ -58,7 +58,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
   }
 
   List<Disciple> get sortedDisciples {
-    // ✅ 只展示未加入宗门的弟子
     final list = widget.disciples.where((d) => d.joinedAt == null).toList();
 
     switch (_sortOption) {
@@ -79,6 +78,8 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final hasDisintegratable = sortedDisciples.any((d) => d.aptitude <= 30);
+
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       backgroundColor: Colors.white,
@@ -93,7 +94,7 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('📜 已招募修士', style: TextStyle(fontSize: 18)),
+                const Text('📜 已招募修士', style: TextStyle(fontSize: 16)),
                 DropdownButton<String>(
                   value: _sortOption,
                   items: const [
@@ -125,13 +126,12 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                   final d = sortedDisciples[index];
                   return Container(
                     margin: const EdgeInsets.symmetric(vertical: 4),
-                    decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude).copyWith(),
+                    decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ListTile(
                           leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
                             child: d.imagePath.isNotEmpty
                                 ? Image.asset(
                               d.imagePath,
@@ -179,9 +179,8 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                               final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
                               final updated = d.copyWith(joinedAt: now);
 
-                              await DiscipleStorage.save(updated);             // ✅ 写回 Hive，保持完整数据
-
-                              widget.disciples.removeWhere((e) => e.id == d.id); // ✅ 移除展示
+                              await DiscipleStorage.save(updated);
+                              widget.disciples.removeWhere((e) => e.id == d.id);
 
                               if (mounted) setState(() {});
                               ToastTip.show(context, '${d.name} 已加入宗门！');
@@ -221,11 +220,53 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                 },
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (hasDisintegratable)
+                  GestureDetector(
+                    onTap: () async {
+                      final toDisintegrate = sortedDisciples.where((d) => d.aptitude <= 30).toList();
+
+                      if (toDisintegrate.isEmpty) return;
+
+                      // 一次性计算总奖励
+                      BigInt totalStones = toDisintegrate.fold(
+                        BigInt.zero,
+                            (sum, d) => sum + BigInt.from(d.aptitude * 10),
+                      );
+
+                      // 一次性加资源
+                      await ResourcesStorage.add('spiritStoneLow', totalStones);
+
+                      // 并行删除
+                      await Future.wait([
+                        for (final d in toDisintegrate) DiscipleStorage.delete(d.id),
+                      ]);
+
+                      widget.disciples.removeWhere((d) => d.aptitude <= 30);
+
+                      if (mounted) setState(() {});
+                      ToastTip.show(context, '已分解${toDisintegrate.length}名弟子，获得下品灵石 +$totalStones');
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(
+                        '一键分解',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'ZcoolCangEr',
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 }
-

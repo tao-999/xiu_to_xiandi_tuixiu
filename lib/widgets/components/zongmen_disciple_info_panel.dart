@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import '../../utils/number_format.dart';
 import '../dialogs/aptitude_charm_dialog.dart';
+import '../components/favorability_heart.dart'; // 💗组件引入
 
 class ZongmenDiscipleInfoPanel extends StatefulWidget {
   final Disciple disciple;
@@ -43,24 +44,41 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
               builder: (_) => AptitudeCharmDialog(
                 disciple: d,
                 onUpdated: () async {
-                  setState(() {}); // ✅ 刷新显示
+                  setState(() {});
                 },
               ),
             );
           },
         ),
-        _buildInfoRow('好感度', '${d.favorability}'),
+        _buildInfoRow(
+          '好感度',
+          '${d.favorability}',
+          showHeart: true,
+        ),
         _buildInfoRow('职位', '${d.role}'),
       ],
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {bool showPlus = false, VoidCallback? onPlusTap}) {
+  Widget _buildInfoRow(
+      String label,
+      String value, {
+        bool showPlus = false,
+        bool showHeart = false,
+        VoidCallback? onPlusTap,
+      }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Text('$label：', style: const TextStyle(color: Colors.white70, fontSize: 14, fontFamily: 'ZcoolCangEr')),
+          Text(
+            '$label：',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontFamily: 'ZcoolCangEr',
+            ),
+          ),
           const SizedBox(width: 6),
           Expanded(
             child: Row(
@@ -68,14 +86,27 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
                 Expanded(
                   child: Text(
                     value,
-                    style: const TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'ZcoolCangEr'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontFamily: 'ZcoolCangEr',
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (showPlus)
                   GestureDetector(
                     onTap: onPlusTap,
-                    child: const Icon(Icons.add_circle_outline, color: Colors.white70, size: 18),
+                    child: const Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.white70,
+                      size: 18,
+                    ),
+                  ),
+                if (showHeart)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: FavorabilityHeart(favorability: d.favorability),
                   ),
               ],
             ),
