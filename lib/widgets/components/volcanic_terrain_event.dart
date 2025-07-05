@@ -39,7 +39,7 @@ class VolcanicTerrainEvent {
 
     // 🌟先判定是否触发
     final chanceRoll = _rand.nextDouble();
-    if (chanceRoll >= 0.05) {
+    if (chanceRoll >= 0.04) {
       return false;
     }
 

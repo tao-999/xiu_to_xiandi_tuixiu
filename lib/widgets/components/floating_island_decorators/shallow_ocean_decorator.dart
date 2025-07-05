@@ -72,7 +72,7 @@ class ShallowOceanDecorator extends Component {
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
         minDynamicObjectSize: 8,
-        maxDynamicObjectSize: 48,
+        maxDynamicObjectSize: 64,
         minSpeed: 10,
         maxSpeed: 30,
         onDynamicComponentCreated: (mover, terrain) {

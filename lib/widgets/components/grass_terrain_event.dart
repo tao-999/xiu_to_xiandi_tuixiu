@@ -9,31 +9,39 @@ class GrassTerrainEvent {
   static final Random _rand = Random();
 
   static Future<bool> trigger(Vector2 pos, FlameGame game) async {
-    // 🌟1%概率
-    final chanceRoll = _rand.nextDouble();
-    if (chanceRoll >= 0.01) {
+    // 🌟2% 总概率
+    final triggerRoll = _rand.nextDouble();
+    if (triggerRoll >= 0.02) {
       return false;
     }
 
-    // 🌟增加1张资质券
-    await ResourcesStorage.add('fateRecruitCharm', BigInt.one);
+    // 🌟决定奖品
+    final rewardRoll = _rand.nextDouble();
+    final isFateCharm = rewardRoll < 0.75;
 
-    // 🌟弹窗提示
+    final resourceKey = isFateCharm ? 'fateRecruitCharm' : 'recruitTicket';
+    final rewardName = isFateCharm ? '资质券' : '招募券';
+    final imagePath = isFateCharm
+        ? 'assets/images/fate_recruit_charm.png'
+        : 'assets/images/recruit_ticket.png';
+
+    // ✅ 加资源
+    await ResourcesStorage.add(resourceKey, BigInt.one);
+
+    // ✅ 弹窗提示
     final popup = FloatingLingShiPopupComponent(
-      text: '获得1张资质券',
-      imagePath: 'assets/images/fate_recruit_charm.png',
+      text: '获得1张$rewardName',
+      imagePath: imagePath,
       position: game.size / 2,
     );
     game.camera.viewport.add(popup);
 
-    // 🌟存储事件
+    // ✅ 存储事件
     await TerrainEventStorageService.markTriggered(
       'grass',
       pos,
-      'GAIN_FATE_CHARM',
-      data: {
-        'quantity': 1,
-      },
+      'GAIN_$resourceKey'.toUpperCase(),
+      data: {'quantity': 1},
       status: 'completed',
     );
 

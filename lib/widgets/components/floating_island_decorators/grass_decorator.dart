@@ -66,7 +66,7 @@ class GrassDecorator extends Component {
         dynamicTileSize: 128.0,
         seed: seed,
         minDynamicObjectsPerTile: 0,
-        maxDynamicObjectsPerTile: 2,
+        maxDynamicObjectsPerTile: 1,
         minDynamicObjectSize: 8.0,
         maxDynamicObjectSize: 32.0,
         minSpeed: 10.0,

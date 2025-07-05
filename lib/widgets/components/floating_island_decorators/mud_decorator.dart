@@ -35,7 +35,7 @@ class MudDecorator extends Component {
           ],
         },
         // 🌟全局动态配置
-        dynamicTileSize: 64.0,
+        dynamicTileSize: 128.0,
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 3,
