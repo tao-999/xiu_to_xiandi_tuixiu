@@ -21,7 +21,7 @@ class DiscipleListHeader extends StatelessWidget {
     return Row(
       children: [
         const Text(
-          "弟子管理",
+          "弟子闺房",
           style: TextStyle(
             fontSize: 20,
             color: Colors.white,

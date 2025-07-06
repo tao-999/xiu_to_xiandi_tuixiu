@@ -187,4 +187,10 @@ class ZongmenStorage {
     }
   }
 
+  /// 根据宗门经验计算最大弟子数量
+  static int calcMaxDiscipleCount(int sectExp) {
+    final level = calcSectLevel(sectExp);
+    return 5 * level;
+  }
+
 }

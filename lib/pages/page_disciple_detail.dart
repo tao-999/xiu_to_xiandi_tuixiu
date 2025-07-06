@@ -19,6 +19,8 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
   late AnimationController _controller;
   late Animation<double> _animation;
 
+  late Disciple disciple;
+
   double _offsetY = 260.0;
   double _startDragY = 0;
   double _startOffsetY = 260.0;
@@ -29,8 +31,11 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    disciple = widget.disciple; // 🌟 初始化
   }
 
   void animateTo(double targetOffset) {
@@ -53,12 +58,12 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
 
   @override
   Widget build(BuildContext context) {
-    final disciple = widget.disciple;
     final screenHeight = MediaQuery.of(context).size.height;
 
     final hiddenOffset = screenHeight;
     final maxRange = hiddenOffset - collapsedOffset;
-    final scale = (0.6 + ((_offsetY - collapsedOffset) / maxRange) * 0.6).clamp(0.6, 1.0);
+    final scale =
+    (0.6 + ((_offsetY - collapsedOffset) / maxRange) * 0.6).clamp(0.6, 1.0);
 
     return Scaffold(
       backgroundColor: const Color(0xFF000000),
@@ -99,7 +104,7 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                       child: SwipeablePortrait(
                         imagePath: disciple.imagePath,
                         favorability: disciple.favorability,
-                        discipleId: disciple.id,
+                        disciple: disciple,
                         isHidden: isHidden,
                         onTap: () {
                           if (!isHidden) return;
@@ -128,7 +133,8 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                 },
                 onPanUpdate: (details) {
                   final dy = details.globalPosition.dy - _startDragY;
-                  final newOffset = (_startOffsetY + dy).clamp(collapsedOffset, hiddenOffset);
+                  final newOffset = (_startOffsetY + dy)
+                      .clamp(collapsedOffset, hiddenOffset);
                   setState(() {
                     _offsetY = newOffset;
                   });
@@ -147,9 +153,17 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1D1A17).withOpacity(0.9),
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
                   ),
-                  child: ZongmenDiscipleInfoPanel(disciple: disciple),
+                  child: ZongmenDiscipleInfoPanel(
+                    disciple: disciple,
+                    onDiscipleChanged: (updated) {
+                      setState(() {
+                        disciple = updated;
+                      });
+                    },
+                  ),
                 ),
               ),
             ),

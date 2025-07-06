@@ -9,7 +9,14 @@ import '../components/favorability_heart.dart';
 class ZongmenDiscipleInfoPanel extends StatefulWidget {
   final Disciple disciple;
 
-  const ZongmenDiscipleInfoPanel({super.key, required this.disciple});
+  /// 🌟 新增：回调最新Disciple给父组件
+  final ValueChanged<Disciple>? onDiscipleChanged;
+
+  const ZongmenDiscipleInfoPanel({
+    super.key,
+    required this.disciple,
+    this.onDiscipleChanged,
+  });
 
   @override
   State<ZongmenDiscipleInfoPanel> createState() => _ZongmenDiscipleInfoPanelState();
@@ -48,12 +55,13 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
                   builder: (_) => AptitudeCharmDialog(
                     disciple: d,
                     onUpdated: () async {
-                      // 重新从Hive加载最新数据
                       final updated = await DiscipleStorage.load(widget.disciple.id);
                       if (updated != null) {
                         setState(() {
                           d = updated;
                         });
+                        // 🌟 回调父组件
+                        widget.onDiscipleChanged?.call(updated);
                       }
                     },
                   ),
@@ -66,7 +74,16 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
         Positioned(
           top: 0,
           right: 0,
-          child: FavorabilityHeart(favorability: d.favorability),
+          child: FavorabilityHeart(
+            disciple: d,
+            onFavorabilityChanged: (updated) {
+              setState(() {
+                d = updated;
+              });
+              // 🌟 回调父组件
+              widget.onDiscipleChanged?.call(updated);
+            },
+          ),
         ),
       ],
     );

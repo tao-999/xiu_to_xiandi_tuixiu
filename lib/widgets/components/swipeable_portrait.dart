@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/portrait_selection_service.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/zongmen_disciple_service.dart';
+
+import '../../models/disciple.dart';
 
 class SwipeablePortrait extends StatefulWidget {
-  final String imagePath;
+  final String imagePath; // 初始路径，仅用于第一帧
   final int favorability;
   final bool isHidden;
-  final String discipleId;
+  final Disciple disciple;
   final VoidCallback? onTap;
 
   const SwipeablePortrait({
@@ -13,7 +15,7 @@ class SwipeablePortrait extends StatefulWidget {
     required this.imagePath,
     required this.favorability,
     required this.isHidden,
-    required this.discipleId,
+    required this.disciple,
     this.onTap,
   }) : super(key: key);
 
@@ -28,43 +30,68 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
   @override
   void initState() {
     super.initState();
-    _controller = PageController(initialPage: 0);
-    _loadSelection();
-    _controller.addListener(() {
+    _controller = PageController(
+      initialPage: _inferInitialPage(),
+    );
+
+    _controller.addListener(() async {
       final page = _controller.page?.round() ?? 0;
       if (page != _currentPage) {
         setState(() {
           _currentPage = page;
         });
+
         final isLocked = page == 1 && widget.favorability < 10;
-        if (!isLocked) {
-          PortraitSelectionService.saveSelection(widget.discipleId, page);
-        }
+        if (isLocked) return;
+
+        final newImagePath = _getImagePath(page);
+
+        // 🖼️ 直接更新数据库
+        await ZongmenDiscipleService.setDisciplePortrait(widget.disciple.id, newImagePath);
+
+        // 🖼️ 同时更新内存
+        setState(() {
+          widget.disciple.imagePath = newImagePath;
+        });
       }
     });
   }
 
-  Future<void> _loadSelection() async {
-    final index = await PortraitSelectionService.getSelection(widget.discipleId);
-    final isLocked = index == 1 && widget.favorability < 10;
-    _controller.jumpToPage(isLocked ? 0 : index);
-    setState(() {
-      _currentPage = isLocked ? 0 : index;
-    });
+  /// 推断初始页
+  int _inferInitialPage() {
+    final ext = widget.imagePath.split('.').last;
+    if (widget.imagePath.contains('_1.$ext')) {
+      return 1;
+    }
+    return 0;
+  }
+
+  String _getImagePath(int index) {
+    final path = widget.imagePath;
+    final dotIndex = path.lastIndexOf('.');
+    if (dotIndex == -1) return path;
+
+    final ext = path.substring(dotIndex + 1);
+    var base = path.substring(0, dotIndex);
+
+    // 先移除已有的 _1
+    if (base.endsWith('_1')) {
+      base = base.substring(0, base.length - 2);
+    }
+
+    if (index == 0) {
+      // 第一张，基础路径
+      return '$base.$ext';
+    } else {
+      // 第二张，加 _1
+      return '${base}_1.$ext';
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  String getImagePath(int index) {
-    if (index == 0) return widget.imagePath;
-    final ext = widget.imagePath.split('.').last;
-    final withoutExt =
-    widget.imagePath.substring(0, widget.imagePath.length - ext.length - 1);
-    return '${withoutExt}_$index.$ext';
   }
 
   @override
@@ -87,7 +114,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
           return Container(
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: AssetImage(getImagePath(index)),
+                image: AssetImage(_getImagePath(index)),
                 fit: BoxFit.contain,
                 alignment: Alignment.topCenter,
                 colorFilter: locked

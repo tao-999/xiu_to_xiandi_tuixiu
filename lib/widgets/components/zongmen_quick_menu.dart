@@ -15,7 +15,7 @@ class ZongmenQuickMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actions = [
-      ["弟子管理", "dizi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiscipleListPage()))],
+      ["弟子闺房", "dizi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiscipleListPage()))],
       ["任务派遣", "renwu", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskDispatchPage()))],
       ["升级宗门", "shengji", () => ToastTip.show(context, "升级功能开发中")],
       ["炼丹房", "liandan", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DanfangPage()))],

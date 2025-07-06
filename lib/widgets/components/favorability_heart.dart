@@ -1,9 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/zongmen_disciple_service.dart';
 
-class FavorabilityHeart extends StatelessWidget {
-  final int favorability;
+import '../../models/disciple.dart';
 
-  const FavorabilityHeart({Key? key, required this.favorability}) : super(key: key);
+class FavorabilityHeart extends StatefulWidget {
+  final Disciple disciple;
+
+  /// 🌟 回调
+  final ValueChanged<Disciple>? onFavorabilityChanged;
+
+  const FavorabilityHeart({
+    Key? key,
+    required this.disciple,
+    this.onFavorabilityChanged,
+  }) : super(key: key);
+
+  @override
+  State<FavorabilityHeart> createState() => _FavorabilityHeartState();
+}
+
+class _FavorabilityHeartState extends State<FavorabilityHeart> {
+  late int _favorability;
+
+  @override
+  void initState() {
+    super.initState();
+    _favorability = widget.disciple.favorability;
+  }
+
+  Future<void> _incrementFavorability() async {
+    final updated = await ZongmenDiscipleService.increaseFavorability(
+      widget.disciple.id,
+      delta: 10, // ✅ 改成 +10
+    );
+    if (updated != null) {
+      setState(() {
+        _favorability = updated.favorability;
+      });
+      widget.onFavorabilityChanged?.call(updated);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +55,27 @@ class FavorabilityHeart extends StatelessWidget {
             child: Container(
               width: 200,
               height: 120,
-              alignment: Alignment.center,
-              child: const Text(
-                '', // 先空着
-                style: TextStyle(color: Colors.black),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    '提升好感度',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await _incrementFavorability();
+                    },
+                    child: const Text('+10'),
+                  ),
+                ],
               ),
             ),
           ),
@@ -35,7 +88,7 @@ class FavorabilityHeart extends StatelessWidget {
           painter: _HeartPainter(),
           child: Center(
             child: Text(
-              '$favorability',
+              '$_favorability',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,

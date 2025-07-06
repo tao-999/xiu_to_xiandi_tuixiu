@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
@@ -100,6 +101,33 @@ class ZongmenDiscipleService {
   static Future<String> loadSortOption() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_sortOptionKey) ?? 'apt_desc';
+  }
+
+  /// 🖼️ 设置弟子的立绘路径
+  static Future<void> setDisciplePortrait(String discipleId, String imagePath) async {
+    final box = await Hive.openBox<Disciple>('disciples');
+    final d = box.get(discipleId);
+
+    if (d != null) {
+      final updated = d.copyWith(imagePath: imagePath);
+      await box.put(d.id, updated);
+      debugPrint('🖼️ 已更新立绘：${d.name} -> $imagePath');
+    } else {
+      debugPrint('⚠️ 未找到弟子: $discipleId');
+    }
+  }
+
+  /// 💖 提升弟子好感度（自动保存）
+  static Future<Disciple?> increaseFavorability(String discipleId, {int delta = 1}) async {
+    final box = await Hive.openBox<Disciple>('disciples');
+    final d = box.get(discipleId);
+    if (d != null) {
+      final newFavorability = (d.favorability + delta).clamp(0, 9999);
+      final updated = d.copyWith(favorability: newFavorability);
+      await box.put(d.id, updated);
+      return updated;
+    }
+    return null;
   }
 
 }
