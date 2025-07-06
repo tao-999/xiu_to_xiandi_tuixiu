@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/refine_blueprint.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/refine_blueprint_service.dart';
 
 class LianqiHeader extends StatelessWidget {
   final int level;
@@ -31,119 +29,13 @@ class LianqiHeader extends StatelessWidget {
         const Spacer(),
         IconButton(
           icon: const Icon(Icons.info_outline, color: Colors.white70),
-          onPressed: () => _showBlueprintDialog(context),
+          onPressed: () => _showDescriptionDialog(context),
         ),
       ],
     );
   }
 
-  void _showBlueprintDialog(BuildContext context) {
-    final List<RefineBlueprint> all = RefineBlueprintService.generateAllBlueprints();
-    final Map<int, List<RefineBlueprint>> grouped = {};
-
-    for (final bp in all) {
-      grouped.putIfAbsent(bp.level, () => []).add(bp);
-    }
-
-    OverlayEntry? tooltipEntry;
-
-    void hideTooltip() {
-      tooltipEntry?.remove();
-      tooltipEntry = null;
-    }
-
-    void showTooltip(BuildContext context, RefineBlueprint blueprint, RenderBox renderBox) {
-      final overlay = Overlay.of(context);
-      final position = renderBox.localToGlobal(Offset.zero);
-      final screenSize = MediaQuery.of(context).size;
-
-      const width = 180.0;
-      const height = 120.0;
-      const margin = 8.0;
-
-      final rect = Rect.fromLTWH(
-        position.dx,
-        position.dy,
-        renderBox.size.width,
-        renderBox.size.height,
-      );
-
-      double left = 0;
-      double top = 0;
-
-      if (rect.right + width + margin <= screenSize.width) {
-        left = rect.right + margin;
-        top = rect.top;
-      } else if (rect.left - width - margin >= 0) {
-        left = rect.left - width - margin;
-        top = rect.top;
-      } else if (rect.top - height - margin >= 0) {
-        left = rect.left;
-        top = rect.top - height - margin;
-      } else if (rect.bottom + height + margin <= screenSize.height) {
-        left = rect.left;
-        top = rect.bottom + margin;
-      } else {
-        left = margin;
-        top = margin;
-      }
-
-      // ✅ 统一调用 RefineBlueprintService 提供的效果说明
-      final effect = RefineBlueprintService.getEffectMeta(blueprint);
-      final effectShort = '${effect['type']} +${effect['value']}%';
-
-      tooltipEntry = OverlayEntry(
-        builder: (_) => Positioned(
-          left: left,
-          top: top,
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: width,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2E1C0C),
-                border: Border.all(color: Colors.brown),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    blueprint.name,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontFamily: 'ZcoolCangEr',
-                      color: Colors.orangeAccent,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '效果：$effectShort',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.orange,
-                      fontFamily: 'ZcoolCangEr',
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  ...blueprint.materials.map((m) => Text(
-                    '• $m',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                      fontFamily: 'ZcoolCangEr',
-                    ),
-                  )),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-
-      overlay.insert(tooltipEntry!);
-    }
-
+  void _showDescriptionDialog(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -151,83 +43,49 @@ class LianqiHeader extends StatelessWidget {
         backgroundColor: const Color(0xFFFFF7E5),
         insetPadding: const EdgeInsets.all(16),
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: hideTooltip,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: SizedBox(
-              width: double.infinity,
-              height: 500,
-              child: ListView(
-                children: grouped.entries.map((entry) {
-                  final level = entry.key;
-                  final blueprints = entry.value;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '$level 阶图纸',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontFamily: 'ZcoolCangEr',
-                            color: Color(0xFF4E342E),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: blueprints.map((b) {
-                            final key = GlobalKey();
-
-                            return Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  final box = key.currentContext?.findRenderObject() as RenderBox?;
-                                  if (box != null) {
-                                    if (tooltipEntry != null) {
-                                      hideTooltip();
-                                    } else {
-                                      showTooltip(context, b, box);
-                                    }
-                                  }
-                                },
-                                child: Column(
-                                  key: key,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Image.asset(
-                                      'assets/images/${b.iconPath ?? 'default_icon.png'}',
-                                      width: 48,
-                                      height: 48,
-                                      fit: BoxFit.contain,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      b.name.replaceAll(' · ${b.level}阶', ''),
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontFamily: 'ZcoolCangEr',
-                                        color: Color(0xFF2E1C0C),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        )
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: const [
+                Text(
+                  '⚒️ 炼器房',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontFamily: 'ZcoolCangEr',
+                    color: Colors.deepOrangeAccent,
+                  ),
+                ),
+                SizedBox(height: 12),
+                Text(
+                  '炼炉赤焰照寒霜，\n千锤百炼铸锋芒。\n灵材融尽三千界，\n一器横空镇八荒。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF4E342E),
+                    fontFamily: 'ZcoolCangEr',
+                    height: 1.5,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  '修者可淬炼神兵，需消耗稀有图纸与灵材。\n宗门等级越高，炼制的神器越强。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
-    ).then((_) => hideTooltip());
+    );
   }
 }

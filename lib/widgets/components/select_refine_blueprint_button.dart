@@ -85,8 +85,8 @@ class _RefineBlueprintDialogState extends State<_RefineBlueprintDialog> {
         final ownedKeys = snapshot.data!;
 
         return Dialog(
-          backgroundColor: const Color(0xFFE5D7B8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          backgroundColor: const Color(0xFFE5D7B8), // ✅米黄色
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero), // ✅直角
           insetPadding: const EdgeInsets.all(24),
           child: SizedBox(
             width: 360,
@@ -115,15 +115,49 @@ class _RefineBlueprintDialogState extends State<_RefineBlueprintDialog> {
                         child: Row(
                           children: list.map((bp) {
                             final key = '${bp.type.name}-${bp.level}';
-                            final isTooHigh = bp.level > widget.maxLevelAllowed;
                             final isOwned = ownedKeys.contains(key);
-                            final isDisabled = isTooHigh || !isOwned;
                             final meta = RefineBlueprintService.getEffectMeta(bp);
+
+                            // ✅逻辑：只要拥有就能点
+                            final isDisabled = !isOwned;
 
                             return Padding(
                               padding: const EdgeInsets.only(right: 12),
                               child: GestureDetector(
-                                onTap: isDisabled ? null : () => Navigator.pop(context, bp),
+                                onTap: isDisabled
+                                    ? null
+                                    : () {
+                                  if (bp.level > widget.maxLevelAllowed) {
+                                    // 阶数过高，弹窗提示
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => Dialog(
+                                        backgroundColor: const Color(0xFFE5D7B8),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(16),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '啧啧~此蓝图高贵得很，需要 ${bp.level} 阶才能驾驭！\n快去提升宗门等级，解锁神器吧！',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    Navigator.pop(context, bp);
+                                  }
+                                },
                                 child: Opacity(
                                   opacity: isDisabled ? 0.3 : 1.0,
                                   child: Column(

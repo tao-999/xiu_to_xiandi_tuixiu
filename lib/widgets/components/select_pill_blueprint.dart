@@ -69,8 +69,8 @@ class _PillBlueprintDialog extends StatelessWidget {
         final ownedKeys = snapshot.data!;
 
         return Dialog(
-          backgroundColor: const Color(0xFFE5D7B8),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          backgroundColor: const Color(0xFFE5D7B8), // ✅ 米黄色
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero), // ✅ 直角
           insetPadding: const EdgeInsets.all(24),
           child: SizedBox(
             width: 360,
@@ -99,13 +99,40 @@ class _PillBlueprintDialog extends StatelessWidget {
                         child: Row(
                           children: list.map((bp) {
                             final owned = ownedKeys.contains(bp.uniqueKey);
-                            final levelTooHigh = bp.level > currentSectLevel;
-                            final isDisabled = levelTooHigh || !owned;
+                            final isDisabled = !owned;
 
                             return Padding(
                               padding: const EdgeInsets.only(right: 12),
                               child: GestureDetector(
-                                onTap: isDisabled ? null : () => Navigator.pop(context, bp),
+                                onTap: isDisabled
+                                    ? null
+                                    : () {
+                                  if (bp.level > currentSectLevel) {
+                                    // 宗门等级不足，提示
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => Dialog(
+                                        backgroundColor: const Color(0xFFE5D7B8), // ✅ 米黄色
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.zero), // ✅ 直角
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(16),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '宗门等级不足，需要 ${bp.level} 阶才能使用此丹方。',
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    Navigator.pop(context, bp);
+                                  }
+                                },
                                 child: Opacity(
                                   opacity: isDisabled ? 0.3 : 1.0,
                                   child: Stack(
@@ -139,12 +166,13 @@ class _PillBlueprintDialog extends StatelessWidget {
                                           ),
                                         ],
                                       ),
-                                      if (levelTooHigh && owned)
+                                      if (bp.level > currentSectLevel && owned)
                                         Positioned(
                                           right: 0,
                                           top: 0,
                                           child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 4, vertical: 1),
                                             decoration: BoxDecoration(
                                               color: Colors.orange,
                                               borderRadius: BorderRadius.circular(4),
