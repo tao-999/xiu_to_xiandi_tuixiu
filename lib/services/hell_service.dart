@@ -82,4 +82,28 @@ class HellService {
     await prefs.remove(_rewardKey);
   }
 
+  /// 根据等级、波次和是否Boss返回怪物属性
+  static Map<String, int> calculateMonsterAttributes({
+    required int level,
+    required int waveIndex,
+    required bool isBoss,
+  }) {
+    final waveBonusAtk = waveIndex * 100;
+    final levelBonusAtk = (level - 1) * 300;
+    final atk = isBoss ? 3000 : 1000 + waveBonusAtk + levelBonusAtk;
+
+    final waveBonusDef = waveIndex * 50;
+    final levelBonusDef = (level - 1) * 150;
+    final def = isBoss ? 1500 : 500 + waveBonusDef + levelBonusDef;
+
+    final waveBonusHp = waveIndex * 1000;
+    final levelBonusHp = (level - 1) * 3000;
+    final hp = isBoss ? 50000 : 10000 + waveBonusHp + levelBonusHp;
+
+    return {
+      'atk': atk,
+      'def': def,
+      'hp': hp,
+    };
+  }
 }

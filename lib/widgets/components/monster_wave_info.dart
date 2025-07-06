@@ -83,7 +83,23 @@ class MonsterWaveInfo extends PositionComponent {
   int _getRecommendedPower() {
     final waveMonsters = waves[currentWave]?.where((m) => !m.isBoss);
     if (waveMonsters == null || waveMonsters.isEmpty) return -1;
-    return waveMonsters.first.power;
+
+    // 任意一只怪物，用它的 level & waveIndex
+    final sample = waveMonsters.first;
+
+    // 用 HellService 算出属性
+    final attr = HellService.calculateMonsterAttributes(
+      level: sample.level,
+      waveIndex: sample.waveIndex,
+      isBoss: false,
+    );
+
+    // 用满血计算战力
+    return PlayerStorage.calculatePower(
+      hp: attr['hp']!,
+      atk: attr['atk']!,
+      def: attr['def']!,
+    );
   }
 
   Future<void> _refreshPowerText() async {

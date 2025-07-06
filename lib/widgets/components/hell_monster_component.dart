@@ -52,18 +52,15 @@ class HellMonsterComponent extends SpriteComponent
     position: position,
     anchor: Anchor.center,
   ) {
-    final waveBonusAtk = waveIndex * 100;
-    final levelBonusAtk = (level - 1) * 300;
-    this.atk = atk ?? (isBoss ? 3000 : 1000 + levelBonusAtk + waveBonusAtk);
+    final attr = HellService.calculateMonsterAttributes(
+      level: level,
+      waveIndex: waveIndex,
+      isBoss: isBoss,
+    );
 
-    final waveBonusDef = waveIndex * 50;
-    final levelBonusDef = (level - 1) * 150;
-    this.def = def ?? (isBoss ? 1500 : 500 + levelBonusDef + waveBonusDef);
-
-    final waveBonusHp = waveIndex * 1000;
-    final levelBonusHp = (level - 1) * 3000;
-    this.hp = hp ?? (isBoss ? 50000 : 10000 + levelBonusHp + waveBonusHp);
-
+    this.atk = atk ?? attr['atk']!;
+    this.def = def ?? attr['def']!;
+    this.hp = hp ?? attr['hp']!;
     this.maxHp = this.hp;
   }
 
@@ -156,6 +153,10 @@ class HellMonsterComponent extends SpriteComponent
     if (toSafeCenter2.length < _safeZoneRadius) {
       position = _safeZoneCenter! + toSafeCenter2.normalized() * (_safeZoneRadius + 1.0);
     }
+
+    // ✅地图边界限制
+    position.x = position.x.clamp(0, game.mapRoot.size.x);
+    position.y = position.y.clamp(0, game.mapRoot.size.y);
   }
 
   @override
