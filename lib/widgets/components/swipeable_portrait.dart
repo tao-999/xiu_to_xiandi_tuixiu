@@ -41,7 +41,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
           _currentPage = page;
         });
 
-        final isLocked = page == 1 && widget.favorability < 10;
+        final isLocked = page == 1 && widget.favorability < 500;
         if (isLocked) return;
 
         final newImagePath = _getImagePath(page);
@@ -99,7 +99,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
-        final locked = _currentPage == 1 && widget.favorability < 10;
+        final locked = _currentPage == 1 && widget.favorability < 500;
         if (locked) return;
         if (widget.onTap != null) widget.onTap!();
       },
@@ -110,7 +110,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
         controller: _controller,
         itemCount: 2,
         itemBuilder: (context, index) {
-          final locked = index == 1 && widget.favorability < 10;
+          final locked = index == 1 && widget.favorability < 500;
           return Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -130,7 +130,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
                 const Padding(
                   padding: EdgeInsets.only(bottom: 24),
                   child: Text(
-                    "好感度10解锁 🔒",
+                    "好感度500解锁 🔒",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

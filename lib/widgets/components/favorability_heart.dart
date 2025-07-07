@@ -81,11 +81,24 @@ class _FavorabilityHeartState extends State<FavorabilityHeart> {
 
                             return GestureDetector(
                               onTap: () {
+                                final currentTotal = _favorability + totalSelectedFavor;
+                                print('🧠 当前好感度: $_favorability');
+                                print('🧠 已选好感度: $totalSelectedFavor');
+                                print('🧠 当前材料好感度: ${item.favorValue}');
+                                print('🧠 当前总: $currentTotal');
+
+                                if (currentTotal >= 1000) {
+                                  print('🚫 已达到上限，无法再选择');
+                                  ToastTip.show(context, '好感度已达到上限1000~');
+                                  return;
+                                }
+
                                 if (selected < stock) {
                                   selectedCounts[idx] = selected + 1;
                                   setState(() {
                                     totalSelectedFavor += item.favorValue;
                                   });
+                                  print('✅ 已增加1个材料，总已选好感度: $totalSelectedFavor');
                                 }
                               },
                               onLongPress: () {
@@ -185,8 +198,8 @@ class _FavorabilityHeartState extends State<FavorabilityHeart> {
         );
       },
       child: SizedBox(
-        width: 36,
-        height: 36,
+        width: 64,
+        height: 64,
         child: CustomPaint(
           painter: HeartPainter(),
           child: Center(
@@ -194,7 +207,7 @@ class _FavorabilityHeartState extends State<FavorabilityHeart> {
               '$_favorability',
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
             ),
