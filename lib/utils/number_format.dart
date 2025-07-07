@@ -4,8 +4,24 @@ library number_format;
 
 /// 通用单位列表（10^4 为单位基准）
 const _units = [
-  '', '万', '亿', '兆', '京', '垓', '秭',
-  '穰', '沟', '涧', '正', '载', '极'
+  '',
+  '万',
+  '亿',
+  '兆',
+  '京',
+  '垓',
+  '秭',
+  '穰',
+  '沟',
+  '涧',
+  '正',
+  '载',
+  '极',
+  '恒河沙',
+  '阿僧祇',
+  '那由他',
+  '不可思议',
+  '无量大数'
 ];
 
 /// 🔢 格式化 num 类型（如 double / int）
@@ -31,16 +47,11 @@ String formatLargeNumber(num value) {
 
 /// 🔢 格式化 BigInt 类型（只保留整数单位）
 String formatBigInt(BigInt value) {
-  const units = [
-    '', '万', '亿', '兆', '京', '垓', '秭',
-    '穰', '沟', '涧', '正', '载', '极'
-  ];
-
   BigInt base = BigInt.from(10000);
   int unitIndex = 0;
   BigInt temp = value;
 
-  while (temp >= base && unitIndex < units.length - 1) {
+  while (temp >= base && unitIndex < _units.length - 1) {
     temp = temp ~/ base;
     unitIndex++;
   }
@@ -56,7 +67,7 @@ String formatBigInt(BigInt value) {
       ? formatted.replaceAll(RegExp(r'0+$'), '').replaceAll(RegExp(r'\.$'), '')
       : formatted;
 
-  return '$formatted${units[unitIndex]}';
+  return '$formatted${_units[unitIndex]}';
 }
 
 /// 🧠 智能格式化（自动识别 num / BigInt）
