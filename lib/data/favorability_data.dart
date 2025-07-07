@@ -57,4 +57,6 @@ class FavorabilityData {
   static FavorabilityItem getByFavorValue(int favorValue) {
     return getByIndex(favorValue);
   }
+
+  static const int maxFavorability = 1000;
 }

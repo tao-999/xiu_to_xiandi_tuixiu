@@ -87,9 +87,9 @@ class _FavorabilityHeartState extends State<FavorabilityHeart> {
                                 print('🧠 当前材料好感度: ${item.favorValue}');
                                 print('🧠 当前总: $currentTotal');
 
-                                if (currentTotal >= 1000) {
+                                if (currentTotal >= FavorabilityData.maxFavorability) {
                                   print('🚫 已达到上限，无法再选择');
-                                  ToastTip.show(context, '好感度已达到上限1000~');
+                                  ToastTip.show(context, '好感度已达到上限${FavorabilityData.maxFavorability}~');
                                   return;
                                 }
 

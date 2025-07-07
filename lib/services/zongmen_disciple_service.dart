@@ -3,6 +3,7 @@ import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
+import '../data/favorability_data.dart';
 import '../models/disciple.dart';
 import '../utils/cultivation_level.dart';
 import '../widgets/constants/aptitude_table.dart';
@@ -122,7 +123,9 @@ class ZongmenDiscipleService {
     final box = await Hive.openBox<Disciple>('disciples');
     final d = box.get(discipleId);
     if (d != null) {
-      final newFavorability = (d.favorability + delta).clamp(0, 1000);
+      final newFavorability = (d.favorability + delta)
+          .clamp(0, FavorabilityData.maxFavorability)
+          .toInt();
       final updated = d.copyWith(favorability: newFavorability);
       await box.put(d.id, updated);
       return updated;
