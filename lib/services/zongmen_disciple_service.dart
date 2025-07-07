@@ -122,7 +122,7 @@ class ZongmenDiscipleService {
     final box = await Hive.openBox<Disciple>('disciples');
     final d = box.get(discipleId);
     if (d != null) {
-      final newFavorability = (d.favorability + delta).clamp(0, 9999);
+      final newFavorability = (d.favorability + delta).clamp(0, 1000);
       final updated = d.copyWith(favorability: newFavorability);
       await box.put(d.id, updated);
       return updated;

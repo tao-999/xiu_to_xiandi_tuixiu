@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_disciple_service.dart';
 
+import '../../data/favorability_data.dart';
 import '../../models/disciple.dart';
+import '../../models/favorability_item.dart';
+import '../../services/favorability_material_service.dart';
+import '../charts/heart_painter.dart';
+import '../common/toast_tip.dart';
 
 class FavorabilityHeart extends StatefulWidget {
   final Disciple disciple;
@@ -28,64 +33,162 @@ class _FavorabilityHeartState extends State<FavorabilityHeart> {
     _favorability = widget.disciple.favorability;
   }
 
-  Future<void> _incrementFavorability() async {
-    final updated = await ZongmenDiscipleService.increaseFavorability(
-      widget.disciple.id,
-      delta: 10, // ✅ 改成 +10
-    );
-    if (updated != null) {
-      setState(() {
-        _favorability = updated.favorability;
-      });
-      widget.onFavorabilityChanged?.call(updated);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        showDialog(
+      onTap: () async {
+        // 弹框前先加载材料库存
+        final favorInventory = await FavorabilityMaterialService.getAllMaterials();
+        final usableMaterials = favorInventory.entries
+            .where((e) => e.value > 0)
+            .map((e) {
+          final item = FavorabilityData.getByIndex(e.key);
+          return {
+            'index': e.key,
+            'item': item,
+            'quantity': e.value,
+          };
+        }).toList();
+
+        int totalSelectedFavor = 0;
+        final Map<int, int> selectedCounts = {};
+
+        // ignore: use_build_context_synchronously
+        await showDialog(
           context: context,
-          builder: (_) => Dialog(
-            backgroundColor: const Color(0xFFFFF8DC), // 米黄色
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero, // 直角
-            ),
-            child: Container(
-              width: 200,
-              height: 120,
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    '提升好感度',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+          builder: (_) {
+            return StatefulBuilder(
+              builder: (context, setState) {
+                return Dialog(
+                  backgroundColor: const Color(0xFFFFF8DC),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
+                  ),
+                  child: Container(
+                    width: 300,
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: usableMaterials.map((mat) {
+                            final idx = mat['index'] as int;
+                            final FavorabilityItem item = mat['item'] as FavorabilityItem;
+                            final int stock = mat['quantity'] as int;
+                            final selected = selectedCounts[idx] ?? 0;
+
+                            return GestureDetector(
+                              onTap: () {
+                                if (selected < stock) {
+                                  selectedCounts[idx] = selected + 1;
+                                  setState(() {
+                                    totalSelectedFavor += item.favorValue;
+                                  });
+                                }
+                              },
+                              onLongPress: () {
+                                if (selected > 0) {
+                                  selectedCounts[idx] = selected - 1;
+                                  setState(() {
+                                    totalSelectedFavor -= item.favorValue;
+                                  });
+                                }
+                              },
+                              child: Container(
+                                width: 48,
+                                padding: const EdgeInsets.all(2),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      height: 32,
+                                      child: Image.asset(
+                                        item.assetPath,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '$selected/$stock',
+                                      style: const TextStyle(fontSize: 8),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '预估提升好感度：$totalSelectedFavor',
+                          style: const TextStyle(
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        GestureDetector(
+                          onTap: () async {
+                            if (totalSelectedFavor == 0) {
+                              ToastTip.show(context, '空手套白狼？不行哦~');
+                              return;
+                            }
+
+                            Navigator.pop(context);
+
+                            int total = 0;
+                            for (final e in selectedCounts.entries) {
+                              final item = FavorabilityData.getByIndex(e.key);
+                              await FavorabilityMaterialService.consumeMaterial(e.key, e.value);
+                              total += item.favorValue * e.value;
+                            }
+
+                            if (total > 0) {
+                              final updated = await ZongmenDiscipleService.increaseFavorability(
+                                widget.disciple.id,
+                                delta: total,
+                              );
+                              if (updated != null) {
+                                setState(() {
+                                  _favorability = updated.favorability;
+                                });
+                                widget.onFavorabilityChanged?.call(updated);
+                              }
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.favorite, color: Colors.black, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  '提升好感度',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      await _incrementFavorability();
-                    },
-                    child: const Text('+10'),
-                  ),
-                ],
-              ),
-            ),
-          ),
+                );
+              },
+            );
+          },
         );
       },
       child: SizedBox(
         width: 36,
         height: 36,
         child: CustomPaint(
-          painter: _HeartPainter(),
+          painter: HeartPainter(),
           child: Center(
             child: Text(
               '$_favorability',
@@ -100,36 +203,4 @@ class _FavorabilityHeartState extends State<FavorabilityHeart> {
       ),
     );
   }
-}
-
-class _HeartPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.fill;
-
-    final width = size.width;
-    final height = size.height;
-
-    final path = Path();
-    path.moveTo(width / 2, height * 0.8);
-
-    path.cubicTo(
-      width * 1.2, height * 0.6, // Control point 1
-      width * 0.8, height * 0.1, // Control point 2
-      width / 2, height * 0.3,   // End point
-    );
-
-    path.cubicTo(
-      width * 0.2, height * 0.1, // Control point 3
-      -width * 0.2, height * 0.6, // Control point 4
-      width / 2, height * 0.8,   // Back to start
-    );
-
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

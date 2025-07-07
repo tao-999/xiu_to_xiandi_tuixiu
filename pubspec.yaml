@@ -50,6 +50,7 @@ flutter:
     - assets/images/floating_island/
     - assets/images/huanyue/
     - assets/images/disciples/
+    - assets/images/favorability/
   fonts:
     - family: ZcoolCangEr
       fonts:

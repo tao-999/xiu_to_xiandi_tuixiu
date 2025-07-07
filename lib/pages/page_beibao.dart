@@ -4,8 +4,10 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_grid_view.dart';
 import 'package:xiu_to_xiandi_tuixiu/data/beibao_resource_config.dart';
 
+import '../data/favorability_data.dart';
 import '../models/beibao_item_type.dart';
 import '../models/pill.dart';
+import '../services/favorability_material_service.dart';
 import '../services/herb_material_service.dart';
 import '../services/pill_storage_service.dart';
 import '../services/refine_material_service.dart';
@@ -150,6 +152,23 @@ class _BeibaoPageState extends State<BeibaoPage> {
         ));
       }
     }
+
+    // 🔹6. 加载好感度材料
+    final favorInventory = await FavorabilityMaterialService.getAllMaterials();
+
+    favorInventory.forEach((index, qty) {
+      if (qty > 0) {
+        final item = FavorabilityData.getByIndex(index);
+        newItems.add(BeibaoItem(
+          name: item.name,
+          imagePath: item.assetPath,
+          level: null, // 没有阶数
+          quantity: BigInt.from(qty),
+          description: '可提升弟子好感度 +${item.favorValue}',
+          type: BeibaoItemType.favorabilityMaterial, // 新增类型
+        ));
+      }
+    });
 
     // ✅ 刷新 UI
     setState(() {
