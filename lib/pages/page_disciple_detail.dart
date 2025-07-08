@@ -21,12 +21,11 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
 
   late Disciple disciple;
 
-  double _offsetY = 260.0;
+  // 不再写死 offset
+  double _offsetY = 0.0;
   double _startDragY = 0;
-  double _startOffsetY = 260.0;
+  double _startOffsetY = 0.0;
   bool isHidden = false;
-
-  static const double collapsedOffset = 260.0;
 
   @override
   void initState() {
@@ -60,8 +59,23 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
 
+    // 🌟 面板高度 = 半屏
+    final panelHeight = screenHeight * 0.5;
+
+    // 🌟 展开时：面板顶在屏幕中线
+    final collapsedOffset = screenHeight * 0.5;
+
+    // 🌟 隐藏时：滑出视野底部
     final hiddenOffset = screenHeight;
+
+    // 🌟 拖动范围
     final maxRange = hiddenOffset - collapsedOffset;
+
+    // 🌟 初始化 offset（只在第一次 build 时）
+    if (_offsetY == 0.0) {
+      _offsetY = collapsedOffset;
+    }
+
     final scale =
     (0.6 + ((_offsetY - collapsedOffset) / maxRange) * 0.6).clamp(0.6, 1.0);
 
@@ -77,7 +91,7 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
         },
         child: Stack(
           children: [
-            // 背景立绘 + 缩放 + 避开刘海
+            // 背景立绘
             Positioned(
               top: 0,
               left: 0,
@@ -85,7 +99,6 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
               height: screenHeight,
               child: Stack(
                 children: [
-                  // 🛏️ 全屏背景图（不需要 SafeArea）
                   Positioned.fill(
                     child: Image.asset(
                       'assets/images/bg_dizi_detail.webp',
@@ -93,8 +106,6 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                       alignment: Alignment.topCenter,
                     ),
                   ),
-
-                  // 🧍 立绘（需要避开刘海，用 SafeArea）
                   SafeArea(
                     top: true,
                     bottom: false,
@@ -108,8 +119,7 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                         isHidden: isHidden,
                         onTap: () {
                           if (!isHidden) return;
-
-                          animateTo(collapsedOffset); // 让面板展开
+                          animateTo(collapsedOffset);
                           isHidden = false;
                         },
                       ),
@@ -124,7 +134,7 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
               top: _offsetY,
               left: 0,
               right: 0,
-              height: screenHeight,
+              height: panelHeight,
               child: GestureDetector(
                 onPanStart: (details) {
                   _controller.stop();
@@ -133,8 +143,8 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                 },
                 onPanUpdate: (details) {
                   final dy = details.globalPosition.dy - _startDragY;
-                  final newOffset = (_startOffsetY + dy)
-                      .clamp(collapsedOffset, hiddenOffset);
+                  final newOffset =
+                  (_startOffsetY + dy).clamp(collapsedOffset, hiddenOffset);
                   setState(() {
                     _offsetY = newOffset;
                   });
@@ -153,8 +163,6 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1D1A17).withOpacity(0.9),
-                    borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: ZongmenDiscipleInfoPanel(
                     disciple: disciple,
@@ -168,7 +176,7 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
               ),
             ),
 
-            // 返回按钮（隐藏时不显示）
+            // 返回按钮
             if (!isHidden) const BackButtonOverlay(),
           ],
         ),

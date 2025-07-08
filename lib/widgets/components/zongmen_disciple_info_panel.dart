@@ -42,8 +42,6 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
             _buildInfoRow('性别', d.gender == 'male' ? '男' : '女'),
             _buildInfoRow('年龄', '${d.age} 岁'),
             _buildInfoRow('境界', d.realm),
-            _buildInfoRow('忠诚', '${d.loyalty}%'),
-            _buildInfoRow('特长', d.specialty.isNotEmpty ? d.specialty : '暂无'),
             _buildPowerRow(),
             _buildInfoRow(
               '资质',

@@ -187,10 +187,15 @@ class PlayerStorage {
   static int getBaseAtk(Character player) => player.baseAtk;
   static int getBaseDef(Character player) => player.baseDef;
 
-  /// 🔰 获取玩家额外气血 / 攻击 / 防御
+  /// 🔰 获取玩家装备气血 / 攻击 / 防御
   static int getExtraHp(Character player) => player.extraHp;
   static int getExtraAtk(Character player) => player.extraAtk;
   static int getExtraDef(Character player) => player.extraDef;
+
+  /// 🔰 获取玩家丹药气血 / 攻击 / 防御
+  static int getPillHp(Character player) => player.pillBonusHp;
+  static int getPillAtk(Character player) => player.pillBonusAtk;
+  static int getPillDef(Character player) => player.pillBonusDef;
 
   /// 🔰 获取总气血 / 攻击 / 防御（仅用于战力计算或合并展示）
   static int getHp(Character player) =>
@@ -276,10 +281,6 @@ class PlayerStorage {
       'extraDef': totalExtraDef,
     });
   }
-
-  static int getPillHp(Character player) => player.pillBonusHp;
-  static int getPillAtk(Character player) => player.pillBonusAtk;
-  static int getPillDef(Character player) => player.pillBonusDef;
 
   /// 🥣 吞丹！根据类型和数量，叠加到角色加成属性中
   static Future<void> applyPillBonus({

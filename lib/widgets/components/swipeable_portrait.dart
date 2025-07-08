@@ -24,6 +24,8 @@ class SwipeablePortrait extends StatefulWidget {
 }
 
 class _SwipeablePortraitState extends State<SwipeablePortrait> {
+  static const int _unlockFavorability = 1000;
+
   late final PageController _controller;
   int _currentPage = 0;
 
@@ -41,7 +43,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
           _currentPage = page;
         });
 
-        final isLocked = page == 1 && widget.favorability < 500;
+        final isLocked = page == 1 && widget.favorability < _unlockFavorability;
         if (isLocked) return;
 
         final newImagePath = _getImagePath(page);
@@ -74,16 +76,13 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
     final ext = path.substring(dotIndex + 1);
     var base = path.substring(0, dotIndex);
 
-    // 先移除已有的 _1
     if (base.endsWith('_1')) {
       base = base.substring(0, base.length - 2);
     }
 
     if (index == 0) {
-      // 第一张，基础路径
       return '$base.$ext';
     } else {
-      // 第二张，加 _1
       return '${base}_1.$ext';
     }
   }
@@ -99,7 +98,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
-        final locked = _currentPage == 1 && widget.favorability < 500;
+        final locked = _currentPage == 1 && widget.favorability < _unlockFavorability;
         if (locked) return;
         if (widget.onTap != null) widget.onTap!();
       },
@@ -110,7 +109,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
         controller: _controller,
         itemCount: 2,
         itemBuilder: (context, index) {
-          final locked = index == 1 && widget.favorability < 500;
+          final locked = index == 1 && widget.favorability < _unlockFavorability;
           return Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -127,11 +126,11 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
                 ? Column(
               children: [
                 const Spacer(),
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 24),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
                   child: Text(
-                    "好感度500解锁 🔒",
-                    style: TextStyle(
+                    '好感度$_unlockFavorability解锁 🔒',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
