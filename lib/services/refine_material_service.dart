@@ -155,4 +155,14 @@ class RefineMaterialService {
   }
 
   static Future<Map<String, int>> loadInventory() => _loadInventory();
+
+  /// ✅ 删除材料（彻底移除）
+  static Future<void> remove(String name) async {
+    final inv = await _loadInventory();
+    inv.remove(name);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_storageKey, jsonEncode(inv));
+  }
+
 }

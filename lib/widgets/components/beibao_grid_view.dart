@@ -2,15 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_tooltip_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 
+import '../../data/favorability_data.dart';
 import '../../models/beibao_item_type.dart';
+import '../../services/favorability_material_service.dart';
+import '../../services/herb_material_service.dart';
+import '../../services/pill_storage_service.dart';
+import '../../services/refine_material_service.dart';
+import '../../services/weapons_storage.dart';
 
 class BeibaoItem {
   final String name;
   final String imagePath;
-  final BigInt? quantity; // ✅ 改成 BigInt 专门表示资源类数量
-  final int? level; // ✅ 新增，专门表示阶数
+  final BigInt? quantity;
+  final int? level;
   final String description;
   final BeibaoItemType type;
+  final dynamic hiveKey; // 🌟 新增，用于持久化定位
 
   const BeibaoItem({
     required this.name,
@@ -19,13 +26,19 @@ class BeibaoItem {
     this.level,
     required this.description,
     required this.type,
+    this.hiveKey, // 🌟
   });
 }
 
 class BeibaoGridView extends StatefulWidget {
   final List<BeibaoItem> items;
+  final Future<void> Function() onReload;
 
-  const BeibaoGridView({super.key, required this.items});
+  const BeibaoGridView({
+    super.key,
+    required this.items,
+    required this.onReload,
+  });
 
   @override
   State<BeibaoGridView> createState() => _BeibaoGridViewState();
@@ -46,28 +59,72 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
     return padded;
   }
 
-  void _showItemTooltip(BuildContext context, Offset globalPosition, BeibaoItem item) {
+  void _showItemTooltip(BuildContext context, TapDownDetails details, BeibaoItem item) {
     _tooltipEntry?.remove();
+
+    final globalPosition = details.globalPosition;
 
     _tooltipEntry = BeibaoTooltipOverlay.show(
       context: context,
       position: globalPosition,
       name: item.name,
-      quantity: formatAnyNumber(item.quantity),
+      quantity: item.quantity,
       description: item.description,
+      type: item.type,
       onDismiss: () {
         _tooltipEntry?.remove();
         _tooltipEntry = null;
       },
-      type: item.type,
-    );
-  }
+      onDiscard: item.type != BeibaoItemType.resource
+          ? () async {
+        // 先移除 Tooltip
+        _tooltipEntry?.remove();
+        _tooltipEntry = null;
 
-  bool _shouldShowQuantity(BeibaoItem item) {
-    // ✅ 仅图纸类资源显示数量
-    // 判断标准：图纸通常命名为 "xxx · 1阶" 且图片路径非武器图标
-    final isBlueprint = item.name.contains('·') && item.imagePath.contains('wuqi_');
-    return isBlueprint;
+        // 根据类型进行删除
+        switch (item.type) {
+          case BeibaoItemType.weapon:
+            if (item.hiveKey != null) {
+              await WeaponsStorage.deleteWeaponByKey(item.hiveKey);
+              print('✅ 已精准删除武器：${item.name}');
+            } else {
+              print('⚠️ 无法删除武器：未找到hiveKey');
+            }
+            break;
+
+          case BeibaoItemType.pill:
+            await PillStorageService.deletePillByKey(item.hiveKey);
+            print('✅ 已删除所有丹药：${item.name}');
+            break;
+
+          case BeibaoItemType.herb:
+            await HerbMaterialService.remove(item.name);
+            print('✅ 已清空草药：${item.name}');
+            break;
+
+          case BeibaoItemType.refineMaterial:
+            await RefineMaterialService.remove(item.name);
+            print('✅ 已清空炼器材料：${item.name}');
+            break;
+
+          case BeibaoItemType.favorabilityMaterial:
+            final index = FavorabilityData.indexOf(item.name);
+            await FavorabilityMaterialService.consumeMaterial(index, item.quantity?.toInt() ?? 999999);
+            print('✅ 已清空好感度材料：${item.name}');
+            break;
+
+          default:
+          // resource不允许丢弃
+            print('⚠️ Resource类型不允许丢弃：${item.name}');
+            break;
+        }
+        // 重新加载背包
+        await widget.onReload();
+
+        print('✅已丢弃：${item.name}');
+      }
+          : null,
+    );
   }
 
   @override
@@ -111,7 +168,7 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
               } else {
                 return GestureDetector(
                   onTapDown: (details) {
-                    _showItemTooltip(context, details.globalPosition, item);
+                    _showItemTooltip(context, details, item);
                   },
                   child: Container(
                     decoration: BoxDecoration(

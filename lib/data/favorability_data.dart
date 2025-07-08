@@ -59,4 +59,13 @@ class FavorabilityData {
   }
 
   static const int maxFavorability = 1000;
+
+  /// ✅ 根据名字返回索引（1~30）
+  static int indexOf(String name) {
+    final idx = names.indexOf(name);
+    if (idx == -1) {
+      throw ArgumentError('未找到该好感度材料：$name');
+    }
+    return idx + 1; // 因为getByIndex是1-based
+  }
 }

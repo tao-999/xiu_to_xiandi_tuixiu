@@ -35,6 +35,9 @@ class _BeibaoPageState extends State<BeibaoPage> {
     // 🔹 1. 加载通用资源
     for (final config in beibaoResourceList) {
       final quantity = await ResourcesStorage.getValue(config.field);
+
+      if (quantity == null || quantity == BigInt.zero) continue;
+
       newItems.add(BeibaoItem(
         name: config.name,
         imagePath: config.imagePath,
@@ -45,15 +48,12 @@ class _BeibaoPageState extends State<BeibaoPage> {
     }
 
     // 🔹 2. 加载炼制武器
-    final weapons = await WeaponsStorage.loadAllWeapons();
+    final weaponsWithKeys = await WeaponsStorage.loadWeaponsWithKeys();
+    print('🧱 [背包] 加载到 ${weaponsWithKeys.length} 件武器');
 
-    print('🧱 [背包] 加载到 ${weapons.length} 件武器');
+    weaponsWithKeys.forEach((key, w) {
+      if (w.equippedById != null) return;
 
-    // ✅ 过滤掉已装备的武器
-    final unequippedWeapons = weapons.where((w) => w.equippedById == null).toList();
-    print('🎒 未装备武器数量：${unequippedWeapons.length}');
-
-    for (final w in unequippedWeapons) {
       print('⚔️ 武器详情：');
       print('   📛 名称：${w.name}');
       print('   🎚️ 阶数：${w.level}');
@@ -72,11 +72,12 @@ class _BeibaoPageState extends State<BeibaoPage> {
         name: w.name,
         imagePath: w.iconPath,
         level: w.level,
-        quantity: null, // ✅ 武器不需要数量，干脆 null
+        quantity: null,
         description: '效果：$attrText',
         type: BeibaoItemType.weapon,
+        hiveKey: key, // 🌟 带上Hive key
       ));
-    }
+    });
 
     // 🔥 3. 加载炼制丹药
     final pills = await PillStorageService.loadAllPills();
@@ -108,12 +109,14 @@ class _BeibaoPageState extends State<BeibaoPage> {
       newItems.add(BeibaoItem(
         name: p.name,
         imagePath: p.iconPath.startsWith('assets/')
-          ? p.iconPath
-          : 'assets/images/${p.iconPath}',
+            ? p.iconPath
+            : 'assets/images/${p.iconPath}',
         level: p.level,
         quantity: BigInt.from(p.count),
         description: '效果：$effect',
-        type: BeibaoItemType.pill, // 你要加这个类型
+        type: BeibaoItemType.pill,
+        // 如果丹药也有key，这里也可以添加 hiveKey
+        // hiveKey: p.key,
       ));
     }
 
@@ -155,17 +158,16 @@ class _BeibaoPageState extends State<BeibaoPage> {
 
     // 🔹6. 加载好感度材料
     final favorInventory = await FavorabilityMaterialService.getAllMaterials();
-
     favorInventory.forEach((index, qty) {
       if (qty > 0) {
         final item = FavorabilityData.getByIndex(index);
         newItems.add(BeibaoItem(
           name: item.name,
           imagePath: item.assetPath,
-          level: null, // 没有阶数
+          level: null,
           quantity: BigInt.from(qty),
           description: '可提升弟子好感度 +${item.favorValue}',
-          type: BeibaoItemType.favorabilityMaterial, // 新增类型
+          type: BeibaoItemType.favorabilityMaterial,
         ));
       }
     });
@@ -190,7 +192,10 @@ class _BeibaoPageState extends State<BeibaoPage> {
           ),
           Align(
             alignment: Alignment.topCenter,
-            child: BeibaoGridView(items: items),
+            child: BeibaoGridView(
+              items: items,
+              onReload: _loadResources,
+            ),
           ),
           const BackButtonOverlay(),
         ],

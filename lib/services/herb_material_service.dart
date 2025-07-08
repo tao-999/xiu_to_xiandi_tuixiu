@@ -102,4 +102,13 @@ class HerbMaterialService {
     final extra = all[thirdIndex];
     return [...fixed, extra];
   }
+
+  /// ✅ 清空草药（彻底移除）
+  static Future<void> remove(String name) async {
+    final inv = await _loadInventory();
+    inv.remove(name);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_storageKey, jsonEncode(inv));
+  }
 }
