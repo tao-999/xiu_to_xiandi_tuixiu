@@ -17,15 +17,12 @@ class ZongmenQuickMenu extends StatelessWidget {
     final actions = [
       ["弟子闺房", "dizi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiscipleListPage()))],
       ["任务派遣", "renwu", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskDispatchPage()))],
-      ["升级宗门", "shengji", () => ToastTip.show(context, "升级功能开发中")],
       ["炼丹房", "liandan", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DanfangPage()))],
       ["炼器房", "lianqi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LianqiPage()))],
       ["藏经阁", "gongfa", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CangjinggePage()))],
       ["灵田", "lingtian", () => ToastTip.show(context, "灵田开发中")],
       ["洞天福地", "dongtianfudi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenFudiPage()))],
       ["宗门职位", "zhiwei", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenRolesPage()))],
-      ["外交", "waijiao", () => ToastTip.show(context, "外交系统开发中")],
-      ["历代志", "lidaizhi", () => ToastTip.show(context, "宗门事件记录开发中")],
     ];
 
     return Expanded(

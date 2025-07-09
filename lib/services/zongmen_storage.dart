@@ -1,19 +1,16 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 
+import '../services/resources_storage.dart';
 import '../utils/sect_role_limits.dart';
 
 class ZongmenStorage {
   static const String _zongmenKey = 'current_zongmen';
 
-  static const int _base = 500;
-  static const double _power = 3.0;
-
-  /// 📥 读取宗门（不含弟子）
+  /// 📥 读取宗门
   static Future<Zongmen?> loadZongmen() async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = prefs.getString(_zongmenKey);
@@ -22,13 +19,13 @@ class ZongmenStorage {
     return Zongmen.fromMap(map);
   }
 
-  /// 💾 保存宗门（不含弟子）
+  /// 💾 保存宗门
   static Future<void> saveZongmen(Zongmen zongmen) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_zongmenKey, json.encode(zongmen.toMap()));
   }
 
-  /// 📤 加载弟子 + 更新年龄（Hive 读取）
+  /// 📤 加载弟子 + 更新年龄
   static Future<List<Disciple>> loadDisciples() async {
     final box = await Hive.openBox<Disciple>('disciples');
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -37,16 +34,13 @@ class ZongmenStorage {
     final List<Disciple> zongmenDisciples = [];
 
     for (final d in box.values) {
-      if (d.joinedAt == null) continue; // 🚫 未加入宗门，跳过
+      if (d.joinedAt == null) continue;
 
       final passed = (now - d.joinedAt!) * timeRate;
       final years = (passed / (3600 * 24 * 365)).floor();
 
       if (years > d.age) {
         final newD = d.copyWith(age: years);
-
-        print("🔥 年龄更新！${newD.name} → assignedRoom=${newD.assignedRoom}"); // 👈 看这里是不是 null 了
-
         await box.put(newD.id, newD);
         zongmenDisciples.add(newD);
       } else {
@@ -54,7 +48,6 @@ class ZongmenStorage {
       }
     }
 
-    print("✅ 加载的宗门弟子数量：${zongmenDisciples.length}");
     return zongmenDisciples;
   }
 
@@ -109,66 +102,56 @@ class ZongmenStorage {
     }
   }
 
-  /// 🧮 宗门等级系统
-
-  static int requiredExp(int level) {
-    if (level <= 1) return 0;
-    return (_base * pow(level, _power)).toInt();
+  /// 🪙 计算升级所需下品灵石
+  static BigInt requiredStones(int level) {
+    const base = 100000;
+    return BigInt.from(base) * BigInt.from(10).pow(level - 1);
   }
 
-  static int calcSectLevel(int exp) {
-    var lvl = 1;
-    while (requiredExp(lvl + 1) <= exp) {
-      lvl++;
+  /// 🪙 升级宗门（消耗下品灵石）
+  static Future<Zongmen> upgradeSectLevel(Zongmen zongmen) async {
+    final currentLevel = zongmen.sectLevel;
+    final required = requiredStones(currentLevel);
+
+    // 查询灵石
+    final stones = await ResourcesStorage.getValue('spiritStoneLow');
+    if (stones < required) {
+      throw Exception('下品灵石不足，需要：$required');
     }
-    return lvl;
-  }
 
-  static int nextLevelRequiredExp(int currentExp) {
-    final lvl = calcSectLevel(currentExp);
-    return requiredExp(lvl + 1);
-  }
+    // 扣除
+    await ResourcesStorage.subtract('spiritStoneLow', required);
 
-  static Future<Zongmen> addSectExp(Zongmen zongmen, int delta) async {
-    final newExp = zongmen.sectExp + delta;
-    final newZongmen = zongmen.copyWith(sectExp: newExp);
+    // 升级
+    final newZongmen = zongmen.copyWith(sectLevel: currentLevel + 1);
     await saveZongmen(newZongmen);
+
     return newZongmen;
   }
 
   /// 🧍 保存职位（职位是弟子 ID 与房间的映射）
-  /// 如果要设为无职位，传 null 即可
-  /// 🧍 设置弟子职位（含“弟子”），并保证职位唯一（除“弟子”外）
   static Future<void> setDiscipleRole(String discipleId, String role) async {
     final box = await Hive.openBox<Disciple>('disciples');
     final zongmen = await loadZongmen();
-    final sectExp = zongmen?.sectExp ?? 0;
-    final sectLevel = calcSectLevel(sectExp);
+    final sectLevel = zongmen?.sectLevel ?? 1;
 
     final roleMax = SectRoleLimits.getMax(role, sectLevel);
     final disciples = box.values.toList();
 
-    // ✅ 找出当前拥有该角色的人（除了自己）
-    final others = disciples
-        .where((d) => d.role == role && d.id != discipleId)
-        .toList();
+    final others = disciples.where((d) => d.role == role && d.id != discipleId).toList();
 
     if (role != '弟子' && others.length >= roleMax) {
-      // 🔥 如果已满，踢掉一个（比如最早加入的那个）
       others.sort((a, b) => (a.joinedAt ?? 0).compareTo(b.joinedAt ?? 0));
       final kicked = others.first;
       await box.put(kicked.id, kicked.copyWith(role: '弟子'));
     }
 
-    // ✅ 设置新角色
     final d = box.get(discipleId);
     if (d != null) {
       await box.put(d.id, d.copyWith(role: role));
     }
   }
 
-  /// 获取当前宗门的所有职位分配情况（map：职位 => 弟子）
-  /// 📋 获取所有非“弟子”的职位对应弟子（比如宗主、长老、执事）
   static Future<Map<String, Disciple>> getAssignedRoles() async {
     final box = await Hive.openBox<Disciple>('disciples');
     return {
@@ -177,7 +160,6 @@ class ZongmenStorage {
     };
   }
 
-  /// 🧹 把某职位的弟子踢下岗 → 改为“弟子”
   static Future<void> clearRole(String role) async {
     final box = await Hive.openBox<Disciple>('disciples');
     for (final d in box.values) {
@@ -187,10 +169,8 @@ class ZongmenStorage {
     }
   }
 
-  /// 根据宗门经验计算最大弟子数量
-  static int calcMaxDiscipleCount(int sectExp) {
-    final level = calcSectLevel(sectExp);
-    return 5 * level;
+  /// 🧮 根据宗门等级计算最大弟子数量
+  static int calcMaxDiscipleCount(int sectLevel) {
+    return 5 * sectLevel;
   }
-
 }

@@ -166,7 +166,7 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                                 return;
                               }
 
-                              final level = ZongmenStorage.calcSectLevel(zongmen.sectExp);
+                              final level = zongmen.sectLevel;
                               final max = 5 * (1 << (level - 1));
 
                               final all = await DiscipleStorage.getAll();

@@ -1,30 +1,19 @@
-// lib/widgets/components/zongmen_header_widget.dart
-
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 
 class ZongmenHeaderWidget extends StatelessWidget {
   final Zongmen zongmen;
-  final VoidCallback? onAddExp;
+  final VoidCallback? onUpgrade;
 
   const ZongmenHeaderWidget({
     super.key,
     required this.zongmen,
-    this.onAddExp,
+    this.onUpgrade,
   });
 
   @override
   Widget build(BuildContext context) {
-    final exp = zongmen.sectExp;
-    final level = ZongmenStorage.calcSectLevel(exp);
-    final currentLevelExp = ZongmenStorage.requiredExp(level);
-    final nextLevelExp = ZongmenStorage.requiredExp(level + 1);
-
-    final currentExpInLevel = exp - currentLevelExp;
-    final expNeededForLevelUp = nextLevelExp - currentLevelExp;
-
-    final progress = (currentExpInLevel / expNeededForLevelUp).clamp(0.0, 1.0);
+    final level = zongmen.sectLevel;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,45 +44,15 @@ class ZongmenHeaderWidget extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 4),
-                  if (onAddExp != null)
+                  if (onUpgrade != null)
                     GestureDetector(
-                      onTap: onAddExp,
+                      onTap: onUpgrade,
                       child: const Icon(Icons.add_circle_outline, size: 16, color: Colors.orangeAccent),
                     ),
                 ],
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 6),
-        FractionallySizedBox(
-          widthFactor: 0.5,
-          child: Stack(
-            children: [
-              Container(
-                height: 6,
-                decoration: BoxDecoration(
-                  color: Colors.white12,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              FractionallySizedBox(
-                widthFactor: progress,
-                child: Container(
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.orangeAccent,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "经验：$currentExpInLevel / $expNeededForLevelUp",
-          style: const TextStyle(fontSize: 14, color: Colors.white70, fontFamily: 'ZcoolCangEr'),
         ),
       ],
     );

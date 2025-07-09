@@ -67,7 +67,7 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
     final zongmen = await ZongmenStorage.loadZongmen();
     int max = 0;
     if (zongmen != null) {
-      max = ZongmenStorage.calcMaxDiscipleCount(zongmen.sectExp);
+      max = ZongmenStorage.calcMaxDiscipleCount(zongmen.sectLevel);
     }
 
     setState(() {

@@ -46,7 +46,7 @@ class _DanfangPageState extends State<DanfangPage> {
           }
 
           final zongmen = snapshot.data!;
-          final level = ZongmenStorage.calcSectLevel(zongmen.sectExp);
+          final level = zongmen.sectLevel;
 
           return Stack(
             children: [

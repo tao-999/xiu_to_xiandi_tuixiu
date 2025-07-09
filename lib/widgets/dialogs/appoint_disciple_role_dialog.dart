@@ -34,8 +34,7 @@ class AppointDiscipleRoleDialog extends StatelessWidget {
 
         final disciples = snapshot.data![0] as List<Disciple>;
         final Zongmen? zongmen = snapshot.data![1] as Zongmen?;
-        final sectExp = zongmen?.sectExp ?? 0;
-        final sectLevel = ZongmenStorage.calcSectLevel(sectExp);
+        final sectLevel = zongmen?.sectLevel ?? 1;
 
         final groupedMap = <String, List<Disciple>>{};
         for (final d in disciples) {

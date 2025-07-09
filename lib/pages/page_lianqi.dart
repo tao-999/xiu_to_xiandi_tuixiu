@@ -126,7 +126,7 @@ class _LianqiPageState extends State<LianqiPage> with WidgetsBindingObserver {
           }
 
           final zongmen = snapshot.data!;
-          final level = ZongmenStorage.calcSectLevel(zongmen.sectExp);
+          final level = zongmen.sectLevel;
 
           return Stack(
             children: [

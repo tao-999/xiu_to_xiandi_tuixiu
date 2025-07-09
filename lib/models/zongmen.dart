@@ -13,16 +13,11 @@ class Zongmen {
   final String specialization;
   final DateTime createdAt;
 
-  final int sectExp;
-  final int spiritStoneLow;
-  final int spiritStoneMid;
-  final int spiritStoneHigh;
-  final int spiritStoneSupreme;
+  final int sectLevel; // 🌟 新增宗门等级
 
   final List<Technique> techniques;
 
-  // ❗改动：不再包含 disciples，而是通过 Hive 独立持久化
-   Zongmen({
+  Zongmen({
     required this.id,
     required this.name,
     required this.founderName,
@@ -30,11 +25,7 @@ class Zongmen {
     required this.emblemPath,
     this.specialization = '',
     DateTime? createdAt,
-    this.sectExp = 0,
-    this.spiritStoneLow = 0,
-    this.spiritStoneMid = 0,
-    this.spiritStoneHigh = 0,
-    this.spiritStoneSupreme = 0,
+    this.sectLevel = 1, // 🌟 默认1级
     this.techniques = const [],
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -46,11 +37,7 @@ class Zongmen {
     String? emblemPath,
     String? specialization,
     DateTime? createdAt,
-    int? sectExp,
-    int? spiritStoneLow,
-    int? spiritStoneMid,
-    int? spiritStoneHigh,
-    int? spiritStoneSupreme,
+    int? sectLevel,
     List<Technique>? techniques,
   }) {
     return Zongmen(
@@ -61,11 +48,7 @@ class Zongmen {
       emblemPath: emblemPath ?? this.emblemPath,
       specialization: specialization ?? this.specialization,
       createdAt: createdAt ?? this.createdAt,
-      sectExp: sectExp ?? this.sectExp,
-      spiritStoneLow: spiritStoneLow ?? this.spiritStoneLow,
-      spiritStoneMid: spiritStoneMid ?? this.spiritStoneMid,
-      spiritStoneHigh: spiritStoneHigh ?? this.spiritStoneHigh,
-      spiritStoneSupreme: spiritStoneSupreme ?? this.spiritStoneSupreme,
+      sectLevel: sectLevel ?? this.sectLevel,
       techniques: techniques ?? this.techniques,
     );
   }
@@ -79,15 +62,10 @@ class Zongmen {
       emblemPath: map['emblemPath'],
       specialization: map['specialization'] ?? '',
       createdAt: DateTime.parse(map['createdAt']),
-      sectExp: map['sectExp'] ?? 0,
-      spiritStoneLow: map['spiritStoneLow'] ?? 0,
-      spiritStoneMid: map['spiritStoneMid'] ?? 0,
-      spiritStoneHigh: map['spiritStoneHigh'] ?? 0,
-      spiritStoneSupreme: map['spiritStoneSupreme'] ?? 0,
+      sectLevel: map['sectLevel'] ?? 1, // 🌟 新增
       techniques: (map['techniques'] as List? ?? [])
           .map((e) => Technique.fromMap(e))
           .toList(),
-      // ❌ 不再从 JSON 加载 disciples
     );
   }
 
@@ -100,13 +78,8 @@ class Zongmen {
       'emblemPath': emblemPath,
       'specialization': specialization,
       'createdAt': createdAt.toIso8601String(),
-      'sectExp': sectExp,
-      'spiritStoneLow': spiritStoneLow,
-      'spiritStoneMid': spiritStoneMid,
-      'spiritStoneHigh': spiritStoneHigh,
-      'spiritStoneSupreme': spiritStoneSupreme,
+      'sectLevel': sectLevel, // 🌟 新增
       'techniques': techniques.map((e) => e.toMap()).toList(),
-      // ❌ 不再保存 disciples
     };
   }
 }

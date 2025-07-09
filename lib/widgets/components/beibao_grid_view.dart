@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_tooltip_overlay.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 
 import '../../data/favorability_data.dart';
 import '../../models/beibao_item_type.dart';

@@ -9,7 +9,10 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/create_zongmen_card.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_quick_menu.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_header_widget.dart';
 
+import '../services/resources_storage.dart';
 import '../services/zongmen_disciple_service.dart';
+import '../utils/number_format.dart';
+import '../widgets/common/toast_tip.dart';
 
 class ZongmenPage extends StatefulWidget {
   const ZongmenPage({super.key});
@@ -85,17 +88,101 @@ class _ZongmenPageState extends State<ZongmenPage> {
                   // 宗门名 + 等级 + 经验进度
                   ZongmenHeaderWidget(
                     zongmen: zongmen!,
-                    onAddExp: () async {
-                      final level = ZongmenStorage.calcSectLevel(zongmen!.sectExp);
-                      final addExp = ZongmenStorage.requiredExp(level + 1) - ZongmenStorage.requiredExp(level);
-                      zongmen = await ZongmenStorage.addSectExp(zongmen!, addExp);
-                      setState(() {});
+                    onUpgrade: () async {
+                      final required = ZongmenStorage.requiredStones(zongmen!.sectLevel);
+                      final res = await ResourcesStorage.load();
+                      final has = res.spiritStoneLow;
+
+                      final canUpgrade = has.compareTo(required) >= 0;
+
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                          backgroundColor: const Color(0xFFFFF8DC),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                          contentPadding: const EdgeInsets.all(16),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // 顶部标题行
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(Icons.auto_awesome, color: Colors.orangeAccent, size: 20),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    '升级宗门',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              // 内容区
+                              Text.rich(
+                                TextSpan(
+                                  style: const TextStyle(fontSize: 14, color: Colors.black),
+                                  children: [
+                                    const TextSpan(
+                                        text: '需要消耗',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                    TextSpan(
+                                      text: '${formatAnyNumber(required)} 下品灵石\n',
+                                      style: TextStyle(color: canUpgrade ? Colors.green : Colors.red, fontSize: 10),
+                                    ),
+                                    TextSpan(
+                                      text: '（当前拥有：${formatAnyNumber(has)}）',
+                                      style: TextStyle(fontSize: 10),
+                                    ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              // 底部确认区域
+                              GestureDetector(
+                                onTap: canUpgrade
+                                    ? () => Navigator.of(context).pop(true)
+                                    : null,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.upgrade,
+                                      color: canUpgrade ? Colors.blue : Colors.grey,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '升级宗门',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: canUpgrade ? Colors.blue : Colors.grey,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      );
+
+                      if (confirmed == true) {
+                        final newZongmen = await ZongmenStorage.upgradeSectLevel(zongmen!);
+                        setState(() {
+                          zongmen = newZongmen;
+                        });
+
+                        // 🚀 升级成功提示
+                        ToastTip.show(context, '✨宗门升级成功！');
+                      }
                     },
                   ),
-                  const SizedBox(height: 24),
-                  // 弟子数量卡片
-                  _buildZongmenInfoCard(),
-                  const SizedBox(height: 64),
+                  const SizedBox(height: 200),
                   // 快捷菜单
                   const ZongmenQuickMenu(),
                 ],
