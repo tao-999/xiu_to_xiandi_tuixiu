@@ -267,29 +267,29 @@ class NoiseTileMapGenerator extends PositionComponent {
   ui.Color _getColorForTerrain(String terrain) {
     switch (terrain) {
       case 'deep_ocean':
-        return const ui.Color(0xFF223344); // 深海蓝
+        return const ui.Color(0xFF1B2A49); // 幽蓝深海
       case 'shallow_ocean':
-        return const ui.Color(0xFF88CCE0); // 浅海蓝
+        return const ui.Color(0xFF4FA3C7); // 碧波浅海
       case 'beach':
-        return const ui.Color(0xFFDDCCAA); // 沙滩
+        return const ui.Color(0xFFEAD7B6); // 晨光沙滩
       case 'mud':
-        return const ui.Color(0xFF8B6F4A); // 泥地
+        return const ui.Color(0xFF9E7A5C); // 黄土灵沼
       case 'grass':
-        return const ui.Color(0xFF88A76C); // 草地
+        return const ui.Color(0xFF9BCB75); // 翠绿灵草
       case 'forest':
-        return const ui.Color(0xFF506C44); // 森林
+        return const ui.Color(0xFF4E8B69); // 沉翠仙林
       case 'rock':
-        return const ui.Color(0xFFAAAAAA); // 石地
+        return const ui.Color(0xFF9FA9B3); // 苍岩古地
       case 'snow':
-        return const ui.Color(0xFFEAEAEA); // 雪原
+        return const ui.Color(0xFFEFEFEF); // 皑皑灵雪
       case 'flower_field':
-        return const ui.Color(0xFFB8D1B0); // 花田
+        return const ui.Color(0xFFE6E6B3); // 碧霞花境
       case 'volcanic':
-        return const ui.Color(0xFF333333); // 火山
+        return const ui.Color(0xFF7E3B3B); // 赤焰火域
       case 'black_zone':
-        return const ui.Color(0xFF000000); // 黑色禁区
+        return const ui.Color(0xFF111111); // 幽冥禁地
       default:
-        return const ui.Color(0xFF88A76C); // 默认草地
+        return const ui.Color(0xFF9BCB75); // 默认翠绿灵草
     }
   }
 }
