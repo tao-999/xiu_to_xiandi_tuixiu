@@ -45,7 +45,7 @@ class FloatingIslandMapComponent extends FlameGame
     // 地形生成器
     _noiseMapGenerator = NoiseTileMapGenerator(
       tileSize: 64.0,
-      smallTileSize: 6,
+      smallTileSize: 4,
       seed: seed, // 🌟 使用统一seed
       frequency: 0.00008,
       octaves: 8,

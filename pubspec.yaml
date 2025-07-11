@@ -51,6 +51,7 @@ flutter:
     - assets/images/huanyue/
     - assets/images/disciples/
     - assets/images/favorability/
+    - assets/images/zongmen/
   fonts:
     - family: ZcoolCangEr
       fonts:

@@ -139,20 +139,21 @@ class NoiseTileMapGenerator extends PositionComponent {
 
     for (double x = 0; x < chunkPixelSize; x += tileSize) {
       for (double y = 0; y < chunkPixelSize; y += tileSize) {
-        final wx = originX + x;
-        final wy = originY + y;
-
-        if (_isEdgeTile(wx, wy, tileSize)) {
-          _renderFineTile(canvas, wx, wy, tileSize, 1.0, localOffset: Offset(-originX, -originY));
-        } else {
-          _renderCoarseTile(canvas, wx, wy, tileSize, 1.0, localOffset: Offset(-originX, -originY));
-        }
+        _renderAdaptiveTile(
+          canvas,
+          originX + x,
+          originY + y,
+          tileSize,
+          Offset(-originX, -originY),
+        );
       }
     }
 
     final picture = recorder.endRecording();
-    return await picture.toImage(chunkPixelSize, chunkPixelSize);
+    return picture.toImage(chunkPixelSize, chunkPixelSize);
   }
+
+
 
   bool _isEdgeTile(double nx, double ny, double size) {
     final Set<String> types = {};
@@ -164,29 +165,40 @@ class NoiseTileMapGenerator extends PositionComponent {
     return types.length > 1;
   }
 
-  void _renderCoarseTile(
+  void _renderAdaptiveTile(
       ui.Canvas canvas,
       double wx,
       double wy,
       double size,
-      double scale, {
-        required Offset localOffset,
-      }) {
-    _drawTile(canvas, wx, wy, wx + localOffset.dx, wy + localOffset.dy, size, scale);
-  }
-
-  void _renderFineTile(
-      ui.Canvas canvas,
-      double wx,
-      double wy,
-      double bigSize,
-      double scale, {
-        required Offset localOffset,
-      }) {
-    for (double sx = wx; sx < wx + bigSize; sx += smallTileSize) {
-      for (double sy = wy; sy < wy + bigSize; sy += smallTileSize) {
-        _drawTile(canvas, sx, sy, sx + localOffset.dx, sy + localOffset.dy, smallTileSize, scale);
+      Offset localOffset,
+      ) {
+    final Set<String> types = {};
+    for (double dx in [0, size]) {
+      for (double dy in [0, size]) {
+        types.add(_getTerrainType(wx + dx, wy + dy));
       }
+    }
+    // 再加中心点
+    types.add(_getTerrainType(wx + size / 2, wy + size / 2));
+
+    if (types.length == 1 || size <= smallTileSize) {
+      // 单一地形或最小格
+      _drawTile(
+        canvas,
+        wx + size / 2,
+        wy + size / 2,
+        wx + localOffset.dx,
+        wy + localOffset.dy,
+        size,
+        1.0,
+      );
+    } else {
+      // 分四块递归
+      final half = size / 2;
+      _renderAdaptiveTile(canvas, wx, wy, half, localOffset);
+      _renderAdaptiveTile(canvas, wx + half, wy, half, localOffset);
+      _renderAdaptiveTile(canvas, wx, wy + half, half, localOffset);
+      _renderAdaptiveTile(canvas, wx + half, wy + half, half, localOffset);
     }
   }
 

@@ -39,8 +39,6 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInfoRow('道号', d.name),
-            _buildInfoRow('性别', d.gender == 'male' ? '男' : '女'),
-            _buildInfoRow('年龄', '${d.age} 岁'),
             _buildInfoRow('境界', d.realm),
             _buildPowerRow(),
             _buildInfoRow(
@@ -166,7 +164,7 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Row(
             children: [
               const Text(
