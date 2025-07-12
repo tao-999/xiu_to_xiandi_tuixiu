@@ -29,6 +29,9 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   /// 所属spawner
   final FloatingIslandDynamicSpawnerComponent spawner;
 
+  /// 默认是否朝右
+  final bool defaultFacingRight;
+
   /// 自定义碰撞
   void Function(Set<Vector2> points, PositionComponent other)? onCustomCollision;
 
@@ -40,6 +43,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     this.speed = 30,
     required this.movementBounds,
     this.spritePath,
+    required this.defaultFacingRight,
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
@@ -77,22 +81,19 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     final nextTerrain = spawner.getTerrainType(nextPos);
 
     if (!spawner.allowedTerrains.contains(nextTerrain)) {
-      // 🚀 即将越界，换目标
       pickNewTarget();
       return;
     }
 
-    // 🚀 合法则更新逻辑坐标
     logicalPosition = nextPos;
 
-    // 🚀 Clamp到边界
+    // Clamp到边界
     final minX = movementBounds.left + size.x / 2;
     final maxX = movementBounds.right - size.x / 2;
     final minY = movementBounds.top + size.y / 2;
     final maxY = movementBounds.bottom - size.y / 2;
 
     if (minX >= maxX || minY >= maxY) {
-      // 🚀 边界太小，重置到中心
       logicalPosition = movementBounds.center.toVector2();
     } else {
       logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
@@ -106,33 +107,50 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
   void pickNewTarget() {
     final rand = Random();
-    targetPosition = Vector2(
-      movementBounds.left + rand.nextDouble() * movementBounds.width,
-      movementBounds.top + rand.nextDouble() * movementBounds.height,
-    );
+
+    final minDistance = 500.0;
+    final maxDistance = 800.0;
+
+    // 🌟 随机一个方向向量
+    Vector2 dir;
+    do {
+      dir = Vector2(
+        rand.nextDouble() * 2 - 1, // [-1,1]
+        rand.nextDouble() * 2 - 1, // [-1,1]
+      );
+    } while (dir.length < 0.1); // 避免接近零向量
+
+    dir.normalize();
+
+    final distance = minDistance + rand.nextDouble() * (maxDistance - minDistance);
+    final offset = dir * distance;
+
+    targetPosition = logicalPosition + offset;
+
+    final movingRight = targetPosition.x > logicalPosition.x;
+    final sameDirection =
+        (defaultFacingRight && movingRight) || (!defaultFacingRight && !movingRight);
+
+    scale.x = sameDirection ? 1 : -1;
   }
 
   @override
   void onCollision(Set<Vector2> points, PositionComponent other) {
     if (onCustomCollision != null) {
-      // 如果外部有自定义碰撞回调
       onCustomCollision!(points, other);
     } else if (collisionCooldown <= 0) {
       if (other is FloatingIslandPlayerComponent) {
-        // 🚀 和角色碰撞：双方弹开
         final delta = logicalPosition - other.logicalPosition;
         final rebound = delta.length > 0.01
             ? delta.normalized()
             : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
 
-        logicalPosition += rebound * 10; // 自己弹开
-        other.logicalPosition -= rebound * 5; // 角色也弹开
+        logicalPosition += rebound * 10;
+        other.logicalPosition -= rebound * 5;
 
-        // 换目标
         pickNewTarget();
         collisionCooldown = 0.5;
       } else {
-        // 🚀 和其他漂浮物或物体碰撞：只自己换目标
         pickNewTarget();
         collisionCooldown = 0.5;
       }

@@ -27,6 +27,9 @@ class DynamicSpriteEntry {
   /// 最大速度
   final double? maxSpeed;
 
+  /// 默认是否朝右（true=默认朝右，false=默认朝左）
+  final bool defaultFacingRight;
+
   const DynamicSpriteEntry(
       this.path,
       this.weight, {
@@ -37,5 +40,6 @@ class DynamicSpriteEntry {
         this.tileSize,
         this.minSpeed,
         this.maxSpeed,
+        this.defaultFacingRight = true, // 新增
       });
 }

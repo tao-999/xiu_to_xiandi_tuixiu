@@ -71,10 +71,10 @@ class RockDecorator extends Component {
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
-        minDynamicObjectSize: 8,
+        minDynamicObjectSize: 16,
         maxDynamicObjectSize: 32,
-        minSpeed: 15,
-        maxSpeed: 35,
+        minSpeed: 50,
+        maxSpeed: 150,
         onDynamicComponentCreated: (mover, terrain) {
           mover.onCustomCollision = (points, other) {
             if (other is FloatingIslandPlayerComponent) {

@@ -188,6 +188,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         speed: speedValue,
         size: Vector2.all(sizeValue),
         spritePath: selected.path,
+        defaultFacingRight: selected.defaultFacingRight,
       );
 
       onDynamicComponentCreated?.call(mover, terrain);

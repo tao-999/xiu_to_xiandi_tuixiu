@@ -37,14 +37,18 @@ class ForestDecorator extends Component {
             StaticSpriteEntry('floating_island/tree_3.png', 1),
             StaticSpriteEntry('floating_island/tree_4.png', 1),
             StaticSpriteEntry('floating_island/tree_5.png', 1),
+            StaticSpriteEntry('floating_island/tree_6.png', 1),
+            StaticSpriteEntry('floating_island/tree_7.png', 1),
+            StaticSpriteEntry('floating_island/tree_8.png', 1),
+            StaticSpriteEntry('floating_island/tree_9.png', 1),
           ],
         },
         staticTileSize: 64.0,
         seed: seed,
-        minCount: 2,
-        maxCount: 9,
+        minCount: 1,
+        maxCount: 5,
         minSize: 16.0,
-        maxSize: 48.0,
+        maxSize: 64.0,
       ),
     );
 
@@ -59,8 +63,14 @@ class ForestDecorator extends Component {
         allowedTerrains: {'forest'},
         dynamicSpritesMap: {
           'forest': [
-            DynamicSpriteEntry('floating_island/tree_d_1.png', 1),
-            DynamicSpriteEntry('floating_island/tree_d_2.png', 1),
+            DynamicSpriteEntry('floating_island/tree_d_1.png', 1,
+              defaultFacingRight: false,
+            ),
+            DynamicSpriteEntry(
+              'floating_island/tree_d_2.png',
+              1,
+              defaultFacingRight: false,
+            ),
             DynamicSpriteEntry('floating_island/tree_d_3.png', 1),
           ],
         },
@@ -68,10 +78,10 @@ class ForestDecorator extends Component {
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
-        minDynamicObjectSize: 8.0,
-        maxDynamicObjectSize: 48.0,
-        minSpeed: 10.0,
-        maxSpeed: 30.0,
+        minDynamicObjectSize: 16.0,
+        maxDynamicObjectSize: 64.0,
+        minSpeed: 20.0,
+        maxSpeed: 100.0,
       ),
     );
   }

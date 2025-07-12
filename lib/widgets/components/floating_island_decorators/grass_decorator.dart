@@ -61,10 +61,12 @@ class GrassDecorator extends Component {
         dynamicSpritesMap: {
           'grass': [
             DynamicSpriteEntry('floating_island/grass_d_1.png', 1),
-            DynamicSpriteEntry('floating_island/grass_d_2.png', 1),
+            DynamicSpriteEntry('floating_island/grass_d_2.png', 1,
+              defaultFacingRight: false,
+            ),
           ],
         },
-        dynamicTileSize: 128.0,
+        dynamicTileSize: 64.0,
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
