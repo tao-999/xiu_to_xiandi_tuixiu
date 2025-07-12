@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flame/components.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:hive/hive.dart';
 
 class ZongmenDiplomacyService {
@@ -42,7 +43,7 @@ class ZongmenDiplomacyService {
   static Future<Map<String, dynamic>> load() async {
     final box = await _getBox();
     final sectData = box.get('sects') as List<dynamic>? ?? [];
-    final playerData = box.get('player') as Map<dynamic, dynamic>? ?? {'x': 0.0, 'y': 0.0};
+    final playerData = box.get('player') as Map<dynamic, dynamic>?;
 
     // 解析宗门
     final sectPositions = sectData.map((e) {
@@ -54,10 +55,17 @@ class ZongmenDiplomacyService {
     }).toList();
 
     // 解析角色
-    final playerPosition = Vector2(
-      (playerData['x'] as num).toDouble(),
-      (playerData['y'] as num).toDouble(),
-    );
+    Vector2 playerPosition;
+    if (playerData == null) {
+      playerPosition = Vector2(2560.0, 2560.0);
+      debugPrint('[DiplomacyMap] 玩家位置为空，使用默认中心: $playerPosition');
+    } else {
+      playerPosition = Vector2(
+        (playerData['x'] as num).toDouble(),
+        (playerData['y'] as num).toDouble(),
+      );
+      debugPrint('[DiplomacyMap] 玩家位置加载: $playerPosition');
+    }
 
     return {
       'sects': sectPositions,

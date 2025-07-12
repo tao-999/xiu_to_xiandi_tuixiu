@@ -1,54 +1,48 @@
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart' hide Image;
 
 import '../../utils/noise_utils.dart';
 
-class _ChunkCacheEntry {
-  DateTime lastAccess;
-  _ChunkCacheEntry() : lastAccess = DateTime.now();
-}
-
 class DiplomacyNoiseTileMapGenerator extends PositionComponent {
+  // ====== 关键参数 ======
+  static const int chunkPixelSize = 512;
+  static const int chunkCountX = 10;
+  static const int chunkCountY = 10;
+
   final double tileSize;
   final double smallTileSize;
-  final int chunkPixelSize;
+
   final int seed;
   final double frequency;
   final int octaves;
   final double persistence;
 
-  static const double maxMapSize = 2500.0;
+  final double mapWidth = chunkCountX * chunkPixelSize.toDouble();
+  final double mapHeight = chunkCountY * chunkPixelSize.toDouble();
 
   double viewScale = 1.0;
   Vector2 viewSize = Vector2.zero();
   Vector2 logicalOffset = Vector2.zero();
 
-  final int maxChunkCache = 128;
-  final int maxRecursionDepth = 12; // 🚀调低递归深度
+  final int maxRecursionDepth = 12;
 
-  final Map<String, _ChunkCacheEntry> _chunkCache = {};
   final Map<String, ui.Image> _readyChunkImages = {};
+  final List<_PendingChunk> _pendingChunks = [];
+  int _chunksGeneratedThisFrame = 0;
+
   final NoiseUtils _noiseHeight;
 
   Vector2? _lastEnsureCenter;
 
-  // 分帧加载队列
-  final List<_PendingChunk> _pendingChunks = [];
-  int _chunksGeneratedThisFrame = 0;
-
   DiplomacyNoiseTileMapGenerator({
     this.tileSize = 64.0,
-    this.smallTileSize = 8.0,
-    this.chunkPixelSize = 256,
+    this.smallTileSize = 4.0, // 保证保留
     this.seed = 2024,
     this.frequency = 0.002,
     this.octaves = 4,
     this.persistence = 0.5,
-  })  : assert(chunkPixelSize >= 32 && chunkPixelSize <= 4096),
-        assert(tileSize <= chunkPixelSize),
-        _noiseHeight = NoiseUtils(seed);
+  }) : _noiseHeight = NoiseUtils(seed);
 
   @override
   Future<void> onLoad() async {}
@@ -63,43 +57,8 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
 
     final startChunkX = (topLeft.x / chunkPixelSize).floor();
     final startChunkY = (topLeft.y / chunkPixelSize).floor();
-    final endChunkX = (bottomRight.x / chunkPixelSize).ceil();
-    final endChunkY = (bottomRight.y / chunkPixelSize).ceil();
-
-    final keepKeys = <String>{};
-
-    for (int cx = startChunkX; cx <= endChunkX; cx++) {
-      for (int cy = startChunkY; cy <= endChunkY; cy++) {
-        final key = '${cx}_${cy}';
-        keepKeys.add(key);
-
-        if (_chunkCache.containsKey(key)) {
-          _chunkCache[key]?.lastAccess = DateTime.now();
-        }
-      }
-    }
-
-    // LRU 清理
-    if (_chunkCache.length > maxChunkCache) {
-      final sortedKeys = _chunkCache.entries.toList()
-        ..sort((a, b) => a.value.lastAccess.compareTo(b.value.lastAccess));
-      final removeCount = _chunkCache.length - maxChunkCache;
-      for (int i = 0; i < removeCount; i++) {
-        final key = sortedKeys[i].key;
-        final img = _readyChunkImages.remove(key);
-        img?.dispose();
-        _chunkCache.remove(key);
-      }
-    }
-
-    _chunkCache.removeWhere((k, v) {
-      if (!keepKeys.contains(k)) {
-        final img = _readyChunkImages.remove(k);
-        img?.dispose();
-        return true;
-      }
-      return false;
-    });
+    final endChunkX = ((bottomRight.x) / chunkPixelSize).ceil() - 1;
+    final endChunkY = ((bottomRight.y) / chunkPixelSize).ceil() - 1;
 
     // 绘制已生成的图片
     for (int cx = startChunkX; cx <= endChunkX; cx++) {
@@ -112,7 +71,7 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
         if (img != null) {
           canvas.drawImage(
             img,
-            Offset(chunkLeft - logicalOffset.x, chunkTop - logicalOffset.y),
+            ui.Offset(chunkLeft - logicalOffset.x, chunkTop - logicalOffset.y),
             ui.Paint(),
           );
         }
@@ -151,14 +110,16 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
         final wx = originX + x;
         final wy = originY + y;
 
-        if (wx.abs() >= maxMapSize || wy.abs() >= maxMapSize) continue;
+        // 只绘制地图有效范围内的tile
+        if (wx < 0 || wx >= mapWidth) continue;
+        if (wy < 0 || wy >= mapHeight) continue;
 
         _renderAdaptiveTile(
           canvas,
           wx,
           wy,
           tileSize,
-          Offset(-originX, -originY),
+          ui.Offset(-originX, -originY),
           0,
         );
       }
@@ -173,11 +134,14 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
       double wx,
       double wy,
       double size,
-      Offset offset,
+      ui.Offset offset,
       int depth,
       ) {
     if (depth > maxRecursionDepth) return;
-    if ((wx + size).abs() >= maxMapSize || (wy + size).abs() >= maxMapSize) return;
+
+    // 只画有效地图区域
+    if (wx < 0 || wx + size > mapWidth) return;
+    if (wy < 0 || wy + size > mapHeight) return;
 
     final levels = [
       _getHeightLevel(_getNoiseValue(wx, wy)),
@@ -186,12 +150,6 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
       _getHeightLevel(_getNoiseValue(wx + size, wy + size)),
       _getHeightLevel(_getNoiseValue(wx + size / 2, wy + size / 2)),
     ];
-
-    final isFullSea = levels.every((l) => l == 0);
-    if (isFullSea) {
-      _drawRect(canvas, wx, wy, size, offset, const ui.Color(0xFF66AACC));
-      return;
-    }
 
     final isUniform = levels.toSet().length == 1 || size <= smallTileSize;
     if (isUniform) {
@@ -212,7 +170,7 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
       double wx,
       double wy,
       double size,
-      Offset offset,
+      ui.Offset offset,
       ui.Color color,
       ) {
     final dx = wx + offset.dx;
@@ -240,7 +198,8 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
   }
 
   String? getTerrainTypeAtPosition(Vector2 worldPos) {
-    if (worldPos.x.abs() >= maxMapSize || worldPos.y.abs() >= maxMapSize) return null;
+    if (worldPos.x < 0 || worldPos.x >= mapWidth) return null;
+    if (worldPos.y < 0 || worldPos.y >= mapHeight) return null;
     final value = _getNoiseValue(worldPos.x, worldPos.y);
     return _getTerrainType(value);
   }
@@ -252,18 +211,13 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
     return 'mountain';
   }
 
-  /// 🚀防抖+队列生成
+  /// 🚀 分帧生成chunk队列
   Future<void> ensureChunksForView({
     required Vector2 center,
     required Vector2 extra,
     bool forceImmediate = false,
   }) async {
     final roundedCenter = Vector2(center.x.roundToDouble(), center.y.roundToDouble());
-    if (_lastEnsureCenter != null &&
-        (_lastEnsureCenter! - roundedCenter).length < 1) {
-      return;
-    }
-    _lastEnsureCenter = roundedCenter;
 
     final scale = viewScale;
     final visibleSize = viewSize / scale;
@@ -273,47 +227,24 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
 
     final startChunkX = (topLeft.x / chunkPixelSize).floor();
     final startChunkY = (topLeft.y / chunkPixelSize).floor();
-    final endChunkX = (bottomRight.x / chunkPixelSize).ceil();
-    final endChunkY = (bottomRight.y / chunkPixelSize).ceil();
-
-    final awaitList = <Future<ui.Image>>[];
+    final endChunkX = ((bottomRight.x) / chunkPixelSize).ceil() - 1;
+    final endChunkY = ((bottomRight.y) / chunkPixelSize).ceil() - 1;
 
     for (int cx = startChunkX; cx <= endChunkX; cx++) {
       for (int cy = startChunkY; cy <= endChunkY; cy++) {
         final chunkLeft = cx * chunkPixelSize.toDouble();
         final chunkTop = cy * chunkPixelSize.toDouble();
 
-        if (chunkLeft.abs() >= maxMapSize || chunkTop.abs() >= maxMapSize) continue;
+        if (chunkLeft < 0 || chunkLeft >= mapWidth) continue;
+        if (chunkTop < 0 || chunkTop >= mapHeight) continue;
 
         final key = '${cx}_${cy}';
+        if (_readyChunkImages.containsKey(key)) continue;
 
-        if (_readyChunkImages.containsKey(key)) {
-          continue; // 已生成
-        }
-
-        if (!_chunkCache.containsKey(key)) {
-          _chunkCache[key] = _ChunkCacheEntry();
-
-          if (forceImmediate) {
-            // 一次性生成
-            awaitList.add(
-              _generateChunkImage(cx, cy, key).then((img) {
-                _readyChunkImages[key] = img;
-                return img;
-              }),
-            );
-          } else {
-            // 分帧排队
-            if (!_pendingChunks.any((e) => e.key == key)) {
-              _pendingChunks.add(_PendingChunk(cx, cy, key));
-            }
-          }
+        if (!_pendingChunks.any((e) => e.key == key)) {
+          _pendingChunks.add(_PendingChunk(cx, cy, key));
         }
       }
-    }
-
-    if (awaitList.isNotEmpty) {
-      await Future.wait(awaitList);
     }
   }
 }

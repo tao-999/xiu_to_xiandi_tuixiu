@@ -175,6 +175,11 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
       await Hive.box('terrain_events').close();
       print('[Hive] Closed box: terrain_events');
     }
+    // zongmen_diplomacy
+    if (Hive.isBoxOpen('zongmen_diplomacy')) {
+      await Hive.box('zongmen_diplomacy').close();
+      print('[Hive] Closed box: zongmen_diplomacy');
+    }
   }
 
   @override

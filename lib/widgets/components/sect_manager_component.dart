@@ -11,7 +11,8 @@ class SectManagerComponent extends Component {
   final Component grid;
   final Vector2 Function() getLogicalOffset;
   final Vector2 Function() getViewSize;
-  final double mapMaxSize;
+  final double mapWidth;
+  final double mapHeight;
   final double sectImageSize;
   final int sectCount;
   final double sectCircleRadius;
@@ -23,7 +24,8 @@ class SectManagerComponent extends Component {
     required this.grid,
     required this.getLogicalOffset,
     required this.getViewSize,
-    this.mapMaxSize = 2500.0,
+    required this.mapWidth,
+    required this.mapHeight,
     this.sectImageSize = 192.0,
     this.sectCount = 30,
     this.sectCircleRadius = 512.0,
@@ -31,7 +33,7 @@ class SectManagerComponent extends Component {
 
   @override
   Future<void> onLoad() async {
-    // 🌟加载所有宗门图片
+    // 🌟加载宗门贴图
     for (var info in SectInfo.allSects) {
       _sectImageCache[info.id] =
       await Flame.images.load('zongmen/${info.id}.png');
@@ -40,26 +42,24 @@ class SectManagerComponent extends Component {
     // 🌟加载持久化坐标
     final data = await ZongmenDiplomacyService.load();
     final savedPositions = data['sects'] as List<MapEntry<int, Vector2>>;
-    final savedPositionMap = { for (var e in savedPositions) e.key : e.value };
+    final savedPositionMap = {for (var e in savedPositions) e.key: e.value};
 
-    // 🌟初始化宗门位置
     final random = Random();
     final List<Vector2> positions = [];
 
-    // 最小距离(0,0)
-    final double minDistanceFromCenter = 800.0;
-
+    // 🌟初始化宗门位置
     for (var info in SectInfo.allSects) {
       Vector2 pos;
 
       if (savedPositionMap.containsKey(info.id)) {
         pos = savedPositionMap[info.id]!;
       } else {
-        do {
-          final x = random.nextDouble() * (mapMaxSize * 2) - mapMaxSize;
-          final y = random.nextDouble() * (mapMaxSize * 2) - mapMaxSize;
-          pos = Vector2(x, y);
-        } while (pos.length < minDistanceFromCenter);
+        pos = Vector2(
+          sectCircleRadius +
+              random.nextDouble() * (mapWidth - 2 * sectCircleRadius),
+          sectCircleRadius +
+              random.nextDouble() * (mapHeight - 2 * sectCircleRadius),
+        );
       }
 
       positions.add(pos);
@@ -79,7 +79,7 @@ class SectManagerComponent extends Component {
       grid.add(sect);
     }
 
-    // 🌟打印所有坐标
+    // 🌟打印坐标
     final coords = positions
         .map((v) => '(${v.x.toStringAsFixed(2)},${v.y.toStringAsFixed(2)})')
         .join(',');
@@ -93,7 +93,19 @@ class SectManagerComponent extends Component {
     final offset = getLogicalOffset();
 
     for (final s in _sects) {
-      s.updatePhysics(_sects, dt, mapMaxSize);
+      // 物理更新（避免宗门互相重叠）
+      s.updatePhysics(_sects, dt, max(mapWidth, mapHeight));
+
+      // 🌟限制在地图内
+      final pos = s.worldPosition;
+
+      final clampedX = pos.x.clamp(s.circleRadius, mapWidth - s.circleRadius);
+      final clampedY = pos.y.clamp(s.circleRadius, mapHeight - s.circleRadius);
+
+      if (pos.x != clampedX || pos.y != clampedY) {
+        s.worldPosition = Vector2(clampedX, clampedY);
+      }
+
       s.updateVisualPosition(offset);
     }
   }
