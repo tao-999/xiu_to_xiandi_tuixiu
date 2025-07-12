@@ -22,8 +22,13 @@ class NoiseUtils {
     return g[0] * x + g[1] * y;
   }
 
-  /// 🌱 Perlin噪声
-  double perlin(double x, double y) {
+  /// 🌱 Perlin噪声 (支持repeat)
+  double perlin(double x, double y, [int? repeat]) {
+    if (repeat != null) {
+      x = x % repeat;
+      y = y % repeat;
+    }
+
     int X = x.floor() & 255;
     int Y = y.floor() & 255;
 
@@ -44,24 +49,23 @@ class NoiseUtils {
     return lerp(x1, x2, v);
   }
 
-  /// 🔁 fBM
-  double fbm(double x, double y, int octaves, double frequency, double persistence) {
+  /// 🔁 fBM (支持repeat)
+  double fbm(double x, double y, int octaves, double frequency, double persistence, [int? repeat]) {
     double total = 0.0;
     double amplitude = 1.0;
     double maxAmplitude = 0.0;
 
     for (int i = 0; i < octaves; i++) {
-      total += perlin(x * frequency, y * frequency) * amplitude;
+      double f = frequency * pow(2.0, i);
+      total += perlin(x * f, y * f, repeat) * amplitude;
       maxAmplitude += amplitude;
       amplitude *= persistence;
-      frequency *= 2.0;
     }
-    return total / maxAmplitude; // [-1,1]
+    return total / maxAmplitude;
   }
 
   /// 🌈 Simplex Noise (简易近似)
   double simplex(double x, double y) {
-    // 简化版: Perlin替代 (真正Simplex实现较复杂)
     return perlin(x, y);
   }
 

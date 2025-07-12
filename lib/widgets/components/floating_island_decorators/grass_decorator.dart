@@ -3,6 +3,7 @@ import '../floating_island_static_spawner_component.dart';
 import '../floating_island_dynamic_spawner_component.dart';
 import '../noise_tile_map_generator.dart';
 import '../dynamic_sprite_entry.dart';
+import '../static_sprite_entry.dart';
 
 class GrassDecorator extends Component {
   final Component grid;

@@ -3,7 +3,6 @@ import 'floating_island_decorators/beach_decorator.dart';
 import 'floating_island_decorators/flower_field_decorator.dart';
 import 'floating_island_decorators/forest_decorator.dart';
 import 'floating_island_decorators/grass_decorator.dart';
-import 'floating_island_decorators/mud_decorator.dart';
 import 'floating_island_decorators/shallow_ocean_decorator.dart';
 import 'floating_island_decorators/rock_decorator.dart';
 import 'floating_island_decorators/snow_decorator.dart';
@@ -29,7 +28,6 @@ class FloatingIslandDecorators extends Component {
   Future<void> onLoad() async {
     // 🟢 这里是装饰器构造器列表
     final builders = [
-      MudDecorator.new,
       ForestDecorator.new,
       BeachDecorator.new,
       ShallowOceanDecorator.new,

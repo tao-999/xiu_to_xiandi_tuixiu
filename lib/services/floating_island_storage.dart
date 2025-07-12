@@ -8,6 +8,13 @@ class FloatingIslandStorage {
     _box = await Hive.openBox('floating_island');
   }
 
+  static Future<Box> ensureBoxAndGet() async {
+    if (_box == null) {
+      _box = await Hive.openBox('floating_island');
+    }
+    return _box!;
+  }
+
   /// 保存角色位置
   static Future<void> savePlayerPosition(double x, double y) async {
     await _ensureBox();
@@ -100,6 +107,39 @@ class FloatingIslandStorage {
   static Future<void> removeDynamicObjectsForTile(String tileKey) async {
     await _ensureBox();
     await _box!.delete('dynamic_$tileKey');
+  }
+
+  /// 保存某个tile的静态对象列表
+  static Future<void> saveStaticObjectsForTile(
+      String tileKey,
+      List<Map<String, dynamic>> objects,
+      ) async {
+    await _ensureBox();
+    await _box!.put('static_$tileKey', objects);
+    print('[FloatingIslandStorage] Saved static objects for $tileKey (${objects.length} items)');
+  }
+
+  /// 加载某个tile的静态对象列表
+  static Future<List<Map<String, dynamic>>?> getStaticObjectsForTile(String tileKey) async {
+    await _ensureBox();
+    final result = _box!.get('static_$tileKey');
+    if (result is List) {
+      print('[FloatingIslandStorage] Loaded static objects for $tileKey (${result.length} items)');
+      return List<Map<String, dynamic>>.from(result);
+    }
+    return null;
+  }
+
+  /// 删除某个tile的静态对象
+  static Future<void> removeStaticObjectsForTile(String tileKey) async {
+    await _ensureBox();
+    await _box!.delete('static_$tileKey');
+    print('[FloatingIslandStorage] Removed static objects for $tileKey');
+  }
+
+  static Future<bool> staticTileExists(String tileKey) async {
+    await _ensureBox();
+    return _box!.containsKey('static_$tileKey');
   }
 
 }

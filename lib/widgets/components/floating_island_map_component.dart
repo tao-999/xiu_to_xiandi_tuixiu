@@ -18,7 +18,7 @@ class FloatingIslandMapComponent extends FlameGame
   late final InfiniteGridPainterComponent _grid;
   late final NoiseTileMapGenerator _noiseMapGenerator;
 
-  final int seed; // 🌟 外部可传入seed
+  final int seed;
   late final FloatingIslandDynamicSpawnerComponent spawner;
 
   FloatingIslandPlayerComponent? player;
@@ -26,18 +26,18 @@ class FloatingIslandMapComponent extends FlameGame
   bool isCameraFollowing = false;
 
   FloatingIslandMapComponent({
-    this.seed = 8888, // 🌟 默认seed
+    this.seed = 8888,
   });
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+
     add(
       FpsTextComponent()
         ..anchor = Anchor.topLeft
         ..position = Vector2(10, 10),
     );
-
 
     WidgetsBinding.instance.addObserver(this);
     debugPrint('[FloatingIslandMap] onLoad started.');
@@ -46,18 +46,16 @@ class FloatingIslandMapComponent extends FlameGame
     _noiseMapGenerator = NoiseTileMapGenerator(
       tileSize: 64.0,
       smallTileSize: 4,
-      seed: seed, // 🌟 使用统一seed
-      frequency: 0.00008,
-      octaves: 8,
+      chunkPixelSize: 512,
+      seed: seed,
+      frequency: 0.00006,
+      octaves: 9,
       persistence: 0.7,
     );
-
-    await _noiseMapGenerator.onLoad();
 
     // ✅ 创建网格
     _grid = InfiniteGridPainterComponent(generator: _noiseMapGenerator);
     debugPrint('[FloatingIslandMap] Grid created.');
-
     add(_grid);
 
     // ✅ 创建 DragMap
@@ -70,96 +68,110 @@ class FloatingIslandMapComponent extends FlameGame
       onTap: (tapPos) {
         final worldPos = logicalOffset + (tapPos - size / 2);
         player?.moveTo(worldPos);
-
         isCameraFollowing = true;
         debugPrint('[Map] Tap to move and start following.');
       },
       showGrid: false,
     );
-
     add(_dragMap);
     debugPrint('[FloatingIslandMap] DragMap added.');
 
-    await Future.delayed(Duration.zero);
+    // 🌟 所有后续逻辑放到后台执行
+    Future.microtask(() async {
+      // 加载存档
+      final pos = await FloatingIslandStorage.getPlayerPosition();
+      final cam = await FloatingIslandStorage.getCameraOffset();
 
-    final pos = await FloatingIslandStorage.getPlayerPosition();
-    final cam = await FloatingIslandStorage.getCameraOffset();
+      if (cam != null) {
+        logicalOffset = Vector2(cam['x']!, cam['y']!);
+        debugPrint('[FloatingIslandMap] Loaded logicalOffset: $logicalOffset');
+      } else {
+        logicalOffset = Vector2.zero();
+        debugPrint('[FloatingIslandMap] Default logicalOffset: $logicalOffset');
+      }
 
-    if (cam != null) {
-      logicalOffset = Vector2(cam['x']!, cam['y']!);
-      debugPrint('[FloatingIslandMap] Loaded logicalOffset: $logicalOffset');
-    } else {
-      logicalOffset = Vector2.zero();
-      debugPrint('[FloatingIslandMap] Default logicalOffset: $logicalOffset');
-    }
+      _grid.position = size / 2;
 
-    _grid.position = size / 2;
+      // 玩家
+      player = FloatingIslandPlayerComponent()..anchor = Anchor.center;
+      _grid.add(player!);
+      debugPrint('[FloatingIslandMap] Player added.');
 
-    player = FloatingIslandPlayerComponent()..anchor = Anchor.center;
-    _grid.add(player!);
-    debugPrint('[FloatingIslandMap] Player added.');
-
-    if (pos != null) {
-      Future.microtask(() {
+      if (pos != null) {
         player!.logicalPosition = Vector2(pos['x']!, pos['y']!);
         debugPrint('[FloatingIslandMap] Loaded player logicalPosition: ${player!.logicalPosition}');
         player!.notifyPositionChanged();
-
         logicalOffset = player!.logicalPosition.clone();
         isCameraFollowing = true;
-        debugPrint('[FloatingIslandMap] Auto focus to player after load.');
-      });
-    } else {
-      Future.microtask(() {
+      } else {
         player!.logicalPosition = Vector2.zero();
         debugPrint('[FloatingIslandMap] Default player logicalPosition: ${player!.logicalPosition}');
         logicalOffset = Vector2.zero();
         isCameraFollowing = true;
-        debugPrint('[FloatingIslandMap] Auto focus to default position.');
-      });
-    }
+      }
 
-    // 🌟 一行搞定所有生成器
-    add(
-      FloatingIslandDecorators(
-        grid: _grid,
-        getLogicalOffset: () => logicalOffset,
-        getViewSize: () => size,
-        noiseMapGenerator: _noiseMapGenerator,
-        seed: seed, // 🌟 使用统一seed
-      ),
-    );
+      // 🌟 核心区域先分帧加载 (不阻塞)
+      _noiseMapGenerator.ensureChunksForView(
+        center: logicalOffset,
+        extra: size * 1.2,
+        forceImmediate: false,
+      );
 
-    add(
-      FloatingIslandCleanupManager(
-        grid: _grid,
-        getLogicalOffset: () => logicalOffset,
-        getViewSize: () => size,
-        bufferSize: 256,
-        excludeComponents: {player!},
-      ),
-    );
+      // 🌟 周边区域分帧加载
+      _noiseMapGenerator.ensureChunksForView(
+        center: logicalOffset,
+        extra: size * 2,
+        forceImmediate: false,
+      );
 
+      // 🌟 装饰器
+      add(
+        FloatingIslandDecorators(
+          grid: _grid,
+          getLogicalOffset: () => logicalOffset,
+          getViewSize: () => size,
+          noiseMapGenerator: _noiseMapGenerator,
+          seed: seed,
+        ),
+      );
+
+      // 🌟 清理器
+      add(
+        FloatingIslandCleanupManager(
+          grid: _grid,
+          getLogicalOffset: () => logicalOffset,
+          getViewSize: () => size,
+          excludeComponents: {player!},
+        ),
+      );
+    });
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-// 🌟打印子组件数量
-//     debugPrint('[FloatingIslandMap] 子组件数量: ${_grid.children.length}');
+
     _grid
       ..viewScale = 1.0
       ..viewSize = size.clone();
 
+    // 🌟先分帧加载（无论有没有player）
+    _noiseMapGenerator.ensureChunksForView(
+      center: logicalOffset,
+      extra: size * 1.5,
+      forceImmediate: false,
+    );
+
+    // 🌟如果有player，再更新逻辑
     if (player != null) {
       if (isCameraFollowing) {
         logicalOffset = player!.logicalPosition.clone();
       }
+
       _grid.generator.logicalOffset = logicalOffset;
 
       player!.position = player!.logicalPosition - logicalOffset;
 
-      // 🌟 ✅ 小船（动态漂浮组件）位置
       for (final mover in _grid.children.whereType<FloatingIslandDynamicMoverComponent>()) {
         mover.updateVisualPosition(logicalOffset);
       }
@@ -201,11 +213,8 @@ class FloatingIslandMapComponent extends FlameGame
 
   void centerOnPlayer() {
     if (player != null) {
-      // 如果用 logicalOffset
       logicalOffset = player!.logicalPosition.clone();
-
-      // 如果用 camera
-      // camera.followVector2(player!.position);
+      isCameraFollowing = true;
     }
   }
 

@@ -28,14 +28,14 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
   final double minSpeed;
   final double maxSpeed;
 
-  /// 已加载的tile
-  final Set<String> _loadedDynamicTiles = <String>{};
-
-  Set<String> get loadedDynamicTiles => _loadedDynamicTiles;
-
-  /// 创建回调
   final void Function(FloatingIslandDynamicMoverComponent mover, String terrainType)?
   onDynamicComponentCreated;
+
+  final Set<String> _loadedDynamicTiles = <String>{};
+  Set<String> get loadedDynamicTiles => _loadedDynamicTiles;
+
+  final Map<String, Sprite> _spriteCache = {};
+  final List<_PendingTile> _pendingTiles = [];
 
   FloatingIslandDynamicSpawnerComponent({
     required this.grid,
@@ -57,6 +57,18 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
   });
 
   @override
+  Future<void> onLoad() async {
+    // 🌟一次性预加载所有Sprite
+    for (final entries in dynamicSpritesMap.values) {
+      for (final entry in entries) {
+        if (!_spriteCache.containsKey(entry.path)) {
+          _spriteCache[entry.path] = await Sprite.load(entry.path);
+        }
+      }
+    }
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
 
@@ -66,14 +78,28 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     final visibleTopLeft = offset - viewSize / 2;
     final visibleBottomRight = visibleTopLeft + viewSize;
 
-    _processDynamicTiles(visibleTopLeft, visibleBottomRight);
+    // 🌟先记录需要生成的tile，不立即生成
+    _collectPendingTiles(visibleTopLeft, visibleBottomRight);
+
+    // 🌟每帧最多生成N个tile
+    const int tilesPerFrame = 1;
+    int spawned = 0;
+    while (_pendingTiles.isNotEmpty && spawned < tilesPerFrame) {
+      final tile = _pendingTiles.removeAt(0);
+      _spawnDynamicComponentsForTile(tile.tx, tile.ty, tile.terrain);
+      spawned++;
+    }
   }
 
-  void _processDynamicTiles(Vector2 topLeft, Vector2 bottomRight) {
+  void _collectPendingTiles(Vector2 topLeft, Vector2 bottomRight) {
     final dStartX = (topLeft.x / dynamicTileSize).floor();
     final dStartY = (topLeft.y / dynamicTileSize).floor();
     final dEndX = (bottomRight.x / dynamicTileSize).ceil();
     final dEndY = (bottomRight.y / dynamicTileSize).ceil();
+
+    final center = getLogicalOffset();
+
+    final List<_PendingTile> newlyFound = [];
 
     for (int tx = dStartX; tx < dEndX; tx++) {
       for (int ty = dStartY; ty < dEndY; ty++) {
@@ -88,13 +114,22 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         final terrain = getTerrainType(tileCenter);
         if (!allowedTerrains.contains(terrain)) continue;
 
-        _spawnDynamicComponentsForTile(tx, ty, terrain);
+        newlyFound.add(_PendingTile(tx, ty, terrain));
         _loadedDynamicTiles.add(tileKey);
       }
     }
+
+    // 🌟排序：由近及远
+    newlyFound.sort((a, b) {
+      final d1 = (a.center(dynamicTileSize) - center).length;
+      final d2 = (b.center(dynamicTileSize) - center).length;
+      return d1.compareTo(d2);
+    });
+
+    _pendingTiles.addAll(newlyFound);
   }
 
-  Future<void> _spawnDynamicComponentsForTile(int tx, int ty, String terrain) async {
+  void _spawnDynamicComponentsForTile(int tx, int ty, String terrain) {
     final entries = dynamicSpritesMap[terrain] ?? [];
     if (entries.isEmpty) return;
 
@@ -119,7 +154,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
-      final sprite = await Sprite.load(selected.path);
+      final sprite = _spriteCache[selected.path]!;
       final minSize = selected.minSize ?? minDynamicObjectSize;
       final maxSize = selected.maxSize ?? maxDynamicObjectSize;
       final sizeValue = minSize + rand.nextDouble() * (maxSize - minSize);
@@ -171,5 +206,20 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       }
     }
     return entries.first;
+  }
+}
+
+class _PendingTile {
+  final int tx;
+  final int ty;
+  final String terrain;
+
+  _PendingTile(this.tx, this.ty, this.terrain);
+
+  Vector2 center(double tileSize) {
+    return Vector2(
+      tx * tileSize + tileSize / 2,
+      ty * tileSize + tileSize / 2,
+    );
   }
 }

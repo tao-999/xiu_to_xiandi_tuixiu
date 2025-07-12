@@ -6,6 +6,7 @@ import '../floating_island_dynamic_spawner_component.dart';
 import '../floating_island_player_component.dart';
 import '../floating_island_static_spawner_component.dart';
 import '../noise_tile_map_generator.dart';
+import '../static_sprite_entry.dart';
 
 class RockDecorator extends Component {
   final Component grid;

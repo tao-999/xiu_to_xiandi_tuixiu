@@ -3,6 +3,7 @@ import '../floating_island_static_spawner_component.dart';
 import '../floating_island_dynamic_spawner_component.dart';
 import '../noise_tile_map_generator.dart';
 import '../dynamic_sprite_entry.dart';
+import '../static_sprite_entry.dart';
 
 class ForestDecorator extends Component {
   final Component grid;
@@ -36,15 +37,6 @@ class ForestDecorator extends Component {
             StaticSpriteEntry('floating_island/tree_3.png', 1),
             StaticSpriteEntry('floating_island/tree_4.png', 1),
             StaticSpriteEntry('floating_island/tree_5.png', 1),
-            StaticSpriteEntry(
-              'floating_island/tile_zongmen_1.png',
-              1,
-              minSize: 32.0,
-              maxSize: 128.0,
-              minCount: 0,
-              maxCount: 1,
-              tileSize: 256.0,
-            ),
           ],
         },
         staticTileSize: 64.0,

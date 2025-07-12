@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 
 import '../floating_island_static_spawner_component.dart';
 import '../noise_tile_map_generator.dart';
+import '../static_sprite_entry.dart';
 
 class BeachDecorator extends Component {
   final Component grid;
