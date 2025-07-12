@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:flutter/cupertino.dart';
+import '../../services/zongmen_diplomacy_service.dart';
 import 'sect_component.dart';
 import 'sect_info.dart';
 
@@ -36,21 +37,30 @@ class SectManagerComponent extends Component {
       await Flame.images.load('zongmen/${info.id}.png');
     }
 
+    // 🌟加载持久化坐标
+    final data = await ZongmenDiplomacyService.load();
+    final savedPositions = data['sects'] as List<MapEntry<int, Vector2>>;
+    final savedPositionMap = { for (var e in savedPositions) e.key : e.value };
+
     // 🌟初始化宗门位置
     final random = Random();
     final List<Vector2> positions = [];
 
-    // 最小距离(0,0)  避免角色出生点
+    // 最小距离(0,0)
     final double minDistanceFromCenter = 800.0;
 
     for (var info in SectInfo.allSects) {
       Vector2 pos;
-      do {
-        final x = random.nextDouble() * (mapMaxSize * 2) - mapMaxSize;
-        final y = random.nextDouble() * (mapMaxSize * 2) - mapMaxSize;
-        pos = Vector2(x, y);
-        // 如果距离中心过近，重新随机
-      } while (pos.length < minDistanceFromCenter);
+
+      if (savedPositionMap.containsKey(info.id)) {
+        pos = savedPositionMap[info.id]!;
+      } else {
+        do {
+          final x = random.nextDouble() * (mapMaxSize * 2) - mapMaxSize;
+          final y = random.nextDouble() * (mapMaxSize * 2) - mapMaxSize;
+          pos = Vector2(x, y);
+        } while (pos.length < minDistanceFromCenter);
+      }
 
       positions.add(pos);
 

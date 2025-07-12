@@ -7,6 +7,8 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/player_sprite_util.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/sect_component.dart';
 
+import '../dialogs/sect_info_dialog.dart';
+
 class ZongmenDiplomacyPlayerComponent extends SpriteComponent
     with HasGameReference<FlameGame>, CollisionCallbacks {
   ZongmenDiplomacyPlayerComponent()
@@ -95,35 +97,13 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
       // 🚀再暂停地图
       game.pauseEngine();
 
-      // 🚀再弹窗
+      // 🚀弹框
       showDialog(
         context: game.buildContext!,
         barrierColor: Colors.transparent,
         barrierDismissible: true,
-        builder: (ctx) => Dialog(
-          backgroundColor: Color(0xFFFFF8E1),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                Text(
-                  '✨${other.info.name}\n'
-                      '✨ ${other.info.level}级宗门\n'
-                      '✨ ${other.info.description}',
-                  style: TextStyle(color: Colors.black87),
-                ),
-              ],
-            ),
-          ),
-        ),
+        builder: (ctx) => SectInfoDialog(sect: other),
       ).then((_) {
-        // 🚀只恢复地图，不再推开
         game.resumeEngine();
       });
     }

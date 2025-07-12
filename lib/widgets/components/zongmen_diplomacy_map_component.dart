@@ -32,6 +32,7 @@ class ZongmenDiplomacyMapComponent extends FlameGame
     _noiseMapGenerator = DiplomacyNoiseTileMapGenerator(
       tileSize: 64.0,
       smallTileSize: 4,
+      chunkPixelSize: 512,
       seed: 2024,
       frequency: 0.001,
       octaves: 6,
@@ -49,9 +50,10 @@ class ZongmenDiplomacyMapComponent extends FlameGame
       ..viewSize = size
       ..logicalOffset = logicalOffset;
 
-    await _noiseMapGenerator.ensureChunksForView(
+    _noiseMapGenerator.ensureChunksForView(
       center: logicalOffset + size / 2,
       extra: size,
+      forceImmediate: true,
     );
 
     // 添加宗门管理组件
@@ -92,7 +94,7 @@ class ZongmenDiplomacyMapComponent extends FlameGame
         ..position = Vector2(10, 10),
     );
 
-    // 🌟🌟🌟 加载保存位置
+    // 🌟加载保存位置
     final data = await ZongmenDiplomacyService.load();
 
     final sectPositions = data['sects'] as List<MapEntry<int, Vector2>>;
@@ -113,7 +115,7 @@ class ZongmenDiplomacyMapComponent extends FlameGame
     // 🌟把视角对准玩家
     logicalOffset = _player.logicalPosition - size / 2;
 
-    // 🌟（可选）后续持续跟随
+    // 🌟后续持续跟随
     isCameraFollowing = true;
 
     debugPrint('[DiplomacyMap] onLoad completed with restored positions.');
@@ -184,6 +186,14 @@ class ZongmenDiplomacyMapComponent extends FlameGame
     _noiseMapGenerator.ensureChunksForView(
       center: logicalOffset + size / 2,
       extra: size,
+      forceImmediate: false,
     );
+  }
+
+  /// 🌟新增：对外暴露定位方法
+  void centerViewOnPlayer() {
+    logicalOffset = _player.logicalPosition - size / 2;
+    isCameraFollowing = true;
+    debugPrint('📍 视角已定位到玩家');
   }
 }

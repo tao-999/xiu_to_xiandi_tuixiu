@@ -1,10 +1,14 @@
 import 'dart:math';
 import 'dart:ui' as ui;
-
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart' hide Image;
 
 import '../../utils/noise_utils.dart';
+
+class _ChunkCacheEntry {
+  DateTime lastAccess;
+  _ChunkCacheEntry() : lastAccess = DateTime.now();
+}
 
 class DiplomacyNoiseTileMapGenerator extends PositionComponent {
   final double tileSize;
@@ -21,13 +25,23 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
   Vector2 viewSize = Vector2.zero();
   Vector2 logicalOffset = Vector2.zero();
 
-  final Map<String, ui.Image?> _chunkCache = {};
+  final int maxChunkCache = 128;
+  final int maxRecursionDepth = 12; // 🚀调低递归深度
+
+  final Map<String, _ChunkCacheEntry> _chunkCache = {};
+  final Map<String, ui.Image> _readyChunkImages = {};
   final NoiseUtils _noiseHeight;
 
+  Vector2? _lastEnsureCenter;
+
+  // 分帧加载队列
+  final List<_PendingChunk> _pendingChunks = [];
+  int _chunksGeneratedThisFrame = 0;
+
   DiplomacyNoiseTileMapGenerator({
-    this.tileSize = 4.0,
-    this.smallTileSize = 1.0,
-    this.chunkPixelSize = 512,
+    this.tileSize = 64.0,
+    this.smallTileSize = 8.0,
+    this.chunkPixelSize = 256,
     this.seed = 2024,
     this.frequency = 0.002,
     this.octaves = 4,
@@ -37,17 +51,13 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
         _noiseHeight = NoiseUtils(seed);
 
   @override
-  Future<void> onLoad() async {
-    // 不预生成
-  }
+  Future<void> onLoad() async {}
 
   @override
   void render(ui.Canvas canvas) {
-    final scale = 1.0;
     final screenSize = viewSize;
     final visibleSize = screenSize;
 
-    // ❗ 直接用逻辑offset，不要再对齐
     final topLeft = logicalOffset;
     final bottomRight = logicalOffset + visibleSize;
 
@@ -60,42 +70,76 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
 
     for (int cx = startChunkX; cx <= endChunkX; cx++) {
       for (int cy = startChunkY; cy <= endChunkY; cy++) {
-        final chunkLeft = cx * chunkPixelSize.toDouble();
-        final chunkTop = cy * chunkPixelSize.toDouble();
-
-        // 🌟去掉死边界约束
         final key = '${cx}_${cy}';
         keepKeys.add(key);
 
-        if (!_chunkCache.containsKey(key)) {
-          _chunkCache[key] = null;
-          _generateChunkImage(cx, cy).then((img) {
-            _chunkCache[key] = img;
-          });
+        if (_chunkCache.containsKey(key)) {
+          _chunkCache[key]?.lastAccess = DateTime.now();
         }
       }
     }
 
-    // 清理不用的
-    _chunkCache.removeWhere((k, _) => !keepKeys.contains(k));
+    // LRU 清理
+    if (_chunkCache.length > maxChunkCache) {
+      final sortedKeys = _chunkCache.entries.toList()
+        ..sort((a, b) => a.value.lastAccess.compareTo(b.value.lastAccess));
+      final removeCount = _chunkCache.length - maxChunkCache;
+      for (int i = 0; i < removeCount; i++) {
+        final key = sortedKeys[i].key;
+        final img = _readyChunkImages.remove(key);
+        img?.dispose();
+        _chunkCache.remove(key);
+      }
+    }
 
+    _chunkCache.removeWhere((k, v) {
+      if (!keepKeys.contains(k)) {
+        final img = _readyChunkImages.remove(k);
+        img?.dispose();
+        return true;
+      }
+      return false;
+    });
+
+    // 绘制已生成的图片
     for (int cx = startChunkX; cx <= endChunkX; cx++) {
       for (int cy = startChunkY; cy <= endChunkY; cy++) {
         final chunkLeft = cx * chunkPixelSize.toDouble();
         final chunkTop = cy * chunkPixelSize.toDouble();
-
         final key = '${cx}_${cy}';
-        final img = _chunkCache[key];
+
+        final img = _readyChunkImages[key];
         if (img != null) {
-          final offsetX = (chunkLeft - logicalOffset.x);
-          final offsetY = (chunkTop - logicalOffset.y);
-          canvas.drawImage(img, Offset(offsetX, offsetY), ui.Paint());
+          canvas.drawImage(
+            img,
+            Offset(chunkLeft - logicalOffset.x, chunkTop - logicalOffset.y),
+            ui.Paint(),
+          );
         }
       }
     }
   }
 
-  Future<ui.Image> _generateChunkImage(int cx, int cy) async {
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    // 每帧限速生成最多2个chunk
+    _chunksGeneratedThisFrame = 0;
+    final pendingToGenerate = List<_PendingChunk>.from(_pendingChunks);
+    for (final pending in pendingToGenerate) {
+      if (_chunksGeneratedThisFrame >= 2) break;
+
+      _pendingChunks.remove(pending);
+      _chunksGeneratedThisFrame++;
+
+      _generateChunkImage(pending.cx, pending.cy, pending.key).then((img) {
+        _readyChunkImages[pending.key] = img;
+      });
+    }
+  }
+
+  Future<ui.Image> _generateChunkImage(int cx, int cy, String key) async {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
 
@@ -115,6 +159,7 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
           wy,
           tileSize,
           Offset(-originX, -originY),
+          0,
         );
       }
     }
@@ -129,7 +174,9 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
       double wy,
       double size,
       Offset offset,
+      int depth,
       ) {
+    if (depth > maxRecursionDepth) return;
     if ((wx + size).abs() >= maxMapSize || (wy + size).abs() >= maxMapSize) return;
 
     final levels = [
@@ -153,10 +200,10 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
       _drawRect(canvas, wx, wy, size, offset, color);
     } else {
       final half = size / 2;
-      _renderAdaptiveTile(canvas, wx, wy, half, offset);
-      _renderAdaptiveTile(canvas, wx + half, wy, half, offset);
-      _renderAdaptiveTile(canvas, wx, wy + half, half, offset);
-      _renderAdaptiveTile(canvas, wx + half, wy + half, half, offset);
+      _renderAdaptiveTile(canvas, wx, wy, half, offset, depth + 1);
+      _renderAdaptiveTile(canvas, wx + half, wy, half, offset, depth + 1);
+      _renderAdaptiveTile(canvas, wx, wy + half, half, offset, depth + 1);
+      _renderAdaptiveTile(canvas, wx + half, wy + half, half, offset, depth + 1);
     }
   }
 
@@ -205,21 +252,31 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
     return 'mountain';
   }
 
-  /// 🌟同步生成一个指定中心、指定额外范围的chunk
+  /// 🚀防抖+队列生成
   Future<void> ensureChunksForView({
     required Vector2 center,
     required Vector2 extra,
+    bool forceImmediate = false,
   }) async {
+    final roundedCenter = Vector2(center.x.roundToDouble(), center.y.roundToDouble());
+    if (_lastEnsureCenter != null &&
+        (_lastEnsureCenter! - roundedCenter).length < 1) {
+      return;
+    }
+    _lastEnsureCenter = roundedCenter;
+
     final scale = viewScale;
     final visibleSize = viewSize / scale;
 
-    final topLeft = center - visibleSize / 2 - extra / 2;
-    final bottomRight = center + visibleSize / 2 + extra / 2;
+    final topLeft = roundedCenter - visibleSize / 2 - extra / 2;
+    final bottomRight = roundedCenter + visibleSize / 2 + extra / 2;
 
     final startChunkX = (topLeft.x / chunkPixelSize).floor();
     final startChunkY = (topLeft.y / chunkPixelSize).floor();
     final endChunkX = (bottomRight.x / chunkPixelSize).ceil();
     final endChunkY = (bottomRight.y / chunkPixelSize).ceil();
+
+    final awaitList = <Future<ui.Image>>[];
 
     for (int cx = startChunkX; cx <= endChunkX; cx++) {
       for (int cy = startChunkY; cy <= endChunkY; cy++) {
@@ -229,11 +286,41 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
         if (chunkLeft.abs() >= maxMapSize || chunkTop.abs() >= maxMapSize) continue;
 
         final key = '${cx}_${cy}';
+
+        if (_readyChunkImages.containsKey(key)) {
+          continue; // 已生成
+        }
+
         if (!_chunkCache.containsKey(key)) {
-          _chunkCache[key] = await _generateChunkImage(cx, cy);
+          _chunkCache[key] = _ChunkCacheEntry();
+
+          if (forceImmediate) {
+            // 一次性生成
+            awaitList.add(
+              _generateChunkImage(cx, cy, key).then((img) {
+                _readyChunkImages[key] = img;
+                return img;
+              }),
+            );
+          } else {
+            // 分帧排队
+            if (!_pendingChunks.any((e) => e.key == key)) {
+              _pendingChunks.add(_PendingChunk(cx, cy, key));
+            }
+          }
         }
       }
     }
-  }
 
+    if (awaitList.isNotEmpty) {
+      await Future.wait(awaitList);
+    }
+  }
+}
+
+class _PendingChunk {
+  final int cx;
+  final int cy;
+  final String key;
+  _PendingChunk(this.cx, this.cy, this.key);
 }
