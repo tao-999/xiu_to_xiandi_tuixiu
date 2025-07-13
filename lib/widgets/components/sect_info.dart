@@ -19,7 +19,7 @@ class SectInfo {
     SectInfo(id: 2, name: '万剑宗', level: 2, description: '万剑齐出，剑破苍穹。', masterName: '白瑶芸'),
     SectInfo(id: 3, name: '太虚宗', level: 3, description: '太虚幻境，变化无穷。', masterName: '林梦溪'),
     SectInfo(id: 4, name: '青云宗', level: 4, description: '御剑青云，独步高空。', masterName: '叶初晴'),
-    SectInfo(id: 5, name: '焚天谷', level: 5, description: '焚尽天穹，烈焰滔天。', masterName: '姜明瑜'),
+    SectInfo(id: 5, name: '焚天谷', level: 5, description: '焚尽天穹，烈焰滔天。', masterName: '姜婉瑜'),
     SectInfo(id: 6, name: '金乌殿', level: 6, description: '金乌横空，烈日灼世。', masterName: '华凝霜'),
     SectInfo(id: 7, name: '幽冥殿', level: 7, description: '幽冥之地，亡魂归宿。', masterName: '洛冰璃'),
     SectInfo(id: 8, name: '紫霄宫', level: 8, description: '紫气东来，霄汉无极。', masterName: '苏绾烟'),
