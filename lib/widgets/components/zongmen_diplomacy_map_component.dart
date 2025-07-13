@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/sect_component.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/sect_info.dart';
 
 import '../../services/zongmen_diplomacy_service.dart';
 import 'drag_map.dart';
@@ -104,17 +105,25 @@ class ZongmenDiplomacyMapComponent extends FlameGame
     // 恢复存档
     final data = await ZongmenDiplomacyService.load();
 
-    final sectPositions = data['sects'] as List<MapEntry<int, Vector2>>;
+    final savedSects = data['sects'] as List<Map<String, dynamic>>;
     final playerPosition = data['player'] as Vector2?;
     debugPrint('[DiplomacyMap] 存档玩家位置: $playerPosition');
 
     // 恢复宗门位置
     for (final s in _noiseMapGenerator.children.whereType<SectComponent>()) {
-      final found = sectPositions.firstWhere(
-            (e) => e.key == s.info.id,
-        orElse: () => MapEntry(s.info.id, s.worldPosition),
+      final saved = savedSects.firstWhere(
+            (e) => (e['info'] as SectInfo).id == s.info.id,
+        orElse: () => {
+          'info': s.info,
+          'x': s.worldPosition.x,
+          'y': s.worldPosition.y,
+        },
       );
-      s.worldPosition = found.value;
+
+      s.worldPosition = Vector2(
+        saved['x'] as double,
+        saved['y'] as double,
+      );
     }
 
     // 恢复玩家位置，越界兜底
@@ -180,17 +189,29 @@ class ZongmenDiplomacyMapComponent extends FlameGame
 
   @override
   Future<void> saveAllPositions() async {
-    final sectPositions = _noiseMapGenerator.children
+    final sectData = _noiseMapGenerator.children
         .whereType<SectComponent>()
-        .map((s) => MapEntry(s.info.id, s.worldPosition))
+        .map((s) => {
+      'id': s.info.id,
+      'name': s.info.name,
+      'level': s.info.level,
+      'description': s.info.description,
+      'masterName': s.info.masterName,
+      'masterPower': s.info.masterPower,
+      'discipleCount': s.info.discipleCount,
+      'disciplePower': s.info.disciplePower,
+      'spiritStoneLow': s.info.spiritStoneLow.toString(),
+      'x': s.worldPosition.x,
+      'y': s.worldPosition.y,
+    })
         .toList();
 
     await ZongmenDiplomacyService.save(
-      sectPositions: sectPositions,
+      sectData: sectData,
       playerPosition: _player.logicalPosition,
     );
 
-    debugPrint('[DiplomacyMap] 已保存位置');
+    debugPrint('[DiplomacyMap] ✅ 已保存全部宗门数据和坐标');
   }
 
   @override

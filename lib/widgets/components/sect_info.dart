@@ -1,9 +1,16 @@
+import 'dart:math';
+
 class SectInfo {
-  final int id;        // 唯一ID
-  final String name;   // 宗门名字
-  final int level;     // 宗门等级
-  final String description; // 宗门描述
-  final String masterName;  // 宗主名字
+  final int id;               // 唯一ID
+  final String name;          // 宗门名字
+  final int level;            // 宗门等级
+  final String description;   // 宗门描述
+  final String masterName;    // 宗主名字
+
+  final int masterPower;      // 宗主战力
+  final int discipleCount;    // 弟子人数
+  final int disciplePower;    // 单个弟子战力
+  final BigInt spiritStoneLow; // 下品灵石数量
 
   const SectInfo({
     required this.id,
@@ -11,39 +18,93 @@ class SectInfo {
     required this.level,
     required this.description,
     required this.masterName,
+    required this.masterPower,
+    required this.discipleCount,
+    required this.disciplePower,
+    required this.spiritStoneLow,
   });
 
-  /// 🌟 30个宗门，等级1~30，全是三字女宗主名
-  static const List<SectInfo> allSects = [
-    SectInfo(id: 1, name: '天雷宗', level: 1, description: '掌控雷霆之力，震慑八荒。', masterName: '苏青璃'),
-    SectInfo(id: 2, name: '万剑宗', level: 2, description: '万剑齐出，剑破苍穹。', masterName: '白瑶芸'),
-    SectInfo(id: 3, name: '太虚宗', level: 3, description: '太虚幻境，变化无穷。', masterName: '林梦溪'),
-    SectInfo(id: 4, name: '青云宗', level: 4, description: '御剑青云，独步高空。', masterName: '叶初晴'),
-    SectInfo(id: 5, name: '焚天谷', level: 5, description: '焚尽天穹，烈焰滔天。', masterName: '姜婉瑜'),
-    SectInfo(id: 6, name: '金乌殿', level: 6, description: '金乌横空，烈日灼世。', masterName: '华凝霜'),
-    SectInfo(id: 7, name: '幽冥殿', level: 7, description: '幽冥之地，亡魂归宿。', masterName: '洛冰璃'),
-    SectInfo(id: 8, name: '紫霄宫', level: 8, description: '紫气东来，霄汉无极。', masterName: '苏绾烟'),
-    SectInfo(id: 9, name: '昆仑宗', level: 9, description: '昆仑仙境，福泽万世。', masterName: '沈芷兰'),
-    SectInfo(id:10, name: '星辰殿', level:10, description: '星河璀璨，镇压四方。', masterName: '慕容雪'),
-    SectInfo(id:11, name: '无极宗', level:11, description: '无极大道，包罗万象。', masterName: '云轻舞'),
-    SectInfo(id:12, name: '赤炎宗', level:12, description: '赤焰滔天，焚化诸邪。', masterName: '秦思婉'),
-    SectInfo(id:13, name: '苍穹宗', level:13, description: '苍穹浩渺，气吞寰宇。', masterName: '陆星澜'),
-    SectInfo(id:14, name: '玄冥殿', level:14, description: '玄冥寒气，冰封天地。', masterName: '纪冷月'),
-    SectInfo(id:15, name: '琉璃宫', level:15, description: '琉璃无暇，映照心境。', masterName: '花君瑶'),
-    SectInfo(id:16, name: '剑冢宗', level:16, description: '万剑冢立，剑意无双。', masterName: '商玉璃'),
-    SectInfo(id:17, name: '幻月宗', level:17, description: '幻月迷影，心神莫测。', masterName: '楚如烟'),
-    SectInfo(id:18, name: '碧落宗', level:18, description: '碧落九天，仙凡无隔。', masterName: '柳婉青'),
-    SectInfo(id:19, name: '风雷谷', level:19, description: '风雷激荡，威震八方。', masterName: '顾凌音'),
-    SectInfo(id:20, name: '紫电宗', level:20, description: '紫电千里，破空追魂。', masterName: '赵清竹'),
-    SectInfo(id:21, name: '金鳞殿', level:21, description: '金鳞现世，化龙登天。', masterName: '闻人姝'),
-    SectInfo(id:22, name: '云渺宗', level:22, description: '云海渺渺，来去无踪。', masterName: '江晚晴'),
-    SectInfo(id:23, name: '千机阁', level:23, description: '机关算尽，智计无双。', masterName: '唐语微'),
-    SectInfo(id:24, name: '落星宗', level:24, description: '星落如雨，镇灭万敌。', masterName: '容初岚'),
-    SectInfo(id:25, name: '雪月谷', level:25, description: '雪月无痕，寒意入骨。', masterName: '凌清欢'),
-    SectInfo(id:26, name: '荒古宗', level:26, description: '荒古遗脉，万古独尊。', masterName: '姚宛溪'),
-    SectInfo(id:27, name: '御灵殿', level:27, description: '御灵万兽，驱使山河。', masterName: '欧阳蓉'),
-    SectInfo(id:28, name: '冥河宗', level:28, description: '冥河滔滔，葬尽英魂。', masterName: '南宫瑾'),
-    SectInfo(id:29, name: '焚天殿', level:29, description: '焚天烈焰，无物不焚。', masterName: '孟婉兮'),
-    SectInfo(id:30, name: '不灭宗', level:30, description: '不灭之道，永恒不朽。', masterName: '夏紫凝'),
+  /// 🌟 统一生成逻辑
+  static SectInfo _generateSect(int id, int level) {
+    final basePower = (1000 + pow((id - 1).toDouble(), 1.8) * 400).round();
+    final baseDiscipleCount = (150 * pow(1.03, id - 1)).round();
+
+    final masterPower = (basePower * pow(1.3, level)).round();
+    final disciplePowerRatio = 0.08 + ((id - 1) * 0.003);
+    final disciplePower = (masterPower * disciplePowerRatio).round();
+    final discipleCount = (baseDiscipleCount * pow(1.1, level)).round();
+    final spiritStoneLow = BigInt.from(masterPower * 5);
+
+    return SectInfo(
+      id: id,
+      name: _names[id - 1],
+      level: level,
+      description: _descriptions[id - 1],
+      masterName: _masters[id - 1],
+      masterPower: masterPower,
+      discipleCount: discipleCount,
+      disciplePower: disciplePower,
+      spiritStoneLow: spiritStoneLow,
+    );
+  }
+
+  /// 🌟 一次性生成所有宗门
+  static List<SectInfo> allSects = List.generate(30, (i) {
+    final id = i + 1;
+    return _generateSect(id, 1);
+  });
+
+  /// 🌟 工厂方法：根据id + level生成
+  factory SectInfo.withLevel({
+    required int id,
+    required int level,
+  }) {
+    return _generateSect(id, level);
+  }
+
+  SectInfo copyWith({
+    int? level,
+    int? masterPower,
+    int? discipleCount,
+    int? disciplePower,
+    BigInt? spiritStoneLow,
+  }) {
+    return SectInfo(
+      id: id,
+      name: name,
+      level: level ?? this.level,
+      description: description,
+      masterName: masterName,
+      masterPower: masterPower ?? this.masterPower,
+      discipleCount: discipleCount ?? this.discipleCount,
+      disciplePower: disciplePower ?? this.disciplePower,
+      spiritStoneLow: spiritStoneLow ?? this.spiritStoneLow,
+    );
+  }
+
+  // 宗门名字
+  static const List<String> _names = [
+    '天雷宗','万剑宗','太虚宗','青云宗','焚天谷','金乌殿','幽冥殿','紫霄宫','昆仑宗','星辰殿',
+    '无极宗','赤炎宗','苍穹宗','玄冥殿','琉璃宫','剑冢宗','幻月宗','碧落宗','风雷谷','紫电宗',
+    '金鳞殿','云渺宗','千机阁','落星宗','雪月谷','荒古宗','御灵殿','冥河宗','焚天殿','不灭宗'
+  ];
+
+  // 宗门描述
+  static const List<String> _descriptions = [
+    '掌控雷霆之力，震慑八荒。','万剑齐出，剑破苍穹。','太虚幻境，变化无穷。','御剑青云，独步高空。',
+    '焚尽天穹，烈焰滔天。','金乌横空，烈日灼世。','幽冥之地，亡魂归宿。','紫气东来，霄汉无极。',
+    '昆仑仙境，福泽万世。','星河璀璨，镇压四方。','无极大道，包罗万象。','赤焰滔天，焚化诸邪。',
+    '苍穹浩渺，气吞寰宇。','玄冥寒气，冰封天地。','琉璃无暇，映照心境。','万剑冢立，剑意无双。',
+    '幻月迷影，心神莫测。','碧落九天，仙凡无隔。','风雷激荡，威震八方。','紫电千里，破空追魂。',
+    '金鳞现世，化龙登天。','云海渺渺，来去无踪。','机关算尽，智计无双。','星落如雨，镇灭万敌。',
+    '雪月无痕，寒意入骨。','荒古遗脉，万古独尊。','御灵万兽，驱使山河。','冥河滔滔，葬尽英魂。',
+    '焚天烈焰，无物不焚。','不灭之道，永恒不朽。'
+  ];
+
+  // 宗主名字
+  static const List<String> _masters = [
+    '苏青璃','白瑶芸','林梦溪','叶初晴','姜婉瑜','华凝霜','洛冰璃','苏绾烟','沈芷兰','慕容雪',
+    '云轻舞','秦思婉','陆星澜','纪冷月','花君瑶','商玉璃','楚如烟','柳婉青','顾凌音','赵清竹',
+    '闻人姝','江晚晴','唐语微','容初岚','凌清欢','姚宛溪','欧阳蓉','南宫瑾','孟婉兮','夏紫凝'
   ];
 }

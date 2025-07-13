@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flame/flame.dart';
 import 'package:flutter/cupertino.dart';
+
 import '../../services/zongmen_diplomacy_service.dart';
 import 'sect_component.dart';
 import 'sect_info.dart';
@@ -14,7 +15,6 @@ class SectManagerComponent extends Component {
   final double mapWidth;
   final double mapHeight;
   final double sectImageSize;
-  final int sectCount;
   final double sectCircleRadius;
 
   final List<SectComponent> _sects = [];
@@ -27,7 +27,6 @@ class SectManagerComponent extends Component {
     required this.mapWidth,
     required this.mapHeight,
     this.sectImageSize = 192.0,
-    this.sectCount = 30,
     this.sectCircleRadius = 512.0,
   });
 
@@ -39,51 +38,98 @@ class SectManagerComponent extends Component {
       await Flame.images.load('zongmen/${info.id}.png');
     }
 
-    // 🌟加载持久化坐标
+    // 🌟加载持久化数据
     final data = await ZongmenDiplomacyService.load();
-    final savedPositions = data['sects'] as List<MapEntry<int, Vector2>>;
-    final savedPositionMap = {for (var e in savedPositions) e.key: e.value};
+    final savedSects = data['sects'] as List<Map<String, dynamic>>;
+    final playerPosition = data['player'] as Vector2;
 
     final random = Random();
-    final List<Vector2> positions = [];
+    final List<Map<String, dynamic>> sectDataToSave = [];
 
-    // 🌟初始化宗门位置
-    for (var info in SectInfo.allSects) {
-      Vector2 pos;
+    final bool isFirstInit = savedSects.isEmpty;
 
-      if (savedPositionMap.containsKey(info.id)) {
-        pos = savedPositionMap[info.id]!;
-      } else {
-        pos = Vector2(
+    if (isFirstInit) {
+      debugPrint('✅ 首次初始化宗门');
+
+      for (var info in SectInfo.allSects) {
+        // 随机坐标
+        final pos = Vector2(
           sectCircleRadius +
               random.nextDouble() * (mapWidth - 2 * sectCircleRadius),
           sectCircleRadius +
               random.nextDouble() * (mapHeight - 2 * sectCircleRadius),
         );
+
+        // 初始等级和属性
+        final sectInfo = SectInfo(
+          id: info.id,
+          name: info.name,
+          level: 1,
+          description: info.description,
+          masterName: info.masterName,
+          masterPower: info.masterPower,
+          discipleCount: info.discipleCount,
+          disciplePower: info.disciplePower,
+          spiritStoneLow: info.spiritStoneLow,
+        );
+
+        sectDataToSave.add({
+          'id': sectInfo.id,
+          'name': sectInfo.name,
+          'level': sectInfo.level,
+          'description': sectInfo.description,
+          'masterName': sectInfo.masterName,
+          'masterPower': sectInfo.masterPower,
+          'discipleCount': sectInfo.discipleCount,
+          'disciplePower': sectInfo.disciplePower,
+          'spiritStoneLow': sectInfo.spiritStoneLow.toString(),
+          'x': pos.x,
+          'y': pos.y,
+        });
+
+        final img = _sectImageCache[sectInfo.id];
+        if (img == null) continue;
+
+        final sect = SectComponent(
+          info: sectInfo,
+          image: img,
+          imageSize: sectImageSize,
+          worldPosition: pos,
+          circleRadius: sectCircleRadius,
+        );
+
+        _sects.add(sect);
+        grid.add(sect);
       }
 
-      positions.add(pos);
-
-      final img = _sectImageCache[info.id];
-      if (img == null) continue;
-
-      final sect = SectComponent(
-        info: info,
-        image: img,
-        imageSize: sectImageSize,
-        worldPosition: pos,
-        circleRadius: sectCircleRadius,
+      await ZongmenDiplomacyService.save(
+        sectData: sectDataToSave,
+        playerPosition: Vector2(mapWidth / 2, mapHeight / 2),
       );
+      debugPrint('✅ 宗门数据已持久化');
+    } else {
+      debugPrint('✅ 加载已有宗门数据');
 
-      _sects.add(sect);
-      grid.add(sect);
+      for (final saved in savedSects) {
+        final info = saved['info'] as SectInfo;
+        final x = saved['x'] as double;
+        final y = saved['y'] as double;
+
+        final img = _sectImageCache[info.id];
+        if (img == null) continue;
+
+        final sect = SectComponent(
+          info: info,
+          image: img,
+          imageSize: sectImageSize,
+          worldPosition: Vector2(x, y),
+          circleRadius: sectCircleRadius,
+        );
+
+        _sects.add(sect);
+        grid.add(sect);
+      }
     }
-
-    // 🌟打印坐标
-    final coords = positions
-        .map((v) => '(${v.x.toStringAsFixed(2)},${v.y.toStringAsFixed(2)})')
-        .join(',');
-    debugPrint('🎯 初始化宗门坐标: [$coords]');
   }
 
   @override
@@ -93,14 +139,14 @@ class SectManagerComponent extends Component {
     final offset = getLogicalOffset();
 
     for (final s in _sects) {
-      // 物理更新（避免宗门互相重叠）
       s.updatePhysics(_sects, dt, max(mapWidth, mapHeight));
 
-      // 🌟限制在地图内
       final pos = s.worldPosition;
 
-      final clampedX = pos.x.clamp(s.circleRadius, mapWidth - s.circleRadius);
-      final clampedY = pos.y.clamp(s.circleRadius, mapHeight - s.circleRadius);
+      final clampedX =
+      pos.x.clamp(s.circleRadius, mapWidth - s.circleRadius);
+      final clampedY =
+      pos.y.clamp(s.circleRadius, mapHeight - s.circleRadius);
 
       if (pos.x != clampedX || pos.y != clampedY) {
         s.worldPosition = Vector2(clampedX, clampedY);

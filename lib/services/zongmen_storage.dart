@@ -93,6 +93,14 @@ class ZongmenStorage {
     return box.values.where((d) => d.assignedRoom == room).toList();
   }
 
+  static Future<void> clearDiscipleRoom(String discipleId) async {
+    final box = await Hive.openBox<Disciple>('disciples');
+    final d = box.get(discipleId);
+    if (d != null && d.assignedRoom != null) {
+      await box.put(d.id, d.copyWith(assignedRoom: null));
+    }
+  }
+
   static Future<void> clearRoomAssignments(String room) async {
     final box = await Hive.openBox<Disciple>('disciples');
     for (final d in box.values) {

@@ -84,9 +84,20 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
     if (other is SectComponent) {
       debugPrint('[碰撞] 角色碰到了宗门圆圈：${other.info.name}');
 
-      // 🚀先把角色移到圈外
       final Vector2 delta = logicalPosition - other.worldPosition;
       final Vector2 safeDirection = delta.normalized();
+
+      // ✅ 如果正在被讨伐，平滑弹开，不弹窗
+      if (other.isBeingAttacked) {
+        final Vector2 target = other.worldPosition + safeDirection * (
+            other.circleRadius + this.size.x / 2 + 50
+        );
+        _targetPosition = target;
+        debugPrint('⚠️ 宗门正在被讨伐，平滑弹开');
+        return;
+      }
+
+      // 🚀如果没有被讨伐，直接瞬移
       logicalPosition = other.worldPosition + safeDirection * (
           other.circleRadius + this.size.x / 2 + 50
       );
@@ -94,18 +105,24 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
       // 🚀清掉移动目标
       _targetPosition = null;
 
-      // 🚀再暂停地图
+      // 🚀暂停地图
       game.pauseEngine();
 
-      // 🚀弹框
+      void resumeIfNeeded() {
+        if (game.paused) {
+          game.resumeEngine();
+        }
+      }
+
       showDialog(
         context: game.buildContext!,
         barrierColor: Colors.transparent,
         barrierDismissible: true,
-        builder: (ctx) => SectInfoDialog(sect: other),
-      ).then((_) {
-        game.resumeEngine();
-      });
+        builder: (ctx) => SectInfoDialog(
+          sect: other,
+          onClose: resumeIfNeeded,
+        ),
+      );
     }
   }
 }
