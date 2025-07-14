@@ -24,7 +24,7 @@ class HellPlayerComponent extends SpriteComponent
   final double safeZoneRadius;
   final VoidCallback onRevived;
   final VoidCallback? onHellPassed;
-  final bool Function() isWaveCleared; // ✅ 新增判断当前波是否已清空
+  final bool Function() isWaveCleared;
 
   Vector2? targetPosition;
   final double moveSpeed = 200.0;
@@ -41,6 +41,8 @@ class HellPlayerComponent extends SpriteComponent
 
   bool get isInSafeZone =>
       (absolutePosition - safeZoneCenter).length <= safeZoneRadius;
+
+  double _attackCooldown = 0; // 🌟 新增攻击冷却
 
   @override
   Future<void> onLoad() async {
@@ -61,7 +63,12 @@ class HellPlayerComponent extends SpriteComponent
 
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
-    _hpBar = HpBarWrapper(ratio: () => hp / maxHp)
+    _hpBar = HpBarWrapper(
+      ratio: () => hp / maxHp,
+      currentHp: () => hp,
+      barColor: Colors.green,       // ✅ 绿色血条
+      textColor: Colors.green,      // ✅ 绿色数值
+    )
       ..scale.x = 1
       ..priority = 999;
 
@@ -73,6 +80,8 @@ class HellPlayerComponent extends SpriteComponent
   @override
   void update(double dt) {
     super.update(dt);
+
+    _attackCooldown -= dt;
 
     _hpBar.position = absolutePosition + Vector2(0, -size.y / 2 - 6);
 
@@ -87,7 +96,6 @@ class HellPlayerComponent extends SpriteComponent
       }
     }
 
-    // ✅ 安全区回血，无需管怪是否清完
     if (isInSafeZone && !isDead) {
       if (hp < maxHp) {
         hp = maxHp;
@@ -95,7 +103,6 @@ class HellPlayerComponent extends SpriteComponent
       }
     }
 
-    // ✅ 怪物清空才触发换层
     if (isInSafeZone && !isDead && isWaveCleared()) {
       onHellPassed?.call();
     }
@@ -195,8 +202,11 @@ class HellPlayerComponent extends SpriteComponent
     super.onCollision(points, other);
 
     if (other is HellMonsterComponent && !isDead) {
-      final damage = atk;
-      other.receiveDamage(damage, from: absolutePosition);
+      if (_attackCooldown <= 0) {
+        final damage = atk;
+        other.receiveDamage(damage, from: absolutePosition);
+        _attackCooldown = 0.5; // 🌟 每0.5秒打一刀
+      }
 
       final delta = position - other.position;
       if (delta.length > 0) {

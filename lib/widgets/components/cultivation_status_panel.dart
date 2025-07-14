@@ -77,12 +77,6 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
 
     final equipped = await WeaponsStorage.loadWeaponsEquippedBy(_player.id);
 
-    // 🧾 打印当前角色 ID 和所有装备内容
-    debugPrint('🧘‍♂️ [装备调试] 当前角色 ID = ${_player.id}');
-    for (final w in equipped) {
-      debugPrint('  ➤ 已装备：${w.name}（key=${w.key}，type=${w.type}）');
-    }
-
     final hasWeapon = equipped.any((w) => w.type == 'weapon');
     final hasArmor  = equipped.any((w) => w.type == 'armor');
 
@@ -96,9 +90,6 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
     }
 
     final imagePath = 'assets/images/${baseName}${suffix}.png';
-
-    // ✅ 最终贴图路径打印
-    debugPrint('🧘‍♀️ [打坐贴图判断] 武器=$hasWeapon 护甲=$hasArmor → 使用图像=$imagePath');
 
     return imagePath;
   }

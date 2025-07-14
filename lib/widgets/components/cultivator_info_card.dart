@@ -82,11 +82,6 @@ class CultivatorInfoCard extends StatelessWidget {
     final extraDef = PlayerStorage.getExtraDef(profile);
     final pillBonusDef = PlayerStorage.getPillDef(profile);
 
-    debugPrint('📊 角色属性计算：');
-    debugPrint('▶️ 气血：base=$baseHp, extra=$extraHp, pill=$pillBonusHp');
-    debugPrint('▶️ 攻击：base=$baseAtk, extra=$extraAtk, pill=$pillBonusAtk');
-    debugPrint('▶️ 防御：base=$baseDef, extra=$extraDef, pill=$pillBonusDef');
-
     return Column(
       children: [
         // 上层卡片：基础信息

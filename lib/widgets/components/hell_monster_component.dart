@@ -35,6 +35,7 @@ class HellMonsterComponent extends SpriteComponent
   Vector2 _wanderDirection = Vector2.zero();
 
   bool _isTouchingPlayer = false;
+  double _attackCooldown = 0; // 🌟 攻击冷却
 
   late final TextComponent _damageText;
   final Random _rng = Random();
@@ -74,6 +75,7 @@ class HellMonsterComponent extends SpriteComponent
     add(
       HpBarWrapper(
         ratio: () => hp / maxHp,
+        currentHp: () => hp,
         width: size.x,
         height: isBoss ? 4 : 2,
       )
@@ -116,19 +118,20 @@ class HellMonsterComponent extends SpriteComponent
 
     if (!isMounted || _target == null || _safeZoneCenter == null) return;
 
+    _attackCooldown -= dt;
+
     final toSafeCenter = position - _safeZoneCenter!;
     final distToSafe = toSafeCenter.length;
 
     if (distToSafe < _safeZoneRadius) {
       position = _safeZoneCenter! + toSafeCenter.normalized() * (_safeZoneRadius + 1.0);
-      return; // 在安全区直接退出
+      return;
     }
 
     final playerPos = _target!.position;
     final distToPlayer = (playerPos - position).length;
 
     if ((playerPos - _safeZoneCenter!).length < _safeZoneRadius || distToPlayer > 200) {
-      // 游荡逻辑
       _isWandering = true;
       _wanderTimer -= dt;
 
@@ -140,7 +143,6 @@ class HellMonsterComponent extends SpriteComponent
 
       position += _wanderDirection * (_moveSpeed * 0.4) * dt;
     } else {
-      // 追击逻辑
       _isWandering = false;
       final toPlayer = playerPos - position;
       if (toPlayer.length > 1e-2) {
@@ -154,19 +156,29 @@ class HellMonsterComponent extends SpriteComponent
       position = _safeZoneCenter! + toSafeCenter2.normalized() * (_safeZoneRadius + 1.0);
     }
 
-    // ✅地图边界限制
+    // 地图边界限制
     position.x = position.x.clamp(0, game.mapRoot.size.x);
     position.y = position.y.clamp(0, game.mapRoot.size.y);
+
+    // 🌟 自动攻击逻辑
+    if (_isTouchingPlayer && _attackCooldown <= 0) {
+      if (_target is HellPlayerComponent) {
+        final player = _target as HellPlayerComponent;
+        if (!player.isDead) {
+          player.receiveDamage(atk);
+          _attackCooldown = 1.0; // 每1秒一次
+        }
+      }
+    }
   }
 
   @override
   void onCollisionStart(Set<Vector2> points, PositionComponent other) {
     super.onCollisionStart(points, other);
 
-    if (other is HellPlayerComponent && !other.isDead && !_isTouchingPlayer) {
-      final damage = atk;
-      other.receiveDamage(damage);
+    if (other is HellPlayerComponent && !other.isDead) {
       _isTouchingPlayer = true;
+      _attackCooldown = 0; // 立即打一发
     }
   }
 

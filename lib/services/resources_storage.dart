@@ -12,7 +12,6 @@ class ResourcesStorage {
   static Future<void> save(Resources res) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, jsonEncode(res.toMap()));
-    print('📦 [资源已保存] => ${jsonEncode(res.toMap())}');
   }
 
   /// 读取资源
@@ -20,10 +19,8 @@ class ResourcesStorage {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
     if (raw == null) {
-      print('📦 [资源未找到]，返回默认空资源');
       return Resources();
     }
-    print('📦 [资源已读取] => $raw');
     return Resources.fromMap(jsonDecode(raw));
   }
 
@@ -67,7 +64,6 @@ class ResourcesStorage {
       result = BigInt.tryParse(raw?.toString() ?? '0') ?? BigInt.zero;
     }
 
-    print('🔍 [资源查询] $type: $result');
     return result;
   }
 
