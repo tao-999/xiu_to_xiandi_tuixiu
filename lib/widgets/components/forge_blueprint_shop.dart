@@ -46,6 +46,7 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
   late List<RefineBlueprint> all;
   late Resources res;
   Set<String> ownedKeys = {};
+  bool loading = true; // 新增
 
   @override
   void initState() {
@@ -57,7 +58,7 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
   Future<void> _load() async {
     res = await ResourcesStorage.load();
     ownedKeys = await ResourcesStorage.getBlueprintKeys();
-    setState(() {});
+    if (mounted) setState(() => loading = false);
   }
 
   Future<void> _buy(RefineBlueprint bp) async {
@@ -98,6 +99,15 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
 
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const SizedBox(
+        height: 300,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     final grouped = <int, List<RefineBlueprint>>{};
     for (final bp in all) {
       grouped.putIfAbsent(bp.level, () => []).add(bp);
