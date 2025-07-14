@@ -26,10 +26,13 @@ class _CharacterPageState extends State<CharacterPage> {
 
   Timer? _refreshTimer;
 
+  /// 🌟 GlobalKey 用于控制 ResourceBar 刷新
+  final GlobalKey<ResourceBarState> _resourceBarKey = GlobalKey<ResourceBarState>();
+
   @override
   void initState() {
     super.initState();
-    _startRefreshLoop(); // ✅ 启动每秒刷新
+    _startRefreshLoop();
   }
 
   void _startRefreshLoop() {
@@ -38,7 +41,7 @@ class _CharacterPageState extends State<CharacterPage> {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel(); // ✅ 页面销毁时关闭刷新
+    _refreshTimer?.cancel();
     super.dispose();
   }
 
@@ -48,6 +51,8 @@ class _CharacterPageState extends State<CharacterPage> {
       setState(() {
         player = updated;
       });
+      // 🌟刷新资源条
+      _resourceBarKey.currentState?.refresh();
     }
   }
 
@@ -80,8 +85,8 @@ class _CharacterPageState extends State<CharacterPage> {
                 ),
               ),
 
-              // 💠 顶部资源栏
-              const ResourceBar(),
+              // 💠 顶部资源栏 (去掉const，挂上key)
+              ResourceBar(key: _resourceBarKey),
 
               // 🧘‍♂️ 打坐动画 + 修为进度
               Align(

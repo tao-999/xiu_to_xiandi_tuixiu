@@ -6,10 +6,10 @@ class ResourceBar extends StatefulWidget {
   const ResourceBar({super.key});
 
   @override
-  State<ResourceBar> createState() => _ResourceBarState();
+  State<ResourceBar> createState() => ResourceBarState();
 }
 
-class _ResourceBarState extends State<ResourceBar> {
+class ResourceBarState extends State<ResourceBar> {
   BigInt low = BigInt.zero;
   BigInt mid = BigInt.zero;
   BigInt high = BigInt.zero;
@@ -21,10 +21,11 @@ class _ResourceBarState extends State<ResourceBar> {
   @override
   void initState() {
     super.initState();
-    _loadResources();
+    refresh();
   }
 
-  Future<void> _loadResources() async {
+  /// 🌟 对外暴露的刷新方法
+  Future<void> refresh() async {
     low = await ResourcesStorage.getValue('spiritStoneLow');
     mid = await ResourcesStorage.getValue('spiritStoneMid');
     high = await ResourcesStorage.getValue('spiritStoneHigh');
@@ -39,7 +40,7 @@ class _ResourceBarState extends State<ResourceBar> {
     final topInset = MediaQuery.of(context).padding.top;
 
     if (loading) {
-      return SizedBox(height: topInset + 48); // 占位，避免跳动
+      return SizedBox(height: topInset + 48);
     }
 
     return Padding(
