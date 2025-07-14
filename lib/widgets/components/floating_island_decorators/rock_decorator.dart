@@ -41,11 +41,11 @@ class RockDecorator extends Component {
             StaticSpriteEntry('floating_island/rock_5.png', 1, fixedSize: 64.0, minCount: 0, maxCount: 1),
           ],
         },
-        staticTileSize: 64.0, // 全局 tile size，entry 不再单独搞
+        staticTileSize: 100.0, // 全局 tile size，entry 不再单独搞
         seed: seed,
-        minCount: 5,
-        maxCount: 10,
-        minSize: 8.0,
+        minCount: 10,
+        maxCount: 25,
+        minSize: 16.0,
         maxSize: 32.0,
       ),
     );

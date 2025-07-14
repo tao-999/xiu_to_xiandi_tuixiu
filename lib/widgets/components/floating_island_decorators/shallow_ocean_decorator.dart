@@ -72,7 +72,7 @@ class ShallowOceanDecorator extends Component {
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
-        minDynamicObjectSize: 8,
+        minDynamicObjectSize: 16,
         maxDynamicObjectSize: 64,
         minSpeed: 10,
         maxSpeed: 30,
