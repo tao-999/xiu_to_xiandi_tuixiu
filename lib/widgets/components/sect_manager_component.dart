@@ -60,29 +60,13 @@ class SectManagerComponent extends Component {
               random.nextDouble() * (mapHeight - 2 * sectCircleRadius),
         );
 
-        // 初始等级和属性
-        final sectInfo = SectInfo(
-          id: info.id,
-          name: info.name,
-          level: 1,
-          description: info.description,
-          masterName: info.masterName,
-          masterPower: info.masterPower,
-          discipleCount: info.discipleCount,
-          disciplePower: info.disciplePower,
-          spiritStoneLow: info.spiritStoneLow,
-        );
+        // 初始化1级宗门
+        final sectInfo = SectInfo.generateInitial(info.id);
 
         sectDataToSave.add({
           'id': sectInfo.id,
-          'name': sectInfo.name,
           'level': sectInfo.level,
-          'description': sectInfo.description,
-          'masterName': sectInfo.masterName,
-          'masterPower': sectInfo.masterPower,
-          'discipleCount': sectInfo.discipleCount,
-          'disciplePower': sectInfo.disciplePower,
-          'spiritStoneLow': sectInfo.spiritStoneLow.toString(),
+          'masterPowerAtLevel1': sectInfo.masterPowerAtLevel1,
           'x': pos.x,
           'y': pos.y,
         });
@@ -111,15 +95,25 @@ class SectManagerComponent extends Component {
       debugPrint('✅ 加载已有宗门数据');
 
       for (final saved in savedSects) {
-        final info = saved['info'] as SectInfo;
+        debugPrint('🟢 saved = $saved');
+        final id = saved['id'] as int;
+        final level = saved['level'] as int;
+        final masterPowerAtLevel1 = saved['masterPowerAtLevel1'] as int;
         final x = saved['x'] as double;
         final y = saved['y'] as double;
 
-        final img = _sectImageCache[info.id];
+        // 🌟用withLevel生成
+        final sectInfo = SectInfo.withLevel(
+          id: id,
+          level: level,
+          masterPowerAtLevel1: masterPowerAtLevel1,
+        );
+
+        final img = _sectImageCache[id];
         if (img == null) continue;
 
         final sect = SectComponent(
-          info: info,
+          info: sectInfo,
           image: img,
           imageSize: sectImageSize,
           worldPosition: Vector2(x, y),

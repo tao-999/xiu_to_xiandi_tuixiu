@@ -36,20 +36,14 @@ class ZongmenDiplomacyService {
     final sectData = box.get('sects') as List<dynamic>? ?? [];
     final playerData = box.get('player') as Map<dynamic, dynamic>?;
 
+    // 🌟只返回最小必要字段
     final sects = sectData.map((e) {
       final map = e as Map<dynamic, dynamic>;
+
       return {
-        'info': SectInfo(
-          id: map['id'] as int,
-          name: map['name'] ?? '未知宗门',
-          level: map['level'] ?? 1,
-          description: map['description'] ?? '',
-          masterName: map['masterName'] ?? '',
-          masterPower: map['masterPower'] ?? 0,
-          discipleCount: map['discipleCount'] ?? 0,
-          disciplePower: map['disciplePower'] ?? 0,
-          spiritStoneLow: BigInt.tryParse(map['spiritStoneLow'] ?? '0') ?? BigInt.zero,
-        ),
+        'id': map['id'] as int,
+        'level': map['level'] as int,
+        'masterPowerAtLevel1': map['masterPowerAtLevel1'] as int? ?? 1000,
         'x': (map['x'] as num?)?.toDouble() ?? 0,
         'y': (map['y'] as num?)?.toDouble() ?? 0,
       };
@@ -115,6 +109,7 @@ class ZongmenDiplomacyService {
   }
 
   /// 🌟 更新宗门等级
+  /// 🌟 更新宗门等级
   static Future<void> updateSectLevel({
     required int sectId,
     required int newLevel,
@@ -125,10 +120,31 @@ class ZongmenDiplomacyService {
     for (int i = 0; i < sectData.length; i++) {
       final map = sectData[i] as Map<dynamic, dynamic>;
       if (map['id'] == sectId) {
-        map['level'] = newLevel;
+        final masterPowerAtLevel1 = map['masterPowerAtLevel1'] as int?;
+
+        if (masterPowerAtLevel1 == null) {
+          debugPrint('[Diplomacy] ❌ 宗门$sectId缺少masterPowerAtLevel1，无法升级');
+          return;
+        }
+
+        // 🌟用withLevel生成新的属性
+        final updated = SectInfo.withLevel(
+          id: sectId,
+          level: newLevel,
+          masterPowerAtLevel1: masterPowerAtLevel1,
+        );
+
+        // 🌟更新map
+        map['level'] = updated.level;
+        map['masterPower'] = updated.masterPower;
+        map['discipleCount'] = updated.discipleCount;
+        map['disciplePower'] = updated.disciplePower;
+        map['spiritStoneLow'] = updated.spiritStoneLow.toString();
+
         sectData[i] = map;
+
         await box.put('sects', sectData);
-        debugPrint('[Diplomacy] 已更新宗门$sectId的等级：$newLevel');
+        debugPrint('[Diplomacy] 已更新宗门$sectId的等级：$newLevel (战力=${updated.masterPower})');
         return;
       }
     }

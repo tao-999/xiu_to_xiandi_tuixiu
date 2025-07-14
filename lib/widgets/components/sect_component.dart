@@ -117,7 +117,7 @@ class SectComponent extends PositionComponent
   }
 
   void _triggerLevelUpAndReward() {
-    // 🟢 先同步标记为已结束，防止重复触发
+    // 🟢先同步标记为已结束，防止重复触发
     isBeingAttacked = false;
     expeditionEndTime = null;
 
@@ -130,9 +130,14 @@ class SectComponent extends PositionComponent
       // 🌟清除讨伐记录
       await ZongmenDiplomacyService.clearSectExpedition(info.id);
 
-      // 🌟升级等级 & 重新计算属性
+      // 🌟升级：用固定的masterPowerAtLevel1递增
       final newLevel = info.level + 1;
-      info = SectInfo.withLevel(id: info.id, level: newLevel);
+      info = SectInfo.withLevel(
+        id: info.id,
+        level: newLevel,
+        masterPowerAtLevel1: info.masterPowerAtLevel1,
+      );
+
       debugPrint('[Diplomacy] 宗门${info.name}等级提升到${info.level}');
 
       // 🌟持久化新等级

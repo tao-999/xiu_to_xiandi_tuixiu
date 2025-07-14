@@ -7,10 +7,11 @@ class SectInfo {
   final String description;   // 宗门描述
   final String masterName;    // 宗主名字
 
-  final int masterPower;      // 宗主战力
-  final int discipleCount;    // 弟子人数
-  final int disciplePower;    // 单个弟子战力
-  final BigInt spiritStoneLow; // 下品灵石数量
+  final int masterPower;            // 当前等级宗主战力
+  final int masterPowerAtLevel1;    // 初始战力(随机一次)
+  final int discipleCount;          // 弟子人数
+  final int disciplePower;          // 单个弟子战力
+  final BigInt spiritStoneLow;      // 下品灵石数量
 
   const SectInfo({
     required this.id,
@@ -19,21 +20,46 @@ class SectInfo {
     required this.description,
     required this.masterName,
     required this.masterPower,
+    required this.masterPowerAtLevel1,
     required this.discipleCount,
     required this.disciplePower,
     required this.spiritStoneLow,
   });
 
-  /// 🌟 统一生成逻辑
-  static SectInfo _generateSect(int id, int level) {
-    final basePower = (1000 + pow((id - 1).toDouble(), 1.8) * 400).round();
-    final baseDiscipleCount = (150 * pow(1.03, id - 1)).round();
+  /// 🌟 生成1级宗门 (随机 masterPower)
+  static SectInfo generateInitial(int id) {
+    final random = Random();
+    final masterPowerAtLevel1 = 900 + random.nextInt(601);
+    final masterPower = masterPowerAtLevel1;
 
-    final masterPower = (basePower * pow(1.3, level)).round();
-    final disciplePowerRatio = 0.08 + ((id - 1) * 0.003);
-    final disciplePower = (masterPower * disciplePowerRatio).round();
-    final discipleCount = (baseDiscipleCount * pow(1.1, level)).round();
-    final spiritStoneLow = BigInt.from(masterPower * 5);
+    final spiritStoneLow = BigInt.from(masterPower * 1000);
+    final disciplePower = (masterPower * 0.1).round();
+    final discipleCount = 50;
+
+    return SectInfo(
+      id: id,
+      name: _names[id - 1],
+      level: 1,
+      description: _descriptions[id - 1],
+      masterName: _masters[id - 1],
+      masterPower: masterPower,
+      masterPowerAtLevel1: masterPowerAtLevel1,
+      discipleCount: discipleCount,
+      disciplePower: disciplePower,
+      spiritStoneLow: spiritStoneLow,
+    );
+  }
+
+  /// 🌟 升级宗门
+  factory SectInfo.withLevel({
+    required int id,
+    required int level,
+    required int masterPowerAtLevel1,
+  }) {
+    final masterPower = (masterPowerAtLevel1 * pow(1.3, level - 1)).round();
+    final spiritStoneLow = BigInt.from(masterPower * 1000);
+    final disciplePower = (masterPower * 0.1).round();
+    final discipleCount = (50 * pow(1.1, level)).round();
 
     return SectInfo(
       id: id,
@@ -42,24 +68,11 @@ class SectInfo {
       description: _descriptions[id - 1],
       masterName: _masters[id - 1],
       masterPower: masterPower,
+      masterPowerAtLevel1: masterPowerAtLevel1,
       discipleCount: discipleCount,
       disciplePower: disciplePower,
       spiritStoneLow: spiritStoneLow,
     );
-  }
-
-  /// 🌟 一次性生成所有宗门
-  static List<SectInfo> allSects = List.generate(30, (i) {
-    final id = i + 1;
-    return _generateSect(id, 1);
-  });
-
-  /// 🌟 工厂方法：根据id + level生成
-  factory SectInfo.withLevel({
-    required int id,
-    required int level,
-  }) {
-    return _generateSect(id, level);
   }
 
   SectInfo copyWith({
@@ -76,11 +89,18 @@ class SectInfo {
       description: description,
       masterName: masterName,
       masterPower: masterPower ?? this.masterPower,
+      masterPowerAtLevel1: masterPowerAtLevel1,
       discipleCount: discipleCount ?? this.discipleCount,
       disciplePower: disciplePower ?? this.disciplePower,
       spiritStoneLow: spiritStoneLow ?? this.spiritStoneLow,
     );
   }
+
+  // 🌟 一次性生成所有宗门
+  static List<SectInfo> allSects = List.generate(30, (i) {
+    final id = i + 1;
+    return generateInitial(id);
+  });
 
   // 宗门名字
   static const List<String> _names = [
