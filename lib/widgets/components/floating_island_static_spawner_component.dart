@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/static_sprite_entry.dart';
-
 import 'floating_island_static_decoration_component.dart';
 
 class FloatingIslandStaticSpawnerComponent extends Component {
@@ -23,13 +23,9 @@ class FloatingIslandStaticSpawnerComponent extends Component {
   final void Function(FloatingIslandStaticDecorationComponent deco, String terrainType)?
   onStaticComponentCreated;
 
-  /// 每帧需要生成的tile队列
   final List<_PendingTile> _pendingTiles = [];
-
-  /// 当前已经在内存的tile key，避免重复生成
   final Set<String> _activeTiles = {};
 
-  /// 上一次逻辑中心
   Vector2? _lastLogicalOffset;
 
   FloatingIslandStaticSpawnerComponent({
@@ -49,28 +45,56 @@ class FloatingIslandStaticSpawnerComponent extends Component {
   });
 
   @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    final offset = getLogicalOffset();
+    final viewSize = getViewSize();
+    updateTileRendering(offset, viewSize);
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
 
     final offset = getLogicalOffset();
     final viewSize = getViewSize();
 
-    // 🚀 如果逻辑坐标没动，直接return
     if (_lastLogicalOffset != null && (_lastLogicalOffset! - offset).length < 1) {
-      for (final deco in grid.children.whereType<FloatingIslandStaticDecorationComponent>()) {
-        deco.updateVisualPosition(offset);
-        deco.priority = ((deco.worldPosition.y + 1e14) * 1000).toInt();
-      }
       return;
     }
 
-    // 更新记录
     _lastLogicalOffset = offset.clone();
+    updateTileRendering(offset, viewSize);
+  }
 
+  /// 🌟立即强制刷新（跳过逻辑坐标检查）
+  void forceRefresh() {
+    final offset = getLogicalOffset();
+    final viewSize = getViewSize();
+    debugPrint(
+        '[Spawner] forceRefresh called.\n'
+            '  offset=$offset\n'
+            '  viewSize=$viewSize\n'
+            '  _lastLogicalOffset(before)=$_lastLogicalOffset'
+    );
+    _lastLogicalOffset = null; // 确保下一帧 update() 会刷新
+    updateTileRendering(offset, viewSize);
+    debugPrint(
+        '[Spawner] forceRefresh completed.\n'
+            '  _lastLogicalOffset(after)=$_lastLogicalOffset'
+    );
+  }
+
+  /// 强制刷新后，手动同步逻辑坐标
+  void syncLogicalOffset(Vector2 offset) {
+    _lastLogicalOffset = offset.clone();
+  }
+
+  void updateTileRendering(Vector2 offset, Vector2 viewSize) {
     final visibleTopLeft = offset - viewSize / 2;
     final visibleBottomRight = visibleTopLeft + viewSize;
 
-    // 视野 *1.5 buffer
+    // buffer, 回收、生成等都挪进来
     final bufferExtent = viewSize * 1.5;
     final bufferTopLeft = offset - bufferExtent;
     final bufferBottomRight = offset + bufferExtent;
@@ -82,14 +106,12 @@ class FloatingIslandStaticSpawnerComponent extends Component {
       final ty = int.tryParse(parts[1]) ?? 0;
       final tileCenterX = tx * staticTileSize + staticTileSize / 2;
       final tileCenterY = ty * staticTileSize + staticTileSize / 2;
-
       return tileCenterX < bufferTopLeft.x ||
           tileCenterX > bufferBottomRight.x ||
           tileCenterY < bufferTopLeft.y ||
           tileCenterY > bufferBottomRight.y;
     });
 
-    // ⚡清理超出buffer的组件
     for (final deco in grid.children.whereType<FloatingIslandStaticDecorationComponent>()) {
       final pos = deco.worldPosition;
       if (pos.x < bufferTopLeft.x ||
@@ -106,10 +128,8 @@ class FloatingIslandStaticSpawnerComponent extends Component {
       }
     }
 
-    // 收集新tile
     _collectPendingTiles(visibleTopLeft, visibleBottomRight);
 
-    // 本帧生成
     final tilesPerFrame = _pendingTiles.length;
     int spawned = 0;
     while (_pendingTiles.isNotEmpty && spawned < tilesPerFrame) {
@@ -188,11 +208,15 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     final entries = staticSpritesMap[terrain] ?? [];
     if (entries.isEmpty) return;
 
+    // 只抽一种 entry
     final selected = _pickStaticByWeight(entries, rand);
-    final tileSize = selected.tileSize ?? staticTileSize;
-    final count = rand.nextInt(
-      (selected.maxCount ?? maxCount) - (selected.minCount ?? minCount) + 1,
-    ) + (selected.minCount ?? minCount);
+
+    final count = (selected.minCount != null && selected.maxCount != null)
+        ? rand.nextInt(selected.maxCount! - selected.minCount! + 1) + selected.minCount!
+        : rand.nextInt(maxCount - minCount + 1) + minCount;
+
+    final tileSize = staticTileSize; // tile 分布始终统一
+    final sizeValue = selected.fixedSize ?? (minSize + rand.nextDouble() * (maxSize - minSize));
 
     for (int i = 0; i < count; i++) {
       final offsetX = rand.nextDouble() * tileSize;
@@ -205,10 +229,6 @@ class FloatingIslandStaticSpawnerComponent extends Component {
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
       final sprite = await Sprite.load(selected.path);
-
-      final sizeValue = (selected.minSize ?? minSize) +
-          rand.nextDouble() *
-              ((selected.maxSize ?? maxSize) - (selected.minSize ?? minSize));
 
       final deco = FloatingIslandStaticDecorationComponent(
         sprite: sprite,

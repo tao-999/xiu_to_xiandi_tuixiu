@@ -34,22 +34,19 @@ class RockDecorator extends Component {
         allowedTerrains: {'rock'},
         staticSpritesMap: {
           'rock': [
-            StaticSpriteEntry('floating_island/rock_1.png', 1,),
-            StaticSpriteEntry('floating_island/rock_2.png', 1),
-            StaticSpriteEntry(
-                'floating_island/rock_3.png',
-                1,
-              minCount: 0,
-              maxCount: 1,
-            ),
+            StaticSpriteEntry('floating_island/rock_1.png', 40),
+            StaticSpriteEntry('floating_island/rock_2.png', 30),
+            StaticSpriteEntry('floating_island/rock_3.png', 1),
+            StaticSpriteEntry('floating_island/rock_4.png', 1, fixedSize: 64.0, minCount: 0, maxCount: 1),
+            StaticSpriteEntry('floating_island/rock_5.png', 1, fixedSize: 64.0, minCount: 0, maxCount: 1),
           ],
         },
-        staticTileSize: 64.0,
+        staticTileSize: 64.0, // 全局 tile size，entry 不再单独搞
         seed: seed,
-        minCount: 2,
-        maxCount: 7,
+        minCount: 5,
+        maxCount: 10,
         minSize: 8.0,
-        maxSize: 48.0,
+        maxSize: 32.0,
       ),
     );
 

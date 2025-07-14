@@ -10,6 +10,7 @@ import '../../utils/floating_island_cleanup_manager.dart';
 import 'floating_island_decorators.dart';
 import 'floating_island_dynamic_mover_component.dart';
 import 'floating_island_dynamic_spawner_component.dart';
+import 'floating_island_static_spawner_component.dart';
 import 'noise_tile_map_generator.dart';
 
 class FloatingIslandMapComponent extends FlameGame
@@ -212,9 +213,29 @@ class FloatingIslandMapComponent extends FlameGame
   }
 
   void centerOnPlayer() {
-    if (player != null) {
-      logicalOffset = player!.logicalPosition.clone();
+    if (player == null) {
+      debugPrint('[Map] centerOnPlayer: No player component.');
+      return;
+    }
+
+    final targetOffset = player!.logicalPosition;
+    final distance = (logicalOffset - targetOffset).length;
+    debugPrint('[Map] centerOnPlayer called.\n  logicalOffset=$logicalOffset\n  playerPosition=$targetOffset\n  distance=$distance\n  size=$size');
+
+    if (distance > 0.1) {
+      logicalOffset = targetOffset.clone();
       isCameraFollowing = true;
+      debugPrint('[Map] logicalOffset updated to $logicalOffset, isCameraFollowing=$isCameraFollowing');
+
+      _grid.generator.logicalOffset = logicalOffset;
+
+      // 🌟 用 descendants()递归查找所有Spawner
+      for (final c in descendants().whereType<FloatingIslandStaticSpawnerComponent>()) {
+        debugPrint('[Map] Forcing tile rendering immediately for spawner=$c');
+        c.forceRefresh();
+      }
+    } else {
+      debugPrint('[Map] No update needed, already centered.');
     }
   }
 
