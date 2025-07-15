@@ -42,7 +42,7 @@ class HellPlayerComponent extends SpriteComponent
   bool get isInSafeZone =>
       (absolutePosition - safeZoneCenter).length <= safeZoneRadius;
 
-  double _attackCooldown = 0; // 🌟 新增攻击冷却
+  double _attackCooldown = 0;
 
   @override
   Future<void> onLoad() async {
@@ -64,16 +64,18 @@ class HellPlayerComponent extends SpriteComponent
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
     _hpBar = HpBarWrapper(
-      ratio: () => hp / maxHp,
-      currentHp: () => hp,
-      barColor: Colors.green,       // ✅ 绿色血条
-      textColor: Colors.green,      // ✅ 绿色数值
+      width: size.x,
+      height: 3,
+      barColor: Colors.green,
+      textColor: Colors.green,
     )
       ..scale.x = 1
       ..priority = 999;
 
+    // 🌟先添加，再设置血量，避免LateInitializationError
     Future.microtask(() {
       parent?.add(_hpBar);
+      _hpBar.setHp(hp, maxHp);
     });
   }
 
@@ -99,6 +101,7 @@ class HellPlayerComponent extends SpriteComponent
     if (isInSafeZone && !isDead) {
       if (hp < maxHp) {
         hp = maxHp;
+        _hpBar.setHp(hp, maxHp);
         _showFloatingText('🌿 安全区恢复满血！', color: Colors.greenAccent);
       }
     }
@@ -126,6 +129,7 @@ class HellPlayerComponent extends SpriteComponent
     }
 
     hp = (hp - reduced).clamp(0, maxHp);
+    _hpBar.setHp(hp, maxHp);
     _showFloatingText('-$reduced', color: Colors.redAccent);
     _triggerDamageEffect();
 
@@ -154,6 +158,7 @@ class HellPlayerComponent extends SpriteComponent
   void _reviveAtSafeZone() {
     isDead = false;
     hp = maxHp;
+    _hpBar.setHp(hp, maxHp);
     position = safeZoneCenter.clone();
 
     add(

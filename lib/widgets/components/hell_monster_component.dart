@@ -35,10 +35,12 @@ class HellMonsterComponent extends SpriteComponent
   Vector2 _wanderDirection = Vector2.zero();
 
   bool _isTouchingPlayer = false;
-  double _attackCooldown = 0; // 🌟 攻击冷却
+  double _attackCooldown = 0;
 
-  late final TextComponent _damageText;
   final Random _rng = Random();
+
+  late final HpBarWrapper _hpBar;
+  late final TextComponent _damageText;
 
   HellMonsterComponent({
     required this.id,
@@ -72,16 +74,18 @@ class HellMonsterComponent extends SpriteComponent
     size = isBoss ? Vector2.all(32) * 2 : Vector2.all(32);
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
-    add(
-      HpBarWrapper(
-        ratio: () => hp / maxHp,
-        currentHp: () => hp,
-        width: size.x,
-        height: isBoss ? 4 : 2,
-      )
-        ..position = Vector2(0, -size.y / 2 - 6)
-        ..anchor = Anchor.topLeft,
-    );
+    _hpBar = HpBarWrapper(
+      width: size.x,
+      height: isBoss ? 4 : 2,
+    )
+      ..position = Vector2(0, -size.y / 2 - 6)
+      ..anchor = Anchor.topLeft;
+
+    // 🌟先添加再setHp，避免LateInitializationError
+    Future.microtask(() {
+      add(_hpBar);
+      _hpBar.setHp(hp, maxHp);
+    });
 
     _damageText = TextComponent(
       text: '',
@@ -141,7 +145,7 @@ class HellMonsterComponent extends SpriteComponent
         _wanderDirection = Vector2(cos(angle), sin(angle));
       }
 
-      position += _wanderDirection * (_moveSpeed * 0.4) * dt;
+      position += _wanderDirection * (_moveSpeed * 0.5) * dt;
     } else {
       _isWandering = false;
       final toPlayer = playerPos - position;
@@ -150,23 +154,20 @@ class HellMonsterComponent extends SpriteComponent
       }
     }
 
-    // 安全区外约束
     final toSafeCenter2 = position - _safeZoneCenter!;
     if (toSafeCenter2.length < _safeZoneRadius) {
       position = _safeZoneCenter! + toSafeCenter2.normalized() * (_safeZoneRadius + 1.0);
     }
 
-    // 地图边界限制
     position.x = position.x.clamp(0, game.mapRoot.size.x);
     position.y = position.y.clamp(0, game.mapRoot.size.y);
 
-    // 🌟 自动攻击逻辑
     if (_isTouchingPlayer && _attackCooldown <= 0) {
       if (_target is HellPlayerComponent) {
         final player = _target as HellPlayerComponent;
         if (!player.isDead) {
           player.receiveDamage(atk);
-          _attackCooldown = 1.0; // 每1秒一次
+          _attackCooldown = 1.0;
         }
       }
     }
@@ -178,7 +179,7 @@ class HellMonsterComponent extends SpriteComponent
 
     if (other is HellPlayerComponent && !other.isDead) {
       _isTouchingPlayer = true;
-      _attackCooldown = 0; // 立即打一发
+      _attackCooldown = 0;
     }
   }
 
@@ -231,49 +232,34 @@ class HellMonsterComponent extends SpriteComponent
     final reduced = damage - def;
 
     if (reduced <= 0) {
-      _damageText.text = '格挡';
-      _damageText.position = Vector2(0, -size.y / 2 - 2);
-
-      if (!_damageText.isMounted) {
-        add(_damageText);
-      }
-
-      _damageText.add(
-        MoveByEffect(
-          Vector2(0, -16),
-          EffectController(
-            duration: 0.4,
-            curve: Curves.easeOut,
-          ),
-          onComplete: () => _damageText.removeFromParent(),
-        ),
-      );
+      _showDamageText('格挡');
       return;
     }
 
     hp -= reduced;
-
-    _damageText.text = '-$reduced';
-    _damageText.position = Vector2(0, -size.y / 2 - 2);
-
-    if (!_damageText.isMounted) {
-      add(_damageText);
-    }
-
-    _damageText.add(
-      MoveByEffect(
-        Vector2(0, -16),
-        EffectController(
-          duration: 0.4,
-          curve: Curves.easeOut,
-        ),
-        onComplete: () => _damageText.removeFromParent(),
-      ),
-    );
+    _hpBar.setHp(hp, maxHp);
+    _showDamageText('-$reduced');
 
     if (hp <= 0) {
       onDeath(from: from);
     }
+  }
+
+  void _showDamageText(String text) {
+    _damageText.text = text;
+    _damageText.position = Vector2(0, -size.y / 2 - 2);
+
+    _damageText.add(
+      SequenceEffect([
+        MoveByEffect(
+          Vector2(0, -16),
+          EffectController(duration: 0.4),
+        ),
+        RemoveEffect(onComplete: () {
+          _damageText.text = ''; // 飘完清空
+        }),
+      ]),
+    );
   }
 
   int get power {

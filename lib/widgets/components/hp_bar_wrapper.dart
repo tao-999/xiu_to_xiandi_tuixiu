@@ -6,25 +6,19 @@ import '../../utils/number_format.dart';
 class HpBarWrapper extends PositionComponent {
   final double width;
   final double height;
-  final double Function() ratio;
-  final int Function()? currentHp;
-  final int Function()? maxHp;
   final Color barColor;
   final Color textColor;
-
-  HpBarWrapper({
-    required this.ratio,
-    this.width = 40,
-    this.height = 3,
-    this.currentHp,
-    this.maxHp,
-    this.barColor = Colors.red,         // ✅ 默认红色
-    this.textColor = Colors.white,      // ✅ 默认白色
-  }) : super(anchor: Anchor.center);
 
   late final RectangleComponent _bg;
   late final RectangleComponent _fg;
   late final TextComponent _text;
+
+  HpBarWrapper({
+    this.width = 40,
+    this.height = 3,
+    this.barColor = Colors.red,
+    this.textColor = Colors.white,
+  }) : super(anchor: Anchor.center);
 
   @override
   Future<void> onLoad() async {
@@ -66,14 +60,10 @@ class HpBarWrapper extends PositionComponent {
     add(_text);
   }
 
-  @override
-  void update(double dt) {
-    super.update(dt);
-
-    _fg.scale.x = ratio().clamp(0.0, 1.0);
-
-    if (currentHp != null) {
-      _text.text = formatAnyNumber(currentHp!());
-    }
+  /// 🌟外部调用此方法更新血条和文字
+  void setHp(int current, int max) {
+    final ratio = max == 0 ? 0.0 : (current / max).clamp(0.0, 1.0);
+    _fg.scale.x = ratio;
+    _text.text = formatAnyNumber(current);
   }
 }
