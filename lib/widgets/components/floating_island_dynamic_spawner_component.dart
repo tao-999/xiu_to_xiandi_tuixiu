@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flame/components.dart';
+import '../../utils/name_generator.dart';
 import '../../utils/terrain_utils.dart';
 import 'dynamic_sprite_entry.dart';
 import 'floating_island_dynamic_mover_component.dart';
@@ -58,7 +59,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
   @override
   Future<void> onLoad() async {
-    // 🌟一次性预加载所有Sprite
     for (final entries in dynamicSpritesMap.values) {
       for (final entry in entries) {
         if (!_spriteCache.containsKey(entry.path)) {
@@ -78,10 +78,8 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     final visibleTopLeft = offset - viewSize / 2;
     final visibleBottomRight = visibleTopLeft + viewSize;
 
-    // 🌟先记录需要生成的tile，不立即生成
     _collectPendingTiles(visibleTopLeft, visibleBottomRight);
 
-    // 🌟每帧最多生成N个tile
     const int tilesPerFrame = 1;
     int spawned = 0;
     while (_pendingTiles.isNotEmpty && spawned < tilesPerFrame) {
@@ -119,7 +117,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       }
     }
 
-    // 🌟排序：由近及远
     newlyFound.sort((a, b) {
       final d1 = (a.center(dynamicTileSize) - center).length;
       final d2 = (b.center(dynamicTileSize) - center).length;
@@ -155,9 +152,23 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
       final sprite = _spriteCache[selected.path]!;
-      final minSize = selected.minSize ?? minDynamicObjectSize;
-      final maxSize = selected.maxSize ?? maxDynamicObjectSize;
-      final sizeValue = minSize + rand.nextDouble() * (maxSize - minSize);
+      final originalSize = sprite.srcSize;
+
+      Vector2 sizeValue;
+
+      if (selected.desiredWidth != null) {
+        // 🌟根据desiredWidth自动等比缩放
+        final factor = selected.desiredWidth! / originalSize.x;
+        sizeValue = originalSize * factor;
+      } else {
+        // 老逻辑随机scale
+        final minSize = selected.minSize ?? minDynamicObjectSize;
+        final maxSize = selected.maxSize ?? maxDynamicObjectSize;
+        final scale = minSize + rand.nextDouble() * (maxSize - minSize);
+        final factor = scale / originalSize.x;
+        sizeValue = originalSize * factor;
+      }
+
       final minSpd = selected.minSpeed ?? minSpeed;
       final maxSpd = selected.maxSpeed ?? maxSpeed;
       final speedValue = minSpd + rand.nextDouble() * (maxSpd - minSpd);
@@ -180,15 +191,34 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         );
       }
 
+      String? finalLabelText;
+      if (selected.generateRandomLabel == true) {
+        finalLabelText = NameGenerator.generate(isMale: true);
+      } else {
+        finalLabelText = selected.labelText;
+      }
+
+      String? finalCollisionText;
+      if (selected.collisionTexts != null && selected.collisionTexts!.isNotEmpty) {
+        finalCollisionText = selected.collisionTexts![rand.nextInt(selected.collisionTexts!.length)];
+      }
+
       final mover = FloatingIslandDynamicMoverComponent(
         spawner: this,
+        dynamicTileSize: dynamicTileSize,
         sprite: sprite,
         position: worldPos,
         movementBounds: bounds,
         speed: speedValue,
-        size: Vector2.all(sizeValue),
+        size: sizeValue,
         spritePath: selected.path,
         defaultFacingRight: selected.defaultFacingRight,
+        minDistance: selected.minDistance ?? 500.0,
+        maxDistance: selected.maxDistance ?? 2000.0,
+        labelText: finalLabelText,
+        labelFontSize: selected.labelFontSize,
+        labelColor: selected.labelColor,
+        collisionText: finalCollisionText,
       );
 
       onDynamicComponentCreated?.call(mover, terrain);

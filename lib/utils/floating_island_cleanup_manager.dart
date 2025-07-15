@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 
 import '../services/floating_island_storage.dart';
 import '../widgets/components/floating_island_dynamic_mover_component.dart';
+import '../widgets/components/floating_island_dynamic_spawner_component.dart';
 import '../widgets/components/has_logical_position.dart';
 
 class FloatingIslandCleanupManager extends Component {
@@ -47,7 +48,7 @@ class FloatingIslandCleanupManager extends Component {
       if (c is FloatingIslandDynamicMoverComponent) {
         final pos = c.logicalPosition;
         if (!cleanupRect.contains(Offset(pos.x, pos.y))) {
-          final dynamicTileSize = c.spawner.dynamicTileSize;
+          final dynamicTileSize = c.dynamicTileSize;
           final tileX = (pos.x / dynamicTileSize).floor();
           final tileY = (pos.y / dynamicTileSize).floor();
           final tileKey = '${tileX}_${tileY}';
@@ -63,7 +64,9 @@ class FloatingIslandCleanupManager extends Component {
             alreadySavedDynamicTiles.add(tileKey);
           }
 
-          c.spawner.loadedDynamicTiles.remove(tileKey);
+          if (c.spawner is FloatingIslandDynamicSpawnerComponent) {
+            (c.spawner as FloatingIslandDynamicSpawnerComponent).loadedDynamicTiles.remove(tileKey);
+          }
           toRemove.add(c);
         }
       }

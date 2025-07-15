@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import '../services/terrain_event_storage_service.dart';
+import '../widgets/components/beach_terrain_event.dart';
 import '../widgets/components/flower_field_terrain_event.dart';
 import '../widgets/components/forest_terrain_event.dart';
 import '../widgets/components/grass_terrain_event.dart';
@@ -37,6 +38,9 @@ class TerrainEventUtil {
         break;
       case 'flower_field':
         hasEvent = await FlowerFieldTerrainEvent.trigger(pos, game);
+        break;
+      case 'beach':
+        hasEvent = await BeachTerrainEvent.trigger(pos, game);
         break;
     }
 

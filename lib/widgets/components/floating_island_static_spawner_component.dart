@@ -95,7 +95,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     final visibleBottomRight = visibleTopLeft + viewSize;
 
     // buffer, 回收、生成等都挪进来
-    final bufferExtent = viewSize * 1.5;
+    final bufferExtent = viewSize * 1.75;
     final bufferTopLeft = offset - bufferExtent;
     final bufferBottomRight = offset + bufferExtent;
 

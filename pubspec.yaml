@@ -52,7 +52,8 @@ flutter:
     - assets/images/disciples/
     - assets/images/favorability/
     - assets/images/zongmen/
-    - assets/images/sect_zongzhu/
+    - assets/images/xianren/
+    - assets/images/xianren_icon/
   fonts:
     - family: ZcoolCangEr
       fonts:
