@@ -3,7 +3,6 @@ import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/constants/aptitude_table.dart';
 
 import '../../services/zongmen_disciple_service.dart';
 
@@ -26,13 +25,11 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
   BigInt charmCount = BigInt.zero;
   int useCount = 0;
   bool isLoading = true;
-  late final int maxAptitudeLimit;
 
   @override
   void initState() {
     super.initState();
     currentAptitude = widget.disciple.aptitude;
-    maxAptitudeLimit = getMaxAptitudeLimit();
     _loadCharmCount();
   }
 
@@ -43,8 +40,7 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
 
   void _changeCount(int delta) {
     setState(() {
-      final target = currentAptitude + useCount + delta;
-      if (target > maxAptitudeLimit) return;
+      // 🚀去掉了上限判断
       useCount = (useCount + delta).clamp(0, charmCount.toInt());
     });
   }
@@ -56,7 +52,8 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
     currentAptitude += useCount;
     widget.disciple.aptitude = currentAptitude;
     await DiscipleStorage.save(widget.disciple);
-// ✅ 这里直接刷新属性
+
+    // ✅ 这里直接刷新属性
     await ZongmenDiscipleService.syncAllRealmWithPlayer();
 
     widget.onUpdated?.call(); // ✅ 通知外部刷新
@@ -75,10 +72,10 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('当前资质：$currentAptitude',
-              style: const TextStyle(fontSize: 16, fontFamily: 'ZcoolCangEr')),
+              style: const TextStyle(fontSize: 12, fontFamily: 'ZcoolCangEr')),
           const SizedBox(height: 8),
           Text('可用资质券：${formatAnyNumber(charmCount)} 张',
-              style: const TextStyle(fontSize: 14, fontFamily: 'ZcoolCangEr')),
+              style: const TextStyle(fontSize: 12, fontFamily: 'ZcoolCangEr')),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -91,13 +88,13 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
                   minimumSize: const Size(32, 32),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text('-', style: TextStyle(fontSize: 20, fontFamily: 'ZcoolCangEr')),
+                child: const Text('-', style: TextStyle(fontSize: 14, fontFamily: 'ZcoolCangEr')),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
                   '$useCount',
-                  style: const TextStyle(fontSize: 20, fontFamily: 'ZcoolCangEr'),
+                  style: const TextStyle(fontSize: 14, fontFamily: 'ZcoolCangEr'),
                 ),
               ),
               TextButton(
@@ -115,7 +112,7 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
           const SizedBox(height: 12),
           Text(
             '提升后资质：${currentAptitude + useCount}',
-            style: const TextStyle(fontSize: 14, fontFamily: 'ZcoolCangEr'),
+            style: const TextStyle(fontSize: 12, fontFamily: 'ZcoolCangEr'),
           ),
         ],
       ),
@@ -131,9 +128,9 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
                 Icon(Icons.upgrade, color: Colors.brown),
                 SizedBox(width: 6),
                 Text(
-                  '确认提升',
+                  '提升资质',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     color: Colors.brown,
                     fontFamily: 'ZcoolCangEr',
                   ),

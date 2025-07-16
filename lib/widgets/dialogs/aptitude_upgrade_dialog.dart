@@ -4,7 +4,6 @@ import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
-import '../constants/aptitude_table.dart';
 
 class AptitudeUpgradeDialog extends StatefulWidget {
   final Character player;
@@ -64,8 +63,6 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
     'earth': '土',
   };
 
-  int getMaxAptitudeLimit() => aptitudeTable.last.minAptitude;
-
   @override
   void initState() {
     super.initState();
@@ -93,7 +90,6 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
   Widget build(BuildContext context) {
     final remaining = fateCharmCount - tempUsed;
     final totalAptitude = tempElements.values.fold<int>(0, (sum, v) => sum + v);
-    final maxAptitudeLimit = getMaxAptitudeLimit();
 
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
@@ -102,7 +98,7 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('✨ 资质：$totalAptitude / $maxAptitudeLimit', style: const TextStyle(fontSize: 16)),
+          Text('✨ 资质：$totalAptitude', style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 4),
           Text('资质券：$remaining', style: const TextStyle(color: Colors.orange, fontSize: 14)),
           const SizedBox(height: 12),
@@ -187,21 +183,13 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
         ],
       ),
     );
-
   }
 
   void _addAptitude(String key) {
     final remaining = fateCharmCount - tempUsed;
-    final totalAptitude = tempElements.values.fold<int>(0, (sum, v) => sum + v);
-    final maxLimit = getMaxAptitudeLimit();
 
     if (remaining <= 0) {
       ToastTip.show(context, '资质券不够啦！');
-      return;
-    }
-
-    if (totalAptitude >= maxLimit) {
-      ToastTip.show(context, '⚠️ 已达到资质上限，无法继续提升！');
       return;
     }
 
