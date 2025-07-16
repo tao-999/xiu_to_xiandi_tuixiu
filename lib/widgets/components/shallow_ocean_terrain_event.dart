@@ -16,19 +16,20 @@ class ShallowOceanTerrainEvent {
   static final Random _rand = Random();
 
   static const int maxLevel = 30;
-  static const int interval = 1000;
+  static const int start = 100000000; // 起点
+  static const int interval = 100000000; // 区间宽度
 
   static int getLevelByDistance(double distance) {
-    if (distance < 1000) return 0;
-    final level = ((distance - 1000) / interval).floor() + 1;
+    if (distance < start) return 0;
+    final level = ((distance - start) / interval).floor() + 1;
     return level.clamp(1, maxLevel);
   }
 
   static Future<bool> trigger(Vector2 pos, FlameGame game) async {
     final distance = pos.length;
 
-    if (distance < 1000) {
-      debugPrint('[ShallowOcean] 距离 <1000, 不触发');
+    if (distance < start) {
+      debugPrint('[ShallowOcean] 距离 <$start, 不触发');
       return false;
     }
 
@@ -54,9 +55,9 @@ class ShallowOceanTerrainEvent {
       return false;
     }
 
-    // 🌟5%概率
+    // 🌟0.5%概率
     final chanceRoll = _rand.nextDouble();
-    final isTriggered = chanceRoll < 0.05;
+    final isTriggered = chanceRoll < 0.005;
 
     debugPrint('[ShallowOcean] Roll值: $chanceRoll, 是否触发: $isTriggered');
 

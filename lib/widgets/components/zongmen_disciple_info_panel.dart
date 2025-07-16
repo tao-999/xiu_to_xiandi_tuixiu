@@ -65,6 +65,7 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
               },
             ),
             _buildInfoRow('职位', '${d.role}'),
+            _buildInfoRow('资料', d.description),
           ],
         ),
         Positioned(
@@ -94,6 +95,7 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '$label：',
@@ -105,26 +107,27 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
           ),
           const SizedBox(width: 6),
           Expanded(
-            child: Row(
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Expanded(
-                  child: Text(
-                    value,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontFamily: 'ZcoolCangEr',
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: 'ZcoolCangEr',
                   ),
                 ),
                 if (showPlus)
                   GestureDetector(
                     onTap: onPlusTap,
-                    child: const Icon(
-                      Icons.add_circle_outline,
-                      color: Colors.white70,
-                      size: 18,
+                    child: const Padding(
+                      padding: EdgeInsets.only(left: 4),
+                      child: Icon(
+                        Icons.add_circle_outline,
+                        color: Colors.white70,
+                        size: 18,
+                      ),
                     ),
                   ),
               ],
