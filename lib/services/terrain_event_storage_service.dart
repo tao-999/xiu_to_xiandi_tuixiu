@@ -66,4 +66,26 @@ class TerrainEventStorageService {
     final ty = (pos.y / tileSize).floor();
     return '$terrain:$tx:$ty';
   }
+
+  static Future<bool> hasTriggeredLevel(String terrain, int level) async {
+    final box = await _getBox();
+    final key = '$terrain:LEVEL_$level';
+    return box.containsKey(key);
+  }
+
+  static Future<void> markTriggeredLevel(
+      String terrain,
+      int level, {
+        Map<String, dynamic>? data,
+        String status = 'completed',
+      }) async {
+    final box = await _getBox();
+    final key = '$terrain:LEVEL_$level';
+    await box.put(key, {
+      'eventType': 'XIANREN_$level',
+      'timestamp': DateTime.now().toIso8601String(),
+      'status': status,
+      'data': data ?? {},
+    });
+  }
 }

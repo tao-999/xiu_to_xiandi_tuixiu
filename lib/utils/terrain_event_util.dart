@@ -7,6 +7,7 @@ import '../widgets/components/forest_terrain_event.dart';
 import '../widgets/components/grass_terrain_event.dart';
 import '../widgets/components/rock_terrain_event.dart';
 import '../widgets/components/volcanic_terrain_event.dart';
+import '../widgets/components/shallow_ocean_terrain_event.dart'; // 🌊 别忘了import
 
 class TerrainEventUtil {
   /// game参数必须传
@@ -41,6 +42,9 @@ class TerrainEventUtil {
         break;
       case 'beach':
         hasEvent = await BeachTerrainEvent.trigger(pos, game);
+        break;
+      case 'shallow_ocean':
+        hasEvent = await ShallowOceanTerrainEvent.trigger(pos, game);
         break;
     }
 

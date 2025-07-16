@@ -88,4 +88,18 @@ class DiscipleStorage {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_sortOptionKey) ?? 'time_desc';
   }
+
+  static Future<void> saveOrAdd(Disciple d) async {
+    final box = await _openBox();
+
+    if (d.id.isEmpty) {
+      // 如果id为空，就自动生成一个唯一id
+      final key = DateTime.now().microsecondsSinceEpoch.toString();
+      final withId = d.copyWith(id: key);
+      await box.put(key, withId);
+    } else {
+      // 否则直接覆盖
+      await box.put(d.id, d);
+    }
+  }
 }
