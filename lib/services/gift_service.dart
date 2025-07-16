@@ -45,7 +45,7 @@ class GiftService {
     if (isFirst) {
       stone = BigInt.from(10000);
       ticket = BigInt.from(500);
-      charm = BigInt.from(10);
+      charm = BigInt.from(1000);
     } else {
       final base = 10000 + (claimCount - 1) * 500; // 第2次起递增
       stone = BigInt.from(base);

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
@@ -26,11 +27,21 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
   int useCount = 0;
   bool isLoading = true;
 
+  Timer? _addTimer;
+  Timer? _subTimer;
+
   @override
   void initState() {
     super.initState();
     currentAptitude = widget.disciple.aptitude;
     _loadCharmCount();
+  }
+
+  @override
+  void dispose() {
+    _addTimer?.cancel();
+    _subTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadCharmCount() async {
@@ -40,9 +51,34 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
 
   void _changeCount(int delta) {
     setState(() {
-      // 🚀去掉了上限判断
       useCount = (useCount + delta).clamp(0, charmCount.toInt());
     });
+  }
+
+  void _startAddTimer() {
+    _addTimer?.cancel();
+    _addTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (!mounted) return;
+      _changeCount(1);
+    });
+  }
+
+  void _stopAddTimer() {
+    _addTimer?.cancel();
+    _addTimer = null;
+  }
+
+  void _startSubTimer() {
+    _subTimer?.cancel();
+    _subTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (!mounted) return;
+      _changeCount(-1);
+    });
+  }
+
+  void _stopSubTimer() {
+    _subTimer?.cancel();
+    _subTimer = null;
   }
 
   Future<void> _applyUpgrade() async {
@@ -53,10 +89,9 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
     widget.disciple.aptitude = currentAptitude;
     await DiscipleStorage.save(widget.disciple);
 
-    // ✅ 这里直接刷新属性
     await ZongmenDiscipleService.syncAllRealmWithPlayer();
 
-    widget.onUpdated?.call(); // ✅ 通知外部刷新
+    widget.onUpdated?.call();
     Navigator.pop(context);
   }
 
@@ -71,24 +106,37 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
           : Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('当前资质：$currentAptitude',
-              style: const TextStyle(fontSize: 12, fontFamily: 'ZcoolCangEr')),
+          Text(
+            '当前资质：$currentAptitude',
+            style: const TextStyle(fontSize: 12, fontFamily: 'ZcoolCangEr'),
+          ),
           const SizedBox(height: 8),
-          Text('可用资质券：${formatAnyNumber(charmCount)} 张',
-              style: const TextStyle(fontSize: 12, fontFamily: 'ZcoolCangEr')),
+          Text(
+            '可用资质券：${formatAnyNumber(charmCount)} 张',
+            style: const TextStyle(fontSize: 12, fontFamily: 'ZcoolCangEr'),
+          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextButton(
-                onPressed: () => _changeCount(-1),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(32, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              GestureDetector(
+                onTap: () => _changeCount(-1),
+                onTapDown: (_) => _startSubTimer(),
+                onTapUp: (_) => _stopSubTimer(),
+                onTapCancel: () => _stopSubTimer(),
+                child: TextButton(
+                  onPressed: null,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(32, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    '-',
+                    style: TextStyle(fontSize: 14, fontFamily: 'ZcoolCangEr'),
+                  ),
                 ),
-                child: const Text('-', style: TextStyle(fontSize: 14, fontFamily: 'ZcoolCangEr')),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -97,15 +145,24 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
                   style: const TextStyle(fontSize: 14, fontFamily: 'ZcoolCangEr'),
                 ),
               ),
-              TextButton(
-                onPressed: () => _changeCount(1),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(32, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              GestureDetector(
+                onTap: () => _changeCount(1),
+                onTapDown: (_) => _startAddTimer(),
+                onTapUp: (_) => _stopAddTimer(),
+                onTapCancel: () => _stopAddTimer(),
+                child: TextButton(
+                  onPressed: null,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.black,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(32, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    '+',
+                    style: TextStyle(fontSize: 20, fontFamily: 'ZcoolCangEr'),
+                  ),
                 ),
-                child: const Text('+', style: TextStyle(fontSize: 20, fontFamily: 'ZcoolCangEr')),
               ),
             ],
           ),
