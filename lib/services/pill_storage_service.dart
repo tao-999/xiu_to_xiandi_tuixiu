@@ -1,19 +1,16 @@
 import 'package:hive/hive.dart';
 import '../models/pill.dart';
+import 'player_storage.dart';
 
 class PillStorageService {
   static const String _boxName = 'pills';
 
-  /// 🧪 打开盒子（私有方法）
   static Future<Box<Pill>> _openBox() async {
     return await Hive.openBox<Pill>(_boxName);
   }
 
-  /// ✅ 添加丹药
   static Future<void> addPill(Pill pill) async {
     final box = await _openBox();
-
-    // ✅ 使用 firstOrNull 替代 firstWhere，避免 orElse 报错
     final same = box.values.where((p) =>
     p.name == pill.name &&
         p.level == pill.level &&
@@ -29,44 +26,63 @@ class PillStorageService {
     }
   }
 
-  /// ✅ 删除某个丹药
   static Future<void> deletePillByKey(dynamic key) async {
     final box = await _openBox();
     await box.delete(key);
   }
 
-  /// ✅ 获取所有丹药
   static Future<List<Pill>> loadAllPills() async {
     final box = await _openBox();
     return box.values.toList();
   }
 
-  /// ✅ 获取带 key 的所有丹药
   static Future<Map<dynamic, Pill>> loadPillsWithKeys() async {
     final box = await _openBox();
     return box.toMap();
   }
 
-  /// ✅ 按时间倒序排序
   static Future<List<Pill>> loadSortedByTimeDesc() async {
     final list = await loadAllPills();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
   }
 
-  /// ✅ 清空所有丹药
   static Future<void> clearAllPills() async {
     final box = await _openBox();
     await box.clear();
   }
 
-  /// ✅ 吞服丹药：减少数量，为0时删除
+  /// ✅ 吞服丹药：减少数量并更新角色属性
   static Future<void> consumePill(Pill pill, {int count = 1}) async {
     final box = await _openBox();
-
     final key = pill.key;
     final stored = box.get(key);
 
+    // 🔥 计算总加成
+    final totalBonus = pill.bonusAmount * count;
+
+    // 🧙‍♂️ 更新角色属性（base）
+    final player = await PlayerStorage.getPlayer();
+    if (player != null) {
+      switch (pill.type.name) {
+        case 'health':
+          player.baseHp += totalBonus;
+          await PlayerStorage.updateField('baseHp', player.baseHp);
+          break;
+        case 'attack':
+          player.baseAtk += totalBonus;
+          await PlayerStorage.updateField('baseAtk', player.baseAtk);
+          break;
+        case 'defense':
+          player.baseDef += totalBonus;
+          await PlayerStorage.updateField('baseDef', player.baseDef);
+          break;
+        default:
+          break;
+      }
+    }
+
+    // 🧪 扣减数量
     if (stored != null) {
       stored.count -= count;
       if (stored.count <= 0) {

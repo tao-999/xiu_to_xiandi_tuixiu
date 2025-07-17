@@ -52,22 +52,24 @@ class _CreateRolePageState extends State<CreateRolePage> {
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    // 创建角色（不再嵌套 resources）
+    // ✅ 计算总资质
+    final int totalAptitude = gold + wood + water + fire + earth;
+    final double percentBonus = totalAptitude / 100.0;
+
+    // ✅ 创建角色（extra 字段使用 double）
     final character = Character(
       id: playerId,
       name: nickname,
       gender: gender,
       career: '散修',
       cultivation: BigInt.zero,
+      aptitude: totalAptitude,
       baseHp: 100,
-      extraHp: 0,
-      pillBonusHp: 0,
+      extraHp: percentBonus,
       baseAtk: 20,
-      extraAtk: 0,
-      pillBonusAtk: 0,
+      extraAtk: percentBonus,
       baseDef: 10,
-      extraDef: 0,
-      pillBonusDef: 0,
+      extraDef: percentBonus,
       atkSpeed: 1.0,
       critRate: 0.05,
       critDamage: 0.5,
@@ -91,14 +93,15 @@ class _CreateRolePageState extends State<CreateRolePage> {
       createdAt: now,
     );
 
-    // 写入角色数据（不包含 resources）
+    // ✅ 写入角色数据
     await prefs.setString('playerData', jsonEncode(character.toJson()));
 
-    // 分开写入初始资源（放 resourcesData）
-    await ResourcesStorage.save(Resources()); // ✅ 初始化资源
+    // ✅ 写入资源
+    await ResourcesStorage.save(Resources());
 
     return character;
   }
+
   void _updateValue(String element, int value) {
     setState(() {
       switch (element) {

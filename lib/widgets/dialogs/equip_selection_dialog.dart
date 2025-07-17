@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/weapon.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/weapons_storage.dart';
-
-import '../../services/player_storage.dart';
 
 class EquipSelectionDialog extends StatefulWidget {
   final String currentOwnerId;
@@ -34,6 +33,35 @@ class _EquipSelectionDialogState extends State<EquipSelectionDialog> {
     setState(() => _weapons = list);
   }
 
+  Future<void> _equipWeapon(Weapon weapon) async {
+    // 卸下所有当前 owner 的同类型武器
+    final allEquipped = await WeaponsStorage.loadWeaponsEquippedBy(widget.currentOwnerId);
+    for (final w in allEquipped) {
+      if (w.type == weapon.type && w.key != weapon.key) {
+        await WeaponsStorage.unequipWeapon(w);
+      }
+    }
+
+    await WeaponsStorage.equipWeapon(
+      weapon: weapon,
+      ownerId: widget.currentOwnerId,
+    );
+
+    final updated = await PlayerStorage.getPlayer();
+    if (updated != null) {
+      debugPrint('🎯 装备后：extraHp=${updated.extraHp}, extraAtk=${updated.extraAtk}, extraDef=${updated.extraDef}');
+    }
+  }
+
+  Future<void> _unequipWeapon(Weapon weapon) async {
+    await WeaponsStorage.unequipWeapon(weapon);
+
+    final updated = await PlayerStorage.getPlayer();
+    if (updated != null) {
+      debugPrint('🧹 卸下后：extraHp=${updated.extraHp}, extraAtk=${updated.extraAtk}, extraDef=${updated.extraDef}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -58,8 +86,13 @@ class _EquipSelectionDialogState extends State<EquipSelectionDialog> {
             final isEquipped = weapon.equippedById == widget.currentOwnerId;
 
             return InkWell(
-              onTap: () {
-                if (!isEquipped) widget.onEquipSelected(weapon);
+              onTap: () async {
+                if (!isEquipped) {
+                  await _equipWeapon(weapon);
+                  widget.onEquipSelected(weapon);
+                  widget.onChanged?.call();
+                  _loadWeapons();
+                }
               },
               child: Row(
                 children: [
@@ -106,19 +139,12 @@ class _EquipSelectionDialogState extends State<EquipSelectionDialog> {
                   ),
                   if (isEquipped)
                     GestureDetector(
-                        onTap: () async {
-                          await WeaponsStorage.unequipWeapon(weapon);
-
-                          // ✅ 重新计算所有装备的加成属性（extraHp / extraAtk / extraDef）
-                          await PlayerStorage.applyAllEquippedAttributesWith();
-
-                          // ✅ 通知父组件更新 UI（如雪莲台图片、打坐图）
-                          widget.onChanged?.call();
-
-                          // ✅ 刷新当前弹窗武器列表
-                          _loadWeapons();
-                        },
-                        child: Container(
+                      onTap: () async {
+                        await _unequipWeapon(weapon);
+                        widget.onChanged?.call();
+                        _loadWeapons();
+                      },
+                      child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.red),

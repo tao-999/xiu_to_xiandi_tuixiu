@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 
-/// 👤 Character —— 修士角色类（纯数据，不含任何资源）
+/// 👤 Character —— 修士角色类（精简版，只有基础和百分比加成）
 class Character {
   final String id;
   String name;
@@ -11,17 +12,17 @@ class Character {
   double cultivationEfficiency;
   int currentMapStage;
 
+  int aptitude; // 🌟 独立资质字段
+
+  /// 基础属性（包含丹药等累加）
   int baseHp;
-  int extraHp;
-  int pillBonusHp;
-
   int baseAtk;
-  int extraAtk;
-  int pillBonusAtk;
-
   int baseDef;
-  int extraDef;
-  int pillBonusDef;
+
+  /// 装备百分比加成
+  double extraHp;
+  double extraAtk;
+  double extraDef;
 
   double atkSpeed;
 
@@ -48,15 +49,13 @@ class Character {
     required this.gender,
     required this.career,
     required this.cultivation,
+    required this.aptitude,
     required this.baseHp,
     required this.extraHp,
-    required this.pillBonusHp,
     required this.baseAtk,
     required this.extraAtk,
-    required this.pillBonusAtk,
     required this.baseDef,
     required this.extraDef,
-    required this.pillBonusDef,
     required this.atkSpeed,
     required this.critRate,
     required this.critDamage,
@@ -83,15 +82,13 @@ class Character {
     'cultivation': cultivation.toString(),
     'cultivationEfficiency': cultivationEfficiency,
     'currentMapStage': currentMapStage,
+    'aptitude': aptitude,
     'baseHp': baseHp,
     'extraHp': extraHp,
-    'pillBonusHp': pillBonusHp,
     'baseAtk': baseAtk,
     'extraAtk': extraAtk,
-    'pillBonusAtk': pillBonusAtk,
     'baseDef': baseDef,
     'extraDef': extraDef,
-    'pillBonusDef': pillBonusDef,
     'atkSpeed': atkSpeed,
     'critRate': critRate,
     'critDamage': critDamage,
@@ -116,15 +113,13 @@ class Character {
     cultivation: BigInt.tryParse(json['cultivation'].toString()) ?? BigInt.zero,
     cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
     currentMapStage: json['currentMapStage'] ?? 1,
+    aptitude: json['aptitude'] ?? 0,
     baseHp: json['baseHp'] ?? 100,
     extraHp: json['extraHp'] ?? 0,
-    pillBonusHp: json['pillBonusHp'] ?? 0,
     baseAtk: json['baseAtk'] ?? 10,
     extraAtk: json['extraAtk'] ?? 0,
-    pillBonusAtk: json['pillBonusAtk'] ?? 0,
     baseDef: json['baseDef'] ?? 5,
     extraDef: json['extraDef'] ?? 0,
-    pillBonusDef: json['pillBonusDef'] ?? 0,
     atkSpeed: (json['atkSpeed'] ?? 1.5).toDouble(),
     critRate: (json['critRate'] ?? 0.0).toDouble(),
     critDamage: (json['critDamage'] ?? 0.0).toDouble(),
@@ -151,17 +146,15 @@ class Character {
     gender: '男',
     career: '散修',
     cultivation: BigInt.zero,
+    aptitude: 0,
     cultivationEfficiency: 1.0,
     currentMapStage: 1,
     baseHp: 100,
     extraHp: 0,
-    pillBonusHp: 0,
     baseAtk: 10,
     extraAtk: 0,
-    pillBonusAtk: 0,
     baseDef: 5,
     extraDef: 0,
-    pillBonusDef: 0,
     atkSpeed: 1.5,
     critRate: 0.0,
     critDamage: 0.0,

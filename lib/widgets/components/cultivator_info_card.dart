@@ -3,6 +3,7 @@ import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 import '../../utils/number_format.dart';
+import '../charts/polygon_radar_chart.dart';
 import '../constants/aptitude_table.dart';
 
 class CultivatorInfoCard extends StatelessWidget {
@@ -10,27 +11,46 @@ class CultivatorInfoCard extends StatelessWidget {
 
   const CultivatorInfoCard({super.key, required this.profile});
 
-  String formatPercent(double value) {
-    return '${(value * 100).toStringAsFixed(1)}%';
-  }
+  String formatPercent(double value) => '${(value * 100).toStringAsFixed(2)}%';
 
-  static const Map<String, String> elementLabels = {
-    'gold': '金', 'wood': '木', 'water': '水', 'fire': '火', 'earth': '土',
-    'jin': '金', 'mu': '木', 'shui': '水', 'huo': '火', 'tu': '土',
-    '金': '金', '木': '木', '水': '水', '火': '火', '土': '土',
-  };
-
-  Widget _buildAttributeRow(String fullText) {
+  Widget _buildAttributeRow(String label, num value, double extra) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: _buildStyledText(fullText),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 48,
+            child: Text(
+              '$label：',
+              style: const TextStyle(color: Colors.black, fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: RichText(
+              textAlign: TextAlign.right,
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: formatAnyNumber(value),
+                    style: const TextStyle(color: Colors.black, fontSize: 12),
+                  ),
+                  TextSpan(
+                    text: ' (${formatPercent(extra)})',
+                    style: const TextStyle(color: Colors.black, fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildStyledText(String text) {
     final regex = RegExp(r'^(.+?[:：])\s*(.+)$');
     final match = regex.firstMatch(text);
-
     if (match == null) return Text(text);
 
     final label = match.group(1)!;
@@ -39,24 +59,15 @@ class CultivatorInfoCard extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 48, // ✅ 控制 label 宽度（你可以调）
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 12,
-            ),
-          ),
+          width: 48,
+          child: Text(label, style: const TextStyle(color: Colors.black, fontSize: 12)),
         ),
-        const SizedBox(width: 4), // ✅ label 和 value 之间留一点间距
+        const SizedBox(width: 4),
         Flexible(
           child: Text(
             value,
             textAlign: TextAlign.right,
-            style: const TextStyle(
-              color: Colors.black,
-              fontSize: 11,
-            ),
+            style: const TextStyle(color: Colors.black, fontSize: 11),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             softWrap: false,
@@ -68,19 +79,10 @@ class CultivatorInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalElement = PlayerStorage.calculateTotalElement(profile.elements);
     final power = PlayerStorage.getPower(profile);
-
-    // ✅ 拆分属性
-    final baseHp = PlayerStorage.getBaseHp(profile);
-    final extraHp = PlayerStorage.getExtraHp(profile);
-    final pillBonusHp = PlayerStorage.getPillHp(profile);
-    final baseAtk = PlayerStorage.getBaseAtk(profile);
-    final extraAtk = PlayerStorage.getExtraAtk(profile);
-    final pillBonusAtk= PlayerStorage.getPillAtk(profile);
-    final baseDef = PlayerStorage.getBaseDef(profile);
-    final extraDef = PlayerStorage.getExtraDef(profile);
-    final pillBonusDef = PlayerStorage.getPillDef(profile);
+    final hp = PlayerStorage.getHp(profile);
+    final atk = PlayerStorage.getAtk(profile);
+    final def = PlayerStorage.getDef(profile);
 
     return Column(
       children: [
@@ -99,28 +101,33 @@ class CultivatorInfoCard extends StatelessWidget {
                   style: const TextStyle(color: Colors.black, fontSize: 12)),
               const SizedBox(height: 4),
               Text(
-                '战力：${formatAnyNumber(power)}',
+                '资质：${profile.aptitude}（${_getAptitudeLabel(profile.aptitude)}）',
                 style: const TextStyle(color: Colors.black, fontSize: 12),
               ),
+              const SizedBox(height: 6),
+              Text('战力：${formatAnyNumber(power)}',
+                  style: const TextStyle(color: Colors.black, fontSize: 12)),
               const SizedBox(height: 4),
-              Text(
-                '五行属性：' +
-                    profile.elements.entries
-                        .where((e) => e.value > 0)
-                        .map((e) => '${elementLabels[e.key] ?? e.key}${e.value}')
-                        .join('  '),
-                style: const TextStyle(color: Colors.black, fontSize: 12),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '资质：$totalElement（${_getAptitudeLabel(totalElement)}）',
-                style: const TextStyle(color: Colors.black, fontSize: 12),
+              Center(
+                child: SizedBox(
+                  width: 150,
+                  height: 150,
+                  child: PolygonRadarChart(
+                    values: ['gold', 'wood', 'water', 'fire', 'earth']
+                        .map((e) => profile.elements[e] ?? 0)
+                        .toList(),
+                    labels: ['金', '木', '水', '火', '土'],
+                    max: 14,
+                    strokeColor: Colors.brown,
+                    fillColor: const Color.fromARGB(100, 205, 133, 63),
+                    labelStyle: const TextStyle(fontSize: 11, color: Colors.black),
+                  ),
+                ),
               ),
             ],
           ),
         ),
 
-        // 下层卡片：属性值
         Container(
           width: double.infinity,
           margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
@@ -131,9 +138,9 @@ class CultivatorInfoCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildAttributeRow('气血：${formatAnyNumber(baseHp)}（+${formatAnyNumber(extraHp + pillBonusHp)}）'),
-              _buildAttributeRow('攻击：${formatAnyNumber(baseAtk)}（+${formatAnyNumber(extraAtk + pillBonusAtk)}）'),
-              _buildAttributeRow('防御：${formatAnyNumber(baseDef)}（+${formatAnyNumber(extraDef + pillBonusDef)}）'),
+              _buildAttributeRow('气血', hp, profile.extraHp),
+              _buildAttributeRow('攻击', atk, profile.extraAtk),
+              _buildAttributeRow('防御', def, profile.extraDef),
             ],
           ),
         ),
@@ -142,10 +149,8 @@ class CultivatorInfoCard extends StatelessWidget {
   }
 
   String _getAptitudeLabel(int total) {
-    final gate = aptitudeTable
-        .lastWhere((g) => total >= g.minAptitude, orElse: () => aptitudeTable.first);
-    final name = gate.realmName;
-
-    return '$name之资';
+    final gate = aptitudeTable.lastWhere((g) => total >= g.minAptitude,
+        orElse: () => aptitudeTable.first);
+    return '${gate.realmName}之资';
   }
 }

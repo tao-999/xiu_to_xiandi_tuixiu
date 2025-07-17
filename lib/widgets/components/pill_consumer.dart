@@ -1,11 +1,8 @@
-// 📂 lib/widgets/components/pill_consumer.dart
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/pill.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/pill_storage_service.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
-
-import '../../services/player_storage.dart';
 
 class PillConsumer extends StatelessWidget {
   final VoidCallback? onConsumed;
@@ -20,11 +17,11 @@ class PillConsumer extends StatelessWidget {
       barrierDismissible: true,
       builder: (_) => Dialog(
         backgroundColor: const Color(0xFFF8F1D4),
-        insetPadding: const EdgeInsets.all(16), // ✅ 跟你给的代码保持一致
+        insetPadding: const EdgeInsets.all(16),
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () {}, // 没 tooltip 也保留结构一致性
+          onTap: () {},
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: SizedBox(
@@ -98,7 +95,6 @@ class PillConsumer extends StatelessWidget {
       context: context,
       builder: (_) => StatefulBuilder(
         builder: (context, setState) {
-          // 计算加成属性展示
           final totalBonus = pill.bonusAmount * quantity;
           final typeText = _getTypeText(pill.type);
 
@@ -109,7 +105,7 @@ class PillConsumer extends StatelessWidget {
             titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
             contentPadding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
             actionsPadding: const EdgeInsets.only(bottom: 8),
-            title: Center( // ✅ 名字居中
+            title: Center(
               child: Text(
                 '吞服 ${pill.name}',
                 style: const TextStyle(fontSize: 13),
@@ -129,9 +125,7 @@ class PillConsumer extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      onPressed: quantity > 1
-                          ? () => setState(() => quantity--)
-                          : null,
+                      onPressed: quantity > 1 ? () => setState(() => quantity--) : null,
                       icon: const Icon(Icons.remove, size: 18),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -143,9 +137,7 @@ class PillConsumer extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     IconButton(
-                      onPressed: quantity < pill.count
-                          ? () => setState(() => quantity++)
-                          : null,
+                      onPressed: quantity < pill.count ? () => setState(() => quantity++) : null,
                       icon: const Icon(Icons.add, size: 18),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -172,14 +164,6 @@ class PillConsumer extends StatelessWidget {
               TextButton(
                 onPressed: () async {
                   await PillStorageService.consumePill(pill, count: quantity);
-
-                  // ✅ 计算属性加成
-                  await PlayerStorage.applyPillBonus(
-                    type: pill.type.name,               // 'hp' | 'atk' | 'def'
-                    bonusPerPill: pill.bonusAmount,
-                    count: quantity,
-                  );
-
                   ToastTip.show(context, '吞服 ${pill.name} ×$quantity 成功！');
                   Navigator.of(context).pop();
                   Navigator.of(context).pop();
@@ -204,7 +188,7 @@ class PillConsumer extends StatelessWidget {
       case PillType.defense:
         return '防御';
       case PillType.health:
-        return '血气';
+        return '气血';
     }
   }
 

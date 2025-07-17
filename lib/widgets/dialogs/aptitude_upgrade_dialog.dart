@@ -49,24 +49,16 @@ class AptitudeUpgradeDialog extends StatefulWidget {
 }
 
 class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
-  late Map<String, int> tempElements;
+  late int currentAptitude;
   int tempUsed = 0;
-  int fateCharmCount = 0; // ✅ 独立存储的资质券数量
+  int fateCharmCount = 0;
   Timer? _addTimer;
   Timer? _subTimer;
-
-  final Map<String, String> elementLabels = {
-    'gold': '金',
-    'wood': '木',
-    'water': '水',
-    'fire': '火',
-    'earth': '土',
-  };
 
   @override
   void initState() {
     super.initState();
-    tempElements = Map<String, int>.from(widget.player.elements);
+    currentAptitude = widget.player.aptitude;
     _loadFateCharmCount();
   }
 
@@ -89,7 +81,6 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
   @override
   Widget build(BuildContext context) {
     final remaining = fateCharmCount - tempUsed;
-    final totalAptitude = tempElements.values.fold<int>(0, (sum, v) => sum + v);
 
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),
@@ -98,30 +89,78 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('✨ 资质：$totalAptitude', style: const TextStyle(fontSize: 16)),
+          Text(
+            '✨ 当前资质：${currentAptitude + tempUsed}',
+            style: const TextStyle(fontSize: 16),
+          ),
           const SizedBox(height: 4),
-          Text('资质券：$remaining', style: const TextStyle(color: Colors.orange, fontSize: 14)),
-          const SizedBox(height: 12),
-          ...tempElements.keys.map(_buildAptitudeRow).toList(),
-          const SizedBox(height: 12),
+          Text(
+            '使用资质券：$tempUsed / $fateCharmCount',
+            style: const TextStyle(color: Colors.orange, fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: _subAptitude,
+                onTapDown: (_) => _startSubTimer(),
+                onTapUp: (_) => _stopSubTimer(),
+                onTapCancel: _stopSubTimer,
+                child: const Text(
+                  '-',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontFamily: 'ZcoolCangEr',
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  '$tempUsed',
+                  style: const TextStyle(fontSize: 18),
+                ),
+              ),
+              GestureDetector(
+                onTap: _addAptitude,
+                onTapDown: (_) => _startAddTimer(),
+                onTapUp: (_) => _stopAddTimer(),
+                onTapCancel: _stopAddTimer,
+                child: const Text(
+                  '+',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontFamily: 'ZcoolCangEr',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           Center(
             child: InkWell(
               onTap: tempUsed == 0
                   ? null
                   : () async {
+                final addedAptitude = tempUsed;
                 await ResourcesStorage.subtract('fateRecruitCharm', BigInt.from(tempUsed));
-                widget.player.elements = tempElements;
 
-                PlayerStorage.calculateBaseAttributes(widget.player);
+                // ✅ 保存 aptitude
+                widget.player.aptitude += addedAptitude;
+
+                // ✅ 增加对应的 extra
+                final double gain = addedAptitude * 0.01;
+                widget.player.extraHp += gain;
+                widget.player.extraAtk += gain;
+                widget.player.extraDef += gain;
 
                 await PlayerStorage.updateFields({
-                  'elements': widget.player.elements,
-                  'baseHp': widget.player.baseHp,
-                  'baseAtk': widget.player.baseAtk,
-                  'baseDef': widget.player.baseDef,
+                  'aptitude': widget.player.aptitude,
+                  'extraHp': widget.player.extraHp,
+                  'extraAtk': widget.player.extraAtk,
+                  'extraDef': widget.player.extraDef,
                 });
-
-                await PlayerStorage.applyAllEquippedAttributesWith();
 
                 if (context.mounted) Navigator.of(context).pop();
                 widget.onUpdated?.call();
@@ -144,76 +183,29 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
     );
   }
 
-  Widget _buildAptitudeRow(String key) {
-    final label = elementLabels[key] ?? key;
-    final baseValue = widget.player.elements[key] ?? 0;
-    final currentValue = tempElements[key] ?? 0;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('$label：', style: const TextStyle(fontSize: 14)),
-          const SizedBox(width: 4),
-          Text('$currentValue', style: const TextStyle(fontSize: 14)),
-          const SizedBox(width: 48),
-          Visibility(
-            visible: currentValue > baseValue,
-            maintainSize: true,
-            maintainAnimation: true,
-            maintainState: true,
-            child: GestureDetector(
-              onTap: () => _subAptitude(key, baseValue),
-              onTapDown: (_) => _startSubTimer(key, baseValue),
-              onTapUp: (_) => _stopSubTimer(),
-              onTapCancel: () => _stopSubTimer(),
-              child: const Icon(Icons.remove_circle, size: 20, color: Colors.red),
-            ),
-          ),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () => _addAptitude(key),
-            onTapDown: (_) => _startAddTimer(key),
-            onTapUp: (_) => _stopAddTimer(),
-            onTapCancel: () => _stopAddTimer(),
-            child: const Icon(Icons.add_circle, size: 20, color: Colors.green),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addAptitude(String key) {
+  void _addAptitude() {
     final remaining = fateCharmCount - tempUsed;
-
     if (remaining <= 0) {
       ToastTip.show(context, '资质券不够啦！');
       return;
     }
-
     setState(() {
-      tempElements[key] = (tempElements[key] ?? 0) + 1;
       tempUsed++;
     });
   }
 
-  void _subAptitude(String key, int baseValue) {
-    final current = tempElements[key] ?? 0;
-    if (current <= baseValue) return;
-
+  void _subAptitude() {
+    if (tempUsed <= 0) return;
     setState(() {
-      tempElements[key] = current - 1;
       tempUsed--;
     });
   }
 
-  void _startAddTimer(String key) {
+  void _startAddTimer() {
     _addTimer?.cancel();
     _addTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (!mounted) return;
-      _addAptitude(key);
+      _addAptitude();
     });
   }
 
@@ -222,11 +214,11 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
     _addTimer = null;
   }
 
-  void _startSubTimer(String key, int baseValue) {
+  void _startSubTimer() {
     _subTimer?.cancel();
     _subTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
       if (!mounted) return;
-      _subAptitude(key, baseValue);
+      _subAptitude();
     });
   }
 

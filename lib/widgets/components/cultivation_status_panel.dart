@@ -57,9 +57,11 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
       }
     }
 
-    await WeaponsStorage.equipWeapon(weapon, playerId);
+    await WeaponsStorage.equipWeapon(
+      weapon: weapon,
+      ownerId: playerId,
+    );
     await PlayerStorage.updateField('equippedWeaponId', weapon.key);
-    await PlayerStorage.applyAllEquippedAttributesWith();
 
     final updatedPlayer = await PlayerStorage.getPlayer();
     if (updatedPlayer == null) return;

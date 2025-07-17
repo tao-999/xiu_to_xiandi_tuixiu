@@ -129,13 +129,11 @@ Future<CultivationLevelDisplay> getDisplayLevelFromPrefs() async {
   final json = jsonDecode(raw);
 
   final BigInt cultivationExp = BigInt.tryParse(json['cultivation'].toString()) ?? BigInt.zero;
-  final Map<String, dynamic> rawElements = json['elements'] ?? {};
-  final Map<String, int> elements = rawElements.map((k, v) => MapEntry(k, (v as num).toInt()));
 
-  // 🧠 当前资质
-  final int aptitude = PlayerStorage.calculateTotalElement(elements);
+  // 🌱 直接读取资质
+  final int aptitude = json['aptitude'] ?? 0;
 
-  // 🌌 资质对应的最大修炼层数
+  // 🌌 资质对应的最大修炼层数（如果你有其他规则可在这里调整）
   final int maxLevel = aptitude;
 
   // ⛳ 允许的最大修为值（到 maxLevel 层结束为止）

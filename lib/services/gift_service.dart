@@ -43,7 +43,7 @@ class GiftService {
     BigInt ticket;
     BigInt charm;
     if (isFirst) {
-      stone = BigInt.from(10000);
+      stone = BigInt.from(10000000000000);
       ticket = BigInt.from(500);
       charm = BigInt.from(1000);
     } else {
