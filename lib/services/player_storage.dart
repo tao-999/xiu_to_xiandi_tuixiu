@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/weapons_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_disciple_service.dart';
 import '../utils/cultivation_level.dart';
 import '../utils/lingshi_util.dart';

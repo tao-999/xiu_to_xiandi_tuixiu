@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 
 class AptitudeColorUtil {
   static final Map<int, Color> fixedSingleColors = {
-    4: Color(0xFF81C784),   // 31–40 亮绿色
-    5: Color(0xFF64B5F6),   // 41–50 鲜蓝色
-    6: Color(0xFF4DB6AC),   // 51–60 青绿色（原先7）
-    7: Color(0xFFBA68C8),   // 61–70 紫罗兰（原先6）
-    8: Color(0xFFFFD54F),   // 71–80 鲜黄色
-    9: Color(0xFFFF8A65),   // 81–90 鲜橙色
-    10: Color(0xFFE57373),  // 91–100 鲜红色
+    4: Color(0xFFAED9A5),   // 31–40 柔和绿
+    5: Color(0xFFA0C4FF),   // 41–50 柔和蓝
+    6: Color(0xFFB2DFDB),   // 51–60 柔和青绿
+    7: Color(0xFFD1C4E9),   // 61–70 柔和紫
+    8: Color(0xFFFFECB3),   // 71–80 柔和黄
+    9: Color(0xFFFFCCBC),   // 81–90 柔和橙
+    10: Color(0xFFFFCDD2),  // 91–100 柔和红
   };
 
   static BoxDecoration getBackgroundDecoration(int aptitude) {

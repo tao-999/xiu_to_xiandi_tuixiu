@@ -107,7 +107,7 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '当前资质：$currentAptitude',
+            '当前资质：${currentAptitude + useCount}',
             style: const TextStyle(fontSize: 12, fontFamily: 'ZcoolCangEr'),
           ),
           const SizedBox(height: 8),
@@ -165,11 +165,6 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '提升后资质：${currentAptitude + useCount}',
-            style: const TextStyle(fontSize: 12, fontFamily: 'ZcoolCangEr'),
           ),
         ],
       ),
