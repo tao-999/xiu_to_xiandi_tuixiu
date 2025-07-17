@@ -14,6 +14,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/fancy_name_input.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/five_element_slider_group.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
+import '../services/chiyangu_storage.dart';
 import '../services/cultivation_tracker.dart';
 import '../services/resources_storage.dart';
 import '../widgets/common/toast_tip.dart';
@@ -98,6 +99,8 @@ class _CreateRolePageState extends State<CreateRolePage> {
 
     // ✅ 写入资源
     await ResourcesStorage.save(Resources());
+
+    await ChiyanguStorage.resetPickaxeData(); // 🌟 初始化锄头为100
 
     return character;
   }
