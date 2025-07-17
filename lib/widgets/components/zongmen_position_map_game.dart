@@ -11,6 +11,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/role_service.dart';
 
 import '../../services/player_storage.dart';
 import '../../services/weapons_storage.dart';
+import '../../services/zongmen_disciple_service.dart';
 import '../../utils/cultivation_level.dart';
 
 class ZongmenPositionMapGame extends FlameGame {
@@ -70,11 +71,12 @@ class ZongmenPositionMapGame extends FlameGame {
         await RoleService.saveRegion(d.id, region);
         usedRects.add(region);
       }
+      final realmName = ZongmenDiscipleService.getRealmNameByLevel(d.realmLevel);
 
       final node = DiscipleNodeComponent(
         id: d.id,
         name: d.name,
-        realm: d.realm,
+        realm: realmName,
         role: d.role, // ✅ 直接使用字段
         imagePath: d.imagePath,
         position: Vector2(region.left, region.top),

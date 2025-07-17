@@ -58,12 +58,6 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
 
   Future<void> _loadDisciples() async {
     final list = await ZongmenStorage.loadDisciples();
-
-    debugPrint('🔄 [DiscipleListPage] 加载弟子数据：');
-    for (var d in list) {
-      debugPrint('   ${d.name}｜资质=${d.aptitude}｜战力=${d.atk}｜境界=${d.realm}');
-    }
-
     final zongmen = await ZongmenStorage.loadZongmen();
     int max = 0;
     if (zongmen != null) {

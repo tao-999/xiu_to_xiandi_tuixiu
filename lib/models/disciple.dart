@@ -1,5 +1,3 @@
-// lib/models/disciples.dart
-
 import 'package:hive/hive.dart';
 
 part 'disciple.g.dart'; // 自动生成文件
@@ -31,55 +29,66 @@ class Disciple extends HiveObject {
   int def;
 
   @HiveField(8)
-  String realm;
-
-  @HiveField(9)
   int loyalty;
 
-  @HiveField(10)
+  @HiveField(9)
   String specialty;
 
-  @HiveField(11)
+  @HiveField(10)
   List<String> talents;
 
-  @HiveField(12)
+  @HiveField(11)
   int lifespan;
 
-  @HiveField(13)
+  @HiveField(12)
   int cultivation;
 
-  @HiveField(14)
+  @HiveField(13)
   int breakthroughChance;
 
-  @HiveField(15)
+  @HiveField(14)
   List<String> skills;
 
-  @HiveField(16)
+  @HiveField(15)
   int fatigue;
 
-  @HiveField(17)
+  @HiveField(16)
   bool isOnMission;
 
-  @HiveField(18)
+  @HiveField(17)
   int? missionEndTimestamp;
 
-  @HiveField(19)
+  @HiveField(18)
   String imagePath;
 
-  @HiveField(20)
+  @HiveField(19)
   int? joinedAt;
 
-  @HiveField(21)
+  @HiveField(20)
   String? assignedRoom;
 
-  @HiveField(22)
+  @HiveField(21)
   String description;
 
-  @HiveField(23)
+  @HiveField(22)
   int favorability;
 
-  @HiveField(24)
+  @HiveField(23)
   String? role;
+
+  // ✅ 新增百分比加成字段
+  @HiveField(24)
+  double extraHp;
+
+  @HiveField(25)
+  double extraAtk;
+
+  @HiveField(26)
+  double extraDef;
+
+  // ✅ 新增修为层数（默认0）
+  @HiveField(27)
+  int realmLevel;
 
   Disciple({
     this.id = '',
@@ -90,7 +99,6 @@ class Disciple extends HiveObject {
     this.hp = 0,
     this.atk = 0,
     this.def = 0,
-    this.realm = '',
     this.loyalty = 100,
     this.specialty = '',
     this.talents = const [],
@@ -107,6 +115,10 @@ class Disciple extends HiveObject {
     this.description = '',
     this.favorability = 0,
     this.role = '弟子',
+    this.extraHp = 0.0,
+    this.extraAtk = 0.0,
+    this.extraDef = 0.0,
+    this.realmLevel = 0,
   });
 
   static const _unset = Object();
@@ -120,7 +132,6 @@ class Disciple extends HiveObject {
     int? hp,
     int? atk,
     int? def,
-    String? realm,
     int? loyalty,
     String? specialty,
     List<String>? talents,
@@ -137,6 +148,10 @@ class Disciple extends HiveObject {
     String? description,
     int? favorability,
     String? role,
+    double? extraHp,
+    double? extraAtk,
+    double? extraDef,
+    int? realmLevel,
   }) {
     return Disciple(
       id: id ?? this.id,
@@ -147,7 +162,6 @@ class Disciple extends HiveObject {
       hp: hp ?? this.hp,
       atk: atk ?? this.atk,
       def: def ?? this.def,
-      realm: realm ?? this.realm,
       loyalty: loyalty ?? this.loyalty,
       specialty: specialty ?? this.specialty,
       talents: talents ?? this.talents,
@@ -166,6 +180,10 @@ class Disciple extends HiveObject {
       description: description ?? this.description,
       favorability: favorability ?? this.favorability,
       role: role ?? this.role,
+      extraHp: extraHp ?? this.extraHp,
+      extraAtk: extraAtk ?? this.extraAtk,
+      extraDef: extraDef ?? this.extraDef,
+      realmLevel: realmLevel ?? this.realmLevel,
     );
   }
 }

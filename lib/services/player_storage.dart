@@ -114,7 +114,6 @@ class PlayerStorage {
       debugPrint('🎉 玩家突破成功！层数 $beforeLayer → $afterLayer');
 
       await addLayerGrowth(player, beforeLayer, afterLayer);
-      await ZongmenDiscipleService.syncAllRealmWithPlayer();
     }
   }
 

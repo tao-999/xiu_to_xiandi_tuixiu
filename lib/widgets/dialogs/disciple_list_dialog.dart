@@ -181,7 +181,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                               final updated = d.copyWith(joinedAt: now);
 
                               await DiscipleStorage.save(updated);
-                              await ZongmenDiscipleService.syncAllRealmWithPlayer();
 
                               widget.disciples.removeWhere((e) => e.id == d.id);
 

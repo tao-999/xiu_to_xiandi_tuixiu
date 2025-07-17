@@ -128,7 +128,6 @@ class ShallowOceanTerrainEvent {
               hp: data['hp'] as int,
               atk: data['atk'] as int,
               def: data['def'] as int,
-              realm: '炼气',
               loyalty: 100,
               specialty: '',
               talents: [],
@@ -142,13 +141,13 @@ class ShallowOceanTerrainEvent {
               description: data['description'] as String,
               favorability: 0,
               role: '弟子',
+              realmLevel: 0,
             );
 
             final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
             final updated = disciple.copyWith(joinedAt: now);
 
             await DiscipleStorage.saveOrAdd(updated);
-            await ZongmenDiscipleService.syncAllRealmWithPlayer();
 
             debugPrint('[ShallowOcean] 加入宗门逻辑完成');
 

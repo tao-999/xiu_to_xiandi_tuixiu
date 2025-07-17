@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/player_storage.dart';
 import '../widgets/constants/aptitude_table.dart';
 
 /// 🌌 修仙设定常量

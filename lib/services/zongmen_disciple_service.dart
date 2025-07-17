@@ -1,53 +1,23 @@
+import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:hive/hive.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import '../data/favorability_data.dart';
-import '../models/disciple.dart';
-import '../utils/cultivation_level.dart';
+import '../utils/lingshi_util.dart';
 import '../widgets/constants/aptitude_table.dart';
 
 class ZongmenDiscipleService {
-  /// 🌟 同步所有弟子的境界到玩家当前境界
-  static Future<void> syncAllRealmWithPlayer() async {
-    final player = await PlayerStorage.getPlayer();
-    if (player == null) return;
+  static const int maxRealmLevel = 220;
 
-    final level = calculateCultivationLevel(player.cultivation);
-    final realmName = "${level.realm}${level.rank}重";
-
-    debugPrint('🌟 同步弟子境界：玩家=$realmName');
-
-    final disciples = await ZongmenStorage.loadDisciples();
-
-    for (var d in disciples) {
-      final realmLayer = _parseRealmLayer(realmName);
-
-      final attr = calculateAttributesForRealm(
-        aptitude: d.aptitude,
-        realmLayer: realmLayer,
-      );
-
-      final updated = d.copyWith(
-        realm: realmName,
-        hp: attr['hp'],
-        atk: attr['atk'],
-        def: attr['def'],
-      );
-
-      await ZongmenStorage.saveDisciple(updated);
-
-      debugPrint('✅ ${d.name} → 同步到境界=$realmName, HP=${attr['hp']}, ATK=${attr['atk']}, DEF=${attr['def']}');
-    }
-  }
-
-  /// ✨ 统一计算宗门弟子的战力
   static int calculatePower(Disciple d) {
-    return (d.hp * 0.4 + d.atk * 2 + d.def * 1.5).toInt();
+    final realHp = (d.hp * (1 + d.extraHp));
+    final realAtk = (d.atk * (1 + d.extraAtk));
+    final realDef = (d.def * (1 + d.extraDef));
+    return (realHp * 0.4 + realAtk * 2 + realDef * 1.5).floor();
   }
 
-  /// 🧮 创建弟子的初始属性
   static Map<String, int> calculateInitialAttributes(int aptitude) {
     return {
       'hp': 100 + (aptitude - 31),
@@ -56,27 +26,36 @@ class ZongmenDiscipleService {
     };
   }
 
-  /// 🧗‍♂️ 根据境界阶数和资质，计算当前属性
-  static Map<String, int> calculateAttributesForRealm({
-    required int aptitude,
-    required int realmLayer,
-  }) {
-    final base = calculateInitialAttributes(aptitude);
-    final layerCount = (realmLayer - 1).clamp(0, 9999);
+  static Map<String, int> calculateAttributeDeltaBetweenLevels(int fromLevel, int toLevel) {
+    int hp = 0, atk = 0, def = 0;
 
-    final hpPerLayer = (aptitude * 5) + (realmLayer * 10);
-    final atkPerLayer = (aptitude * 1.2).toInt() + (realmLayer * 2);
-    final defPerLayer = (aptitude * 0.8).toInt() + (realmLayer);
+    int curDeltaHp = 75;
+    int curDeltaAtk = 15;
+    int curDeltaDef = 10;
 
-    return {
-      'hp': base['hp']! + hpPerLayer * layerCount,
-      'atk': base['atk']! + atkPerLayer * layerCount,
-      'def': base['def']! + defPerLayer * layerCount,
-    };
+    for (int level = fromLevel + 1; level <= toLevel; level++) {
+      if (level == 1) {
+        hp += 50;
+        atk += 10;
+        def += 5;
+        continue;
+      }
+
+      hp += curDeltaHp;
+      atk += curDeltaAtk;
+      def += curDeltaDef;
+
+      if (level % 10 == 0) {
+        curDeltaHp *= 2;
+        curDeltaAtk *= 2;
+        curDeltaDef *= 2;
+      }
+    }
+
+    return {'hp': hp, 'atk': atk, 'def': def};
   }
 
-  /// 🧮 将 "筑基3重" 转换为层数
-  static int _parseRealmLayer(String realmName) {
+  static int parseRealmLayer(String realmName) {
     for (int i = 0; i < aptitudeTable.length; i++) {
       final gate = aptitudeTable[i];
       if (realmName.startsWith(gate.realmName)) {
@@ -86,29 +65,24 @@ class ZongmenDiscipleService {
         return (i * 10) + rank;
       }
     }
-    // fallback: 炼气1层
     return 1;
   }
 
   static const _sortOptionKey = 'zongmen_disciple_sort_option';
 
-  /// 📋 保存宗门弟子排序选项
   static Future<void> saveSortOption(String option) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_sortOptionKey, option);
   }
 
-  /// 📋 加载宗门弟子排序选项
   static Future<String> loadSortOption() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_sortOptionKey) ?? 'apt_desc';
   }
 
-  /// 🖼️ 设置弟子的立绘路径
   static Future<void> setDisciplePortrait(String discipleId, String imagePath) async {
     final box = await Hive.openBox<Disciple>('disciples');
     final d = box.get(discipleId);
-
     if (d != null) {
       final updated = d.copyWith(imagePath: imagePath);
       await box.put(d.id, updated);
@@ -118,7 +92,6 @@ class ZongmenDiscipleService {
     }
   }
 
-  /// 💖 提升弟子好感度（自动保存）
   static Future<Disciple?> increaseFavorability(String discipleId, {int delta = 1}) async {
     final box = await Hive.openBox<Disciple>('disciples');
     final d = box.get(discipleId);
@@ -131,6 +104,120 @@ class ZongmenDiscipleService {
       return updated;
     }
     return null;
+  }
+
+  BigInt getLingShiRequiredForNextLayer(int currentLevel) {
+    if (currentLevel < 1) return BigInt.zero;
+
+    int segment = currentLevel ~/ 10;
+    int offset = currentLevel % 10;
+
+    BigInt base = BigInt.from(500) * BigInt.from(2).pow(segment);
+    BigInt delta = base ~/ BigInt.from(2);
+
+    return base + delta * BigInt.from(offset);
+  }
+
+  static String getRealmNameByLevel(int realmLevel) {
+    if (realmLevel <= 0) return '凡人';
+
+    final index = (realmLevel - 1) ~/ 10;
+    final rank = (realmLevel - 1) % 10 + 1;
+
+    final realm = (index >= 0 && index < aptitudeTable.length)
+        ? aptitudeTable[index].realmName
+        : aptitudeTable.last.realmName;
+
+    return '$realm$rank重';
+  }
+
+  static Future<bool> addCultivationToDisciple(
+      Disciple d, {
+        required BigInt low,
+        required BigInt mid,
+        required BigInt high,
+        required BigInt supreme,
+      }) async {
+    final total = (low * lingShiRates[LingShiType.lower]!) +
+        (mid * lingShiRates[LingShiType.middle]!) +
+        (high * lingShiRates[LingShiType.upper]!) +
+        (supreme * lingShiRates[LingShiType.supreme]!);
+
+    if (total == BigInt.zero) {
+      debugPrint('🚫 提升失败：投入灵石总和为0');
+      return false;
+    }
+
+    await ResourcesStorage.subtract('spiritStoneLow', low);
+    await ResourcesStorage.subtract('spiritStoneMid', mid);
+    await ResourcesStorage.subtract('spiritStoneHigh', high);
+    await ResourcesStorage.subtract('spiritStoneSupreme', supreme);
+
+    final prevExp = BigInt.from(d.cultivation);
+    final newExp = prevExp + total;
+    debugPrint('🧪【初始状态】realmLevel=${d.realmLevel}, cultivation=$prevExp, added=$total');
+    debugPrint('🧬【累计修为】newCultivation=$newExp');
+
+    final newLevel = calculateUpgradedRealmLevel(
+      currentLevel: 0,
+      currentCultivation: BigInt.zero,
+      addedCultivation: newExp,
+    );
+
+    final upgraded = newLevel > d.realmLevel;
+    if (upgraded) {
+      final delta = calculateAttributeDeltaBetweenLevels(d.realmLevel, newLevel);
+      d.hp += delta['hp']!;
+      d.atk += delta['atk']!;
+      d.def += delta['def']!;
+      debugPrint('📈【属性成长】+HP:${delta['hp']} +ATK:${delta['atk']} +DEF:${delta['def']}');
+    }
+
+    d.cultivation = newExp.toInt();
+    d.realmLevel = newLevel;
+
+    debugPrint('💾【保存弟子】realmLevel=${d.realmLevel}, cultivation=${d.cultivation}');
+    await d.save();
+    return upgraded;
+  }
+
+  static BigInt getCultivationNeededForNextLevel(int currentLevel) {
+    final base = 500.0;
+    final ratio = 1.15;
+    final needed = base * pow(ratio, currentLevel);
+    return BigInt.from(needed.round());
+  }
+
+  static int calculateUpgradedRealmLevel({
+    required int currentLevel,
+    required BigInt currentCultivation,
+    required BigInt addedCultivation,
+  }) {
+    int level = currentLevel;
+    BigInt exp = currentCultivation + addedCultivation;
+
+    while (true) {
+      if (level >= maxRealmLevel) break;
+      final need = getCultivationNeededForNextLevel(level);
+      if (exp < need) break;
+      exp -= need;
+      level += 1;
+    }
+
+    return level;
+  }
+
+  static String getDisplayLevelFromLayer(int level) {
+    return getRealmNameByLevel(level);
+  }
+
+  /// 🧮 计算满级所需总修为
+  static BigInt getMaxTotalCultivation() {
+    BigInt sum = BigInt.zero;
+    for (int i = 0; i < maxRealmLevel; i++) {
+      sum += getCultivationNeededForNextLevel(i);
+    }
+    return sum;
   }
 
 }

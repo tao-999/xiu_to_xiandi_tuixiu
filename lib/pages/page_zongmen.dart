@@ -41,9 +41,6 @@ class _ZongmenPageState extends State<ZongmenPage> {
         _checkingZongmen = false;
       });
     } else {
-      // 🌟 先同步一次境界
-      await ZongmenDiscipleService.syncAllRealmWithPlayer();
-
       final list = await ZongmenStorage.loadDisciples();
       setState(() {
         zongmen = stored;

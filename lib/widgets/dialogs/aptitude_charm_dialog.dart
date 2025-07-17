@@ -85,14 +85,20 @@ class _AptitudeCharmDialogState extends State<AptitudeCharmDialog> {
     if (useCount == 0) return;
 
     await ResourcesStorage.subtract('fateRecruitCharm', BigInt.from(useCount));
-    currentAptitude += useCount;
-    widget.disciple.aptitude = currentAptitude;
+
+    final addedAptitude = useCount;
+    final extraGain = useCount * 0.01;
+
+    // ✅ 累加而不是覆盖
+    widget.disciple.aptitude += addedAptitude;
+    widget.disciple.extraHp += extraGain;
+    widget.disciple.extraAtk += extraGain;
+    widget.disciple.extraDef += extraGain;
+
     await DiscipleStorage.save(widget.disciple);
 
-    await ZongmenDiscipleService.syncAllRealmWithPlayer();
-
     widget.onUpdated?.call();
-    Navigator.pop(context);
+    if (context.mounted) Navigator.pop(context);
   }
 
   @override

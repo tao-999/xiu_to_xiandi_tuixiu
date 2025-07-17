@@ -25,30 +25,33 @@ class DiscipleAdapter extends TypeAdapter<Disciple> {
       hp: fields[5] as int,
       atk: fields[6] as int,
       def: fields[7] as int,
-      realm: fields[8] as String,
-      loyalty: fields[9] as int,
-      specialty: fields[10] as String,
-      talents: (fields[11] as List).cast<String>(),
-      lifespan: fields[12] as int,
-      cultivation: fields[13] as int,
-      breakthroughChance: fields[14] as int,
-      skills: (fields[15] as List).cast<String>(),
-      fatigue: fields[16] as int,
-      isOnMission: fields[17] as bool,
-      missionEndTimestamp: fields[18] as int?,
-      imagePath: fields[19] as String,
-      joinedAt: fields[20] as int?,
-      assignedRoom: fields[21] as String?,
-      description: fields[22] as String,
-      favorability: fields[23] as int,
-      role: fields[24] as String?,
+      loyalty: fields[8] as int,
+      specialty: fields[9] as String,
+      talents: (fields[10] as List).cast<String>(),
+      lifespan: fields[11] as int,
+      cultivation: fields[12] as int,
+      breakthroughChance: fields[13] as int,
+      skills: (fields[14] as List).cast<String>(),
+      fatigue: fields[15] as int,
+      isOnMission: fields[16] as bool,
+      missionEndTimestamp: fields[17] as int?,
+      imagePath: fields[18] as String,
+      joinedAt: fields[19] as int?,
+      assignedRoom: fields[20] as String?,
+      description: fields[21] as String,
+      favorability: fields[22] as int,
+      role: fields[23] as String?,
+      extraHp: fields[24] as double,
+      extraAtk: fields[25] as double,
+      extraDef: fields[26] as double,
+      realmLevel: fields[27] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, Disciple obj) {
     writer
-      ..writeByte(25)
+      ..writeByte(28)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -66,39 +69,45 @@ class DiscipleAdapter extends TypeAdapter<Disciple> {
       ..writeByte(7)
       ..write(obj.def)
       ..writeByte(8)
-      ..write(obj.realm)
-      ..writeByte(9)
       ..write(obj.loyalty)
-      ..writeByte(10)
+      ..writeByte(9)
       ..write(obj.specialty)
-      ..writeByte(11)
+      ..writeByte(10)
       ..write(obj.talents)
-      ..writeByte(12)
+      ..writeByte(11)
       ..write(obj.lifespan)
-      ..writeByte(13)
+      ..writeByte(12)
       ..write(obj.cultivation)
-      ..writeByte(14)
+      ..writeByte(13)
       ..write(obj.breakthroughChance)
-      ..writeByte(15)
+      ..writeByte(14)
       ..write(obj.skills)
-      ..writeByte(16)
+      ..writeByte(15)
       ..write(obj.fatigue)
-      ..writeByte(17)
+      ..writeByte(16)
       ..write(obj.isOnMission)
-      ..writeByte(18)
+      ..writeByte(17)
       ..write(obj.missionEndTimestamp)
-      ..writeByte(19)
+      ..writeByte(18)
       ..write(obj.imagePath)
-      ..writeByte(20)
+      ..writeByte(19)
       ..write(obj.joinedAt)
-      ..writeByte(21)
+      ..writeByte(20)
       ..write(obj.assignedRoom)
-      ..writeByte(22)
+      ..writeByte(21)
       ..write(obj.description)
-      ..writeByte(23)
+      ..writeByte(22)
       ..write(obj.favorability)
+      ..writeByte(23)
+      ..write(obj.role)
       ..writeByte(24)
-      ..write(obj.role);
+      ..write(obj.extraHp)
+      ..writeByte(25)
+      ..write(obj.extraAtk)
+      ..writeByte(26)
+      ..write(obj.extraDef)
+      ..writeByte(27)
+      ..write(obj.realmLevel);
   }
 
   @override

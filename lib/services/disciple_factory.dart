@@ -19,12 +19,10 @@ Future<int> generateHumanAptitude() async {
   int maxRange = prefs.getInt(_currentRangeKey) ?? 40;
   final used = prefs.getStringList(_usedUniqueAptitudesKey)?.map(int.parse).toSet() ?? {};
 
-  // ✅ 当前池中最大资质（如100）
   final maxAvailableAptitude = initialDiscipleRawPool
       .map((e) => e['aptitude'] as int)
       .reduce(max);
 
-  // ✅ 当前区间是否抽完，如果是，往上扩展
   final remaining = initialDiscipleRawPool
       .where((d) => !used.contains(d['aptitude']) && d['aptitude'] <= maxRange)
       .toList();
@@ -36,7 +34,6 @@ Future<int> generateHumanAptitude() async {
     await prefs.setInt(_drawsKey, 0);
   }
 
-  // ✅ 重新获取卡池（含扩展后）
   final currentPool = initialDiscipleRawPool
       .where((d) => !used.contains(d['aptitude']) && d['aptitude'] <= maxRange)
       .toList();
@@ -56,7 +53,6 @@ Future<int> generateHumanAptitude() async {
     }
   }
 
-  // 🧟 SSR 全部抽光 or 没抽中 → 进入炮灰池
   return 1 + _rng.nextInt(30);
 }
 
@@ -71,6 +67,9 @@ String getImageForAptitude(int apt) {
   if (apt <= 27) return 'assets/images/disciples/heti.png';
   return 'assets/images/disciples/dacheng.png'; // 28~30 默认封顶贴图
 }
+
+/// 📈 资质换算为百分比加成（1点 = 1%）
+double _calculateExtraFromAptitude(int aptitude) => aptitude * 0.01;
 
 /// 🧙‍♀️ 弟子工厂（整合所有招募逻辑）
 class DiscipleFactory {
@@ -93,6 +92,7 @@ class DiscipleFactory {
       if (available.isNotEmpty) {
         final selected = available[_rng.nextInt(available.length)];
         final selectedApt = selected['aptitude'] as int;
+        final extra = _calculateExtraFromAptitude(selectedApt);
 
         used.add(selectedApt);
         await prefs.setStringList(
@@ -107,15 +107,18 @@ class DiscipleFactory {
           hp: selected['hp'],
           atk: selected['atk'],
           def: selected['def'],
-          realm: '凡人',
           description: selected['description'],
           imagePath: selected['imagePath'],
           favorability: 0,
+          extraHp: extra,
+          extraAtk: extra,
+          extraDef: extra,
+          realmLevel: 0,
         );
       }
     }
 
-    // 🧟 没抽到专属卡，生成随机炮灰
+    // 🧟 炮灰弟子（资质 < 31）
     return Disciple(
       id: uuid.v4(),
       name: name,
@@ -125,10 +128,11 @@ class DiscipleFactory {
       hp: 10,
       atk: 2,
       def: 1,
-      realm: '凡人',
       description: '炮灰',
       imagePath: getImageForAptitude(aptitude),
       favorability: 0,
+      realmLevel: 0,
+      // ❌ 不设置 extra 字段
     );
   }
 }

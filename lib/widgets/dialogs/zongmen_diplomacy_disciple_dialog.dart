@@ -6,6 +6,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/sect_component.dart';
 import '../../services/zongmen_diplomacy_service.dart';
+import '../../services/zongmen_disciple_service.dart';
 import '../common/toast_tip.dart';
 
 class ZongmenDiplomacyDiscipleDialog extends StatefulWidget {
@@ -48,11 +49,7 @@ class _ZongmenDiplomacyDiscipleDialogState
     final wrapped = filtered
         .map((d) => _DisciplePowerWrapper(
       disciple: d,
-      power: PlayerStorage.calculatePower(
-        hp: d.hp,
-        atk: d.atk,
-        def: d.def,
-      ),
+      power: ZongmenDiscipleService.calculatePower(d),
     ))
         .toList();
 

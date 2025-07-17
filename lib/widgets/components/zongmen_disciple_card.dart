@@ -5,6 +5,8 @@ import 'package:xiu_to_xiandi_tuixiu/utils/aptitude_color_util.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
+import '../../services/zongmen_disciple_service.dart';
+
 class ZongmenDiscipleCard extends StatefulWidget {
   final Disciple disciple;
 
@@ -19,11 +21,8 @@ class _ZongmenDiscipleCardState extends State<ZongmenDiscipleCard> {
   Widget build(BuildContext context) {
     final d = widget.disciple;
 
-    final int power = PlayerStorage.calculatePower(
-      hp: d.hp,
-      atk: d.atk,
-      def: d.def,
-    );
+    final int power = ZongmenDiscipleService.calculatePower(d);
+    final realmName = ZongmenDiscipleService.getRealmNameByLevel(d.realmLevel);
 
     return InkWell(
       onTap: () {
@@ -109,7 +108,7 @@ class _ZongmenDiscipleCardState extends State<ZongmenDiscipleCard> {
                       ],
                     ),
                     Text(
-                      d.realm,
+                      realmName,
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 11,
