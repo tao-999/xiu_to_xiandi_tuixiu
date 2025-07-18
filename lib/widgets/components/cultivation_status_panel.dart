@@ -14,12 +14,16 @@ class CultivationStatusPanel extends StatefulWidget {
   final bool showAura;
   final VoidCallback? onAuraComplete;
 
+  /// ✅ 新增：装备改变时通知外部刷新（CharacterPage）
+  final VoidCallback? onChanged;
+
   const CultivationStatusPanel({
     super.key,
     required this.player,
     required this.display,
     this.showAura = false,
     this.onAuraComplete,
+    this.onChanged,
   });
 
   @override
@@ -69,6 +73,9 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
     });
 
     await _checkAccessoryEquipped();
+
+    /// ✅ 通知外部刷新
+    widget.onChanged?.call();
   }
 
   Future<String> getMeditationImagePath() async {
@@ -110,7 +117,6 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
             ),
           ),
         ),
-
         Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.center,
@@ -136,6 +142,7 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
                     },
                     onChanged: () async {
                       await _checkAccessoryEquipped();
+                      widget.onChanged?.call(); // ✅ 卸下装备后也触发刷新
                     },
                   ),
                 );
@@ -156,7 +163,6 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
             ),
           ],
         ),
-
         CultivationProgressBar(
           current: widget.display.current,
           max: widget.display.max,

@@ -23,7 +23,7 @@ class _CharacterPageState extends State<CharacterPage> {
 
   /// 手动触发刷新用
   Future<void> _reloadData() async {
-    setState(() {});
+    setState(() {}); // ✅ 重新触发 FutureBuilder
     _resourceBarKey.currentState?.refresh();
   }
 
@@ -44,14 +44,6 @@ class _CharacterPageState extends State<CharacterPage> {
 
         final player = snapshot.data![0] as Character;
         final display = snapshot.data![1] as CultivationLevelDisplay;
-        print('🔍 Player name: ${player.name}');
-        print('📊 修为等级显示：');
-        print('   📛 realm: ${display.realm}');
-        print('   🔢 rank: ${display.rank}');
-        print('   🌱 current: ${display.current}');
-        print('   🧱 max: ${display.max}');
-        print('   🧱 realmLevel: ${player.realmLevel}');
-        print('   ✅ isFull: ${display.current == display.max}');
 
         return Scaffold(
           body: Stack(
@@ -77,6 +69,7 @@ class _CharacterPageState extends State<CharacterPage> {
                       display: display,
                       showAura: false,
                       onAuraComplete: () {},
+                      onChanged: _reloadData, // ✅ 核心绑定：装备改变时刷新
                     ),
                     CultivatorInfoCard(profile: player),
                   ],
@@ -87,13 +80,12 @@ class _CharacterPageState extends State<CharacterPage> {
               const BackButtonOverlay(),
 
               /// 右上角：升修为、升资质
-              /// 右上角：升修为、升资质
               Positioned(
                 top: 100,
                 right: 30,
                 child: Column(
                   children: [
-                    if (display.max != BigInt.zero) // 👈 只有没满级才显示
+                    if (display.max != BigInt.zero)
                       CultivationBoostDialog.buildButton(
                         context: context,
                         onUpdated: _reloadData,

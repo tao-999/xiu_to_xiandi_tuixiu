@@ -362,10 +362,21 @@ class _RefineMaterialSelectorState extends State<RefineMaterialSelector> with Si
               ),
             )),
           if (_isRefining)
-            Center(
-              child: Text(
-                _formatCountdown(_remainingSeconds),
-                style: const TextStyle(fontSize: 32, color: Colors.yellow),
+            Positioned(
+              bottom: 4,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  _formatCountdown(_remainingSeconds),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.yellow,
+                    shadows: [
+                      Shadow(offset: Offset(1, 1), blurRadius: 2, color: Colors.black),
+                    ],
+                  ),
+                ),
               ),
             ),
         ],

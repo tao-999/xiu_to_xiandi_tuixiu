@@ -174,4 +174,16 @@ class DanfangService {
 
     return counts.reduce((a, b) => a < b ? a : b); // 取最小
   }
+
+  static const String _keyIsRefining = 'danfang_is_refining';
+
+  static Future<void> saveRefiningState(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsRefining, value);
+  }
+
+  static Future<bool> loadRefiningState() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyIsRefining) ?? false;
+  }
 }

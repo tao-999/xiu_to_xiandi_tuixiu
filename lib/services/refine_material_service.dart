@@ -164,5 +164,4 @@ class RefineMaterialService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_storageKey, jsonEncode(inv));
   }
-
 }
