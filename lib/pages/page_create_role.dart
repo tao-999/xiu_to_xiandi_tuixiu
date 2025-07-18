@@ -15,7 +15,6 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/five_element_slider_grou
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
 import '../services/chiyangu_storage.dart';
-import '../services/cultivation_tracker.dart';
 import '../services/resources_storage.dart';
 import '../widgets/common/toast_tip.dart';
 
@@ -65,6 +64,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
       career: '散修',
       cultivation: BigInt.zero,
       aptitude: totalAptitude,
+      realmLevel: 0,
       baseHp: 100,
       extraHp: percentBonus,
       baseAtk: 20,
@@ -205,10 +205,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
                     child: InkWell(
                       onTap: () async {
                         if (nickname.trim().isEmpty) return;
-                        final character = await _saveRoleData(); // ✅ 获取新角色
-                        await CultivationTracker.initWithPlayer(character); // ✅ 启动修为系统
-                        CultivationTracker.startGlobalTick();
-
+                        await _saveRoleData();
                         ToastTip.show(context, "角色 $nickname 创建完成！");
                         await Future.delayed(const Duration(seconds: 1));
                         if (!mounted) return;

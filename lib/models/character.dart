@@ -12,7 +12,8 @@ class Character {
   double cultivationEfficiency;
   int currentMapStage;
 
-  int aptitude; // 🌟 独立资质字段
+  int aptitude;       // 🌟 独立资质字段
+  int realmLevel;     // 🌟 当前修为层数（0 表示凡人）
 
   /// 基础属性（包含丹药等累加）
   int baseHp;
@@ -50,6 +51,7 @@ class Character {
     required this.career,
     required this.cultivation,
     required this.aptitude,
+    required this.realmLevel,
     required this.baseHp,
     required this.extraHp,
     required this.baseAtk,
@@ -83,6 +85,7 @@ class Character {
     'cultivationEfficiency': cultivationEfficiency,
     'currentMapStage': currentMapStage,
     'aptitude': aptitude,
+    'realmLevel': realmLevel,
     'baseHp': baseHp,
     'extraHp': extraHp,
     'baseAtk': baseAtk,
@@ -114,6 +117,7 @@ class Character {
     cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
     currentMapStage: json['currentMapStage'] ?? 1,
     aptitude: json['aptitude'] ?? 0,
+    realmLevel: json['realmLevel'] ?? 0, // ✅ 默认值为 0，表示凡人
     baseHp: json['baseHp'] ?? 100,
     extraHp: json['extraHp'] ?? 0,
     baseAtk: json['baseAtk'] ?? 10,
@@ -147,6 +151,7 @@ class Character {
     career: '散修',
     cultivation: BigInt.zero,
     aptitude: 0,
+    realmLevel: 0, // ✅ 初始化为 0 层
     cultivationEfficiency: 1.0,
     currentMapStage: 1,
     baseHp: 100,

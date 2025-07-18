@@ -14,7 +14,6 @@ import 'models/character.dart';
 import 'pages/page_create_role.dart';
 import 'pages/page_root.dart';
 import 'widgets/effects/touch_effect_overlay.dart';
-import 'services/cultivation_tracker.dart';
 import 'utils/app_lifecycle_manager.dart';
 
 void main() async {
@@ -63,12 +62,6 @@ void main() async {
         }
       } else {
         debugPrint('⚠️ 未找到 playerData，进入创建角色页');
-      }
-
-      if (hasCreatedRole && player != null) {
-        await CultivationTracker.initWithPlayer(player);
-        CultivationTracker.startGlobalTick();
-        debugPrint('✅ 修为追踪器启动完成');
       }
     } catch (e, stack) {
       debugPrint('❌ 初始化过程异常：$e');

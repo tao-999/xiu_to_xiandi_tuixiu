@@ -75,6 +75,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindi
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
+        backgroundColor: Color(0xFFF9F5E3),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         title: const Text(
           '🎁 修仙大礼包',

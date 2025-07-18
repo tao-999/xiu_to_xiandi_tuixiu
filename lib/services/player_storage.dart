@@ -3,10 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/zongmen_disciple_service.dart';
 import '../utils/cultivation_level.dart';
 import '../utils/lingshi_util.dart';
-import 'cultivation_tracker.dart';
 
 class PlayerStorage {
   static const _playerKey = 'playerData';
@@ -67,7 +65,7 @@ class PlayerStorage {
     final resSupreme = await ResourcesStorage.getValue('spiritStoneSupreme');
 
     if (resLow < l || resMid < m || resHigh < h || resSupreme < s) {
-      debugPrint('灵石不足');
+      debugPrint('❌ 灵石不足');
       onUpdate?.call();
       return;
     }
@@ -85,8 +83,23 @@ class PlayerStorage {
     }
 
     final beforeLayer = calculateCultivationLevel(player.cultivation).totalLayer;
-    await CultivationTracker.safeAddExp(addedExp);
+
+    // ✅ 修为增加
+    player.cultivation += addedExp;
+
+    // ✅ 更新修为和 realmLevel（先同步 realmLevel，突破后会再确认）
+    final levelInfo = calculateCultivationLevel(player.cultivation);
+    player.realmLevel = levelInfo.totalLayer;
+
+    await updateFields({
+      'cultivation': player.cultivation.toString(),
+      'realmLevel': player.realmLevel,
+    });
+
     await applyBreakthroughIfNeeded(player, beforeLayer);
+
+    debugPrint('🔮 修为增加 +$addedExp，当前=${player.cultivation}');
+
     onUpdate?.call();
   }
 
@@ -108,12 +121,18 @@ class PlayerStorage {
   }
 
   static Future<void> applyBreakthroughIfNeeded(Character player, int beforeLayer) async {
-    final afterLayer = calculateCultivationLevel(player.cultivation).totalLayer;
+    final levelInfo = calculateCultivationLevel(player.cultivation);
+    final afterLayer = levelInfo.totalLayer;
 
     if (afterLayer > beforeLayer) {
       debugPrint('🎉 玩家突破成功！层数 $beforeLayer → $afterLayer');
 
+      // ✅ 更新 realmLevel
+      player.realmLevel = afterLayer;
+
       await addLayerGrowth(player, beforeLayer, afterLayer);
+
+      await updateField('realmLevel', player.realmLevel);
     }
   }
 

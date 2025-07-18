@@ -43,7 +43,6 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
       maxStage = unlockedStage;
     });
 
-    // 延迟执行跳转，确保 scrollView 已 attach
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToSelectedStageSilently();
     });
@@ -77,7 +76,7 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
       backgroundColor: const Color(0xFFF9F5E3),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       title: const Text(
-        "选择挂机地图",
+        "修仙地图",
         style: TextStyle(fontSize: 16),
       ),
       content: SizedBox(
@@ -91,7 +90,6 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
             final isSelected = stage == widget.currentStage;
             final isDisabled = stage > maxStage;
             final name = realmNames[index];
-            final efficiency = pow(2, stage - 1).toInt();
 
             return GestureDetector(
               onTap: isDisabled
@@ -105,24 +103,11 @@ class _MapSwitchDialogState extends State<MapSwitchDialog> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: RichText(
-                        text: TextSpan(
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: isDisabled ? Colors.grey : Colors.black,
-                          ),
-                          children: [
-                            TextSpan(text: '$name地图'),
-                            TextSpan(
-                              text: '（挂机效率 ×$efficiency）',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDisabled
-                                    ? Colors.grey.shade400
-                                    : Colors.grey,
-                              ),
-                            ),
-                          ],
+                      child: Text(
+                        '$name地图',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: isDisabled ? Colors.grey : Colors.black,
                         ),
                       ),
                     ),

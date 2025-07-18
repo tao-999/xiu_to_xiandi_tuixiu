@@ -4,7 +4,6 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 import '../../utils/number_format.dart';
 import '../charts/polygon_radar_chart.dart';
-import '../constants/aptitude_table.dart';
 
 class CultivatorInfoCard extends StatelessWidget {
   final Character profile;
@@ -12,14 +11,6 @@ class CultivatorInfoCard extends StatelessWidget {
   const CultivatorInfoCard({super.key, required this.profile});
 
   String formatPercent(double value) => '${(value * 100).toStringAsFixed(2)}%';
-
-  String _getAptitudeLabel(int total) {
-    final gate = aptitudeTable.lastWhere(
-          (g) => total >= g.minAptitude,
-      orElse: () => aptitudeTable.first,
-    );
-    return '${gate.realmName}之资';
-  }
 
   Widget _buildLabeledRow(String label, String value, {String? extra}) {
     return Padding(
@@ -68,13 +59,12 @@ class CultivatorInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ✅ 名字和职业：不套入 buildLabeledRow！
           Text(
             '${profile.name} · ${profile.career}',
             style: const TextStyle(color: Colors.black, fontSize: 12, height: 1.3),
           ),
           const SizedBox(height: 4),
-          _buildLabeledRow('资质', '${profile.aptitude}', extra: _getAptitudeLabel(profile.aptitude)),
+          _buildLabeledRow('资质', '${profile.aptitude}'),
           _buildLabeledRow('战力', formatAnyNumber(power)),
           _buildLabeledRow('气血', formatAnyNumber(hp), extra: formatPercent(profile.extraHp)),
           _buildLabeledRow('攻击', formatAnyNumber(atk), extra: formatPercent(profile.extraAtk)),

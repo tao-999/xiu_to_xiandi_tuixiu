@@ -3,9 +3,9 @@ import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/weapon.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/weapons_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/meditation_widget.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/equip_selection_dialog.dart';
+import '../../utils/cultivation_level.dart';
 import 'cultivation_progress_bar.dart';
 
 class CultivationStatusPanel extends StatefulWidget {
@@ -39,9 +39,7 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
 
   Future<void> _checkAccessoryEquipped() async {
     final list = await WeaponsStorage.loadWeaponsEquippedBy(_player.id);
-
     final hasAccessory = list.any((w) => w.type == 'accessory');
-
     setState(() {
       _hasAccessory = hasAccessory;
     });
@@ -78,9 +76,8 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
     final baseName = isFemale ? 'dazuo_female' : 'dazuo_male';
 
     final equipped = await WeaponsStorage.loadWeaponsEquippedBy(_player.id);
-
     final hasWeapon = equipped.any((w) => w.type == 'weapon');
-    final hasArmor  = equipped.any((w) => w.type == 'armor');
+    final hasArmor = equipped.any((w) => w.type == 'armor');
 
     String suffix = '';
     if (hasWeapon && hasArmor) {
@@ -91,9 +88,7 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
       suffix = '_armor';
     }
 
-    final imagePath = 'assets/images/${baseName}${suffix}.png';
-
-    return imagePath;
+    return 'assets/images/${baseName}${suffix}.png';
   }
 
   @override
@@ -120,7 +115,6 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            // ✅ 莲花台：图层永远在下面
             if (_hasAccessory)
               Positioned(
                 bottom: -100,
@@ -130,8 +124,6 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
                   height: 180,
                 ),
               ),
-
-            // ✅ 打坐角色
             GestureDetector(
               onTap: () {
                 showDialog(
@@ -143,7 +135,7 @@ class _CultivationStatusPanelState extends State<CultivationStatusPanel> {
                       _handleEquipSelected(selectedWeapon);
                     },
                     onChanged: () async {
-                      await _checkAccessoryEquipped(); // ✅ 重新判断莲花台要不要显示
+                      await _checkAccessoryEquipped();
                     },
                   ),
                 );

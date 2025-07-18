@@ -21,26 +21,46 @@ class CultivationProgressBar extends StatelessWidget {
         ? 0.0
         : current.toDouble() / max.toDouble();
 
+    final bool isMaxed = max == BigInt.zero;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
       child: Column(
         children: [
-          Text(
-            "$realm$rank层",
-            style: const TextStyle(color: Colors.black54, fontSize: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                rank == 0 ? realm : "$realm$rank层",
+                style: const TextStyle(color: Colors.black54, fontSize: 16),
+              ),
+              if (isMaxed)
+                const Padding(
+                  padding: EdgeInsets.only(left: 6),
+                  child: Text(
+                    '（已满级）',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            "修为：${formatAnyNumber(current)} / ${formatAnyNumber(max)}",
-            style: const TextStyle(color: Colors.black45, fontSize: 14),
-          ),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(
-            value: percent.clamp(0.0, 1.0),
-            backgroundColor: Colors.white24,
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
-            minHeight: 10,
-          ),
+          if (!isMaxed) ...[
+            const SizedBox(height: 4),
+            Text(
+              "修为：${formatAnyNumber(current)} / ${formatAnyNumber(max)}",
+              style: const TextStyle(color: Colors.black45, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            LinearProgressIndicator(
+              value: percent.clamp(0.0, 1.0),
+              backgroundColor: Colors.white24,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.orangeAccent),
+              minHeight: 10,
+            ),
+          ],
         ],
       ),
     );

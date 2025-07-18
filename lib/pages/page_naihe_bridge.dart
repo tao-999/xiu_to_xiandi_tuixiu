@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/pages/page_create_role.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/cultivation_tracker.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/chiyangu_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/typewriter_poem_section.dart';
@@ -99,7 +98,6 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
     await nukeHiveStorage();
 
     // ✅ 清理游戏状态
-    CultivationTracker.stopTick();
     ChiyanguStorage.resetPickaxeData();
 
     await Future.delayed(const Duration(seconds: 8));
