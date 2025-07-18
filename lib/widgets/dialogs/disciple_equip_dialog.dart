@@ -42,7 +42,11 @@ class _DiscipleEquipDialogState extends State<DiscipleEquipDialog> {
   }
 
   void _openEquipTypeDialog(String type) {
-    final list = all.where((w) => w.type == type).toList();
+    final list = all.where((w) =>
+    w.type == type &&
+        (w.equippedById == null || w.equippedById == widget.currentOwnerId)
+    ).toList();
+
     showDialog(
       context: context,
       builder: (_) => Dialog(

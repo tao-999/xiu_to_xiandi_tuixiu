@@ -30,7 +30,12 @@ class _EquipSelectionDialogState extends State<EquipSelectionDialog> {
 
   Future<void> _loadWeapons() async {
     final list = await WeaponsStorage.loadSortedByTimeDesc();
-    setState(() => _weapons = list);
+    setState(() {
+      // 只显示未被装备，或者已被自己装备的
+      _weapons = list.where((w) =>
+      w.equippedById == null || w.equippedById == widget.currentOwnerId
+      ).toList();
+    });
   }
 
   Future<void> _equipWeapon(Weapon weapon) async {
