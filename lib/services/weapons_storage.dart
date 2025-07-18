@@ -4,6 +4,7 @@ import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/refine_blueprint_service.dart';
 import '../models/refine_blueprint.dart';
+import 'disciple_storage.dart';
 
 class WeaponsStorage {
   static const String _boxName = 'weapons';
@@ -144,4 +145,25 @@ class WeaponsStorage {
       'extraDef': player.extraDef,
     });
   }
+
+  /// 给弟子加装备加成
+  static Future<void> addWeaponBonusToDisciple(String discipleId, Weapon weapon) async {
+    final d = await DiscipleStorage.load(discipleId);
+    if (d == null) return;
+    d.extraHp += weapon.hpBoost / 100.0;
+    d.extraAtk += weapon.attackBoost / 100.0;
+    d.extraDef += weapon.defenseBoost / 100.0;
+    await DiscipleStorage.save(d);
+  }
+
+  /// 给弟子减装备加成
+  static Future<void> removeWeaponBonusFromDisciple(String discipleId, Weapon weapon) async {
+    final d = await DiscipleStorage.load(discipleId);
+    if (d == null) return;
+    d.extraHp -= weapon.hpBoost / 100.0;
+    d.extraAtk -= weapon.attackBoost / 100.0;
+    d.extraDef -= weapon.defenseBoost / 100.0;
+    await DiscipleStorage.save(d);
+  }
+
 }

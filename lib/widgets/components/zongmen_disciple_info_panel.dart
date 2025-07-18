@@ -3,14 +3,13 @@ import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import '../../services/disciple_storage.dart';
 import '../../services/zongmen_disciple_service.dart';
 import '../../utils/number_format.dart';
-import '../dialogs/aptitude_charm_dialog.dart';
 import '../components/favorability_heart.dart';
+import '../dialogs/aptitude_charm_dialog.dart';
 import '../dialogs/improve_disciple_realm_dialog.dart';
+import '../dialogs/disciple_equip_dialog.dart';
 
 class ZongmenDiscipleInfoPanel extends StatefulWidget {
   final Disciple disciple;
-
-  /// 🌟 新增：回调最新Disciple给父组件
   final ValueChanged<Disciple>? onDiscipleChanged;
 
   const ZongmenDiscipleInfoPanel({
@@ -32,11 +31,19 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
     d = widget.disciple;
   }
 
+  Future<void> _refreshDisciple() async {
+    final updated = await DiscipleStorage.load(d.id);
+    if (updated != null) {
+      setState(() => d = updated);
+      widget.onDiscipleChanged?.call(updated);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isMaxLevel = d.realmLevel >= ZongmenDiscipleService.maxRealmLevel;
     final realmName = ZongmenDiscipleService.getRealmNameByLevel(d.realmLevel);
-    print('d.realmLevel=====${d.realmLevel}');
+
     return Stack(
       children: [
         Column(
@@ -54,13 +61,7 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
                   context: context,
                   builder: (_) => ImproveDiscipleRealmDialog(
                     disciple: d,
-                    onRealmUpgraded: () async {
-                      final updated = await DiscipleStorage.load(d.id);
-                      if (updated != null) {
-                        setState(() => d = updated);
-                        widget.onDiscipleChanged?.call(updated);
-                      }
-                    },
+                    onRealmUpgraded: _refreshDisciple,
                   ),
                 );
               },
@@ -78,15 +79,7 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
                   context: context,
                   builder: (_) => AptitudeCharmDialog(
                     disciple: d,
-                    onUpdated: () async {
-                      final updated = await DiscipleStorage.load(widget.disciple.id);
-                      if (updated != null) {
-                        setState(() {
-                          d = updated;
-                        });
-                        widget.onDiscipleChanged?.call(updated);
-                      }
-                    },
+                    onUpdated: _refreshDisciple,
                   ),
                 );
               },
@@ -95,24 +88,33 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
             _buildInfoRow('资料', d.description),
           ],
         ),
+
+        // ❤️ 好感度组件
         Positioned(
           top: 0,
           right: 0,
           child: FavorabilityHeart(
             disciple: d,
             onFavorabilityChanged: (updated) {
-              setState(() {
-                d = updated;
-              });
+              setState(() => d = updated);
               widget.onDiscipleChanged?.call(updated);
             },
+          ),
+        ),
+
+        // 🛡️ 封装后装备区域
+        Positioned(
+          top: 80,
+          right: 0,
+          child: DiscipleEquipDialog(
+            currentOwnerId: d.id,
+            onChanged: _refreshDisciple,
           ),
         ),
       ],
     );
   }
 
-  /// 属性展示：带括号加成（仅血/攻/防用）
   Widget _buildStatRow(String label, int base, double extraPercent) {
     final total = (base * (1 + extraPercent)).floor();
     return _buildInfoRow(
@@ -134,7 +136,7 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
                 text: '（+${(extraPercent * 100).toStringAsFixed(0)}%）',
                 style: const TextStyle(
                   color: Colors.white70,
-                  fontSize: 12, // 小2号
+                  fontSize: 12,
                   fontFamily: 'ZcoolCangEr',
                 ),
               ),
@@ -144,7 +146,6 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
     );
   }
 
-  /// 通用信息行（支持右侧加号、支持替代value为Widget）
   Widget _buildInfoRow(
       String label,
       String value, {
