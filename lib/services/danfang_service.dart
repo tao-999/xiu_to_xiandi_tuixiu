@@ -93,8 +93,8 @@ class DanfangService {
 
   /// 【修仙派】炼丹时间计算：1阶 300秒起步，每阶+60秒，资质越高越快（最多75%缩短）
   static int calculateRefineDuration(int level, int totalAptitude) {
-    final baseTime = 300 + (level - 1) * 60;
-    final aptitudeFactor = (1 - (totalAptitude / 210) * 0.75).clamp(0.25, 1.0);
+    final baseTime = 30 + (level - 1) * 60;
+    final aptitudeFactor = (1 - (totalAptitude / 999) * 0.95).clamp(0.05, 1.0);
     return (baseTime * aptitudeFactor).round();
   }
 

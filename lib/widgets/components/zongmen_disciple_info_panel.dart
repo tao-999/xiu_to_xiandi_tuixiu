@@ -7,6 +7,7 @@ import '../components/favorability_heart.dart';
 import '../dialogs/aptitude_charm_dialog.dart';
 import '../dialogs/improve_disciple_realm_dialog.dart';
 import '../dialogs/disciple_equip_dialog.dart';
+import 'disciple_pill_consumer.dart';
 
 class ZongmenDiscipleInfoPanel extends StatefulWidget {
   final Disciple disciple;
@@ -49,7 +50,7 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInfoRow('道号', d.name),
+            _buildInfoRowWithPillButton('道号', d.name),
             _buildInfoRow(
               '境界',
               isMaxLevel ? '$realmName（已满级）' : realmName,
@@ -192,6 +193,46 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
                       ),
                     ),
                   ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRowWithPillButton(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label：',
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontFamily: 'ZcoolCangEr',
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontFamily: 'ZcoolCangEr',
+                  ),
+                ),
+                const SizedBox(width: 4),
+                DisciplePillConsumer(
+                  disciple: d,
+                  onConsumed: _refreshDisciple,
+                ),
               ],
             ),
           ),

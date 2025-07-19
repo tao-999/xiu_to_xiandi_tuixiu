@@ -1,0 +1,213 @@
+import 'package:flutter/material.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
+import 'package:xiu_to_xiandi_tuixiu/models/pill.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/pill_storage_service.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
+
+class DisciplePillConsumer extends StatelessWidget {
+  final Disciple disciple;
+  final VoidCallback? onConsumed;
+
+  const DisciplePillConsumer({
+    super.key,
+    required this.disciple,
+    this.onConsumed,
+  });
+
+  void _showPillDialog(BuildContext context) async {
+    final pills = await PillStorageService.loadAllPills();
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => Dialog(
+        backgroundColor: const Color(0xFFF8F1D4),
+        insetPadding: const EdgeInsets.all(16),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: SizedBox(
+            width: double.infinity,
+            child: pills.isEmpty
+                ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Icon(Icons.hourglass_empty, size: 48, color: Colors.grey),
+                SizedBox(height: 12),
+                Text(
+                  '你都不给弟子准备丹药，\n这是要靠他们用脸挡剑？',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '快去丹房给弟子搞点补给！',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            )
+                : Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: pills.map((pill) {
+                return GestureDetector(
+                  onTap: () => _showQuantityDialog(context, pill),
+                  child: SizedBox(
+                    width: 80,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          'assets/images/${pill.iconPath}',
+                          width: 48,
+                          height: 48,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${pill.name} × ${pill.count}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                        Text(
+                          '+${formatAnyNumber(pill.bonusAmount)}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showQuantityDialog(BuildContext context, Pill pill) {
+    int quantity = 1;
+
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) {
+          final totalBonus = pill.bonusAmount * quantity;
+          final typeText = _getTypeText(pill.type);
+
+          return AlertDialog(
+            backgroundColor: const Color(0xFFF8F1D4),
+            insetPadding: const EdgeInsets.all(16),
+            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+            titlePadding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+            contentPadding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+            actionsPadding: const EdgeInsets.only(bottom: 8),
+            title: Center(
+              child: Text(
+                '给 ${disciple.name} 吞服 ${pill.name}',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/images/${pill.iconPath}', width: 42, height: 42),
+                const SizedBox(height: 4),
+                Text(
+                  '选择数量（最多 ${pill.count}）',
+                  style: const TextStyle(fontSize: 11, color: Colors.black87),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      onPressed: quantity > 1 ? () => setState(() => quantity--) : null,
+                      icon: const Icon(Icons.remove, size: 18),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$quantity',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      onPressed: quantity < pill.count ? () => setState(() => quantity++) : null,
+                      icon: const Icon(Icons.add, size: 18),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => setState(() => quantity = pill.count),
+                      child: const Text(
+                        '最大',
+                        style: TextStyle(fontSize: 11, color: Colors.blue),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '本次加成：+$totalBonus $typeText',
+                  style: const TextStyle(fontSize: 11, color: Colors.black),
+                ),
+              ],
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                onPressed: () async {
+                  await PillStorageService.consumePillForDisciple(disciple, pill, count: quantity);
+                  ToastTip.show(context, '${disciple.name} 吞服 ${pill.name} ×$quantity 成功！');
+                  Navigator.of(context).pop(); // 关闭数量弹窗
+                  Navigator.of(context).pop(); // 关闭列表弹窗
+                  onConsumed?.call();
+                },
+                child: const Text(
+                  '确认',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  String _getTypeText(PillType type) {
+    switch (type) {
+      case PillType.attack:
+        return '攻击';
+      case PillType.defense:
+        return '防御';
+      case PillType.health:
+        return '气血';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showPillDialog(context),
+      child: Container(
+        child: const Text(
+          '(喂丹药)',
+          style: TextStyle(
+            fontSize: 12,
+            fontFamily: 'ZcoolCangEr',
+            color: Colors.blueAccent,
+          ),
+        ),
+      ),
+    );
+  }
+}

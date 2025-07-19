@@ -128,7 +128,7 @@ class ZongmenDiscipleService {
         ? aptitudeTable[index].realmName
         : aptitudeTable.last.realmName;
 
-    return '$realm$rank重';
+    return '$realm$rank层';
   }
 
   static Future<bool> addCultivationToDisciple(

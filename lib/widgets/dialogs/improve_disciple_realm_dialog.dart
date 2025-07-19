@@ -212,7 +212,7 @@ class _ImproveDiscipleRealmDialogState extends State<ImproveDiscipleRealmDialog>
     if (mounted) {
       Navigator.of(context).pop();
       if (onUpgraded != null) {
-        Future.delayed(Duration.zero, onUpgraded);
+        Future.microtask(widget.onRealmUpgraded!);
       }
     }
   }

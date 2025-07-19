@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import '../models/disciple.dart';
 import '../models/pill.dart';
 import 'player_storage.dart';
 
@@ -83,6 +84,39 @@ class PillStorageService {
     }
 
     // 🧪 扣减数量
+    if (stored != null) {
+      stored.count -= count;
+      if (stored.count <= 0) {
+        await stored.delete();
+      } else {
+        await stored.save();
+      }
+    }
+  }
+
+  static Future<void> consumePillForDisciple(Disciple disciple, Pill pill, {int count = 1}) async {
+    final box = await _openBox();
+    final key = pill.key;
+    final stored = box.get(key);
+
+    final totalBonus = pill.bonusAmount * count;
+
+    // ✅ 直接叠加到 base 属性
+    switch (pill.type.name) {
+      case 'health':
+        disciple.hp += totalBonus;
+        break;
+      case 'attack':
+        disciple.atk += totalBonus;
+        break;
+      case 'defense':
+        disciple.def += totalBonus;
+        break;
+    }
+
+    await disciple.save(); // ✅ Hive commit
+
+    // 🧪 扣减丹药数量
     if (stored != null) {
       stored.count -= count;
       if (stored.count <= 0) {
