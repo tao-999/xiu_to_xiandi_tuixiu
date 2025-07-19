@@ -8,7 +8,6 @@ import '../../data/xianren_female_data.dart';
 import '../dialogs/xianren_dialog.dart';
 import '../../models/disciple.dart';
 import '../../services/disciple_storage.dart';
-import '../../services/zongmen_disciple_service.dart';
 import '../../services/zongmen_storage.dart';
 import '../../widgets/common/toast_tip.dart';
 
@@ -55,7 +54,6 @@ class ShallowOceanTerrainEvent {
       return false;
     }
 
-    // 🌟0.5%概率
     final chanceRoll = _rand.nextDouble();
     final isTriggered = chanceRoll < 0.005;
 
@@ -142,6 +140,10 @@ class ShallowOceanTerrainEvent {
               favorability: 0,
               role: '弟子',
               realmLevel: 0,
+              // 🌟 ✨ 加上这三项百分比字段（从 aptitude 推导）
+              extraHp: data['aptitude'] * 0.01,
+              extraAtk: data['aptitude'] * 0.01,
+              extraDef: data['aptitude'] * 0.01,
             );
 
             final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;

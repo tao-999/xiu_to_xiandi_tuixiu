@@ -22,7 +22,7 @@ class ZongmenQuickMenu extends StatelessWidget {
       ["藏经阁", "gongfa", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CangjinggePage()))],
       ["灵田", "lingtian", () => ToastTip.show(context, "灵田开发中")],
       ["宗门外交", "waijiao", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenDiplomacyPage()))],
-      ["宗门职位", "zhiwei", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenRolesPage()))],
+      ["宗门广场", "zhiwei", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenRolesPage()))],
     ];
 
     return Expanded(
