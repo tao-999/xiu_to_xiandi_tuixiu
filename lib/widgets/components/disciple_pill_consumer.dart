@@ -204,7 +204,7 @@ class DisciplePillConsumer extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontFamily: 'ZcoolCangEr',
-            color: Colors.blueAccent,
+            color: Colors.amber,
           ),
         ),
       ),
