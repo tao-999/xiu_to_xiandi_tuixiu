@@ -34,9 +34,8 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
   void initState() {
     super.initState();
 
-    _controller = PageController(
-      initialPage: _inferInitialPage(),
-    );
+    // 先用 0 初始化，等加载完路径再跳转
+    _controller = PageController(initialPage: 0);
 
     _initAvailablePaths();
 
@@ -47,27 +46,23 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
           _currentPage = page;
         });
 
-        final isLocked = page == 1 && widget.favorability < _unlockFavorability;
+        final requiredFavorability = page * _unlockFavorability;
+        final isLocked = widget.favorability < requiredFavorability;
         if (isLocked) return;
 
         final newImagePath = _availablePaths[page];
         debugPrint('[SwipeablePortrait] 切换到立绘: $newImagePath');
 
-        await ZongmenDiscipleService.setDisciplePortrait(widget.disciple.id, newImagePath);
+        await ZongmenDiscipleService.setDisciplePortrait(
+          widget.disciple.id,
+          newImagePath,
+        );
 
         setState(() {
           widget.disciple.imagePath = newImagePath;
         });
       }
     });
-  }
-
-  int _inferInitialPage() {
-    final ext = widget.imagePath.split('.').last;
-    if (widget.imagePath.contains('_1.$ext')) {
-      return 1;
-    }
-    return 0;
   }
 
   String _getImagePath(int index) {
@@ -99,19 +94,16 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
 
     for (int i = 0;; i++) {
       final path = _getImagePath(i);
-
       try {
         await rootBundle.load(path);
         debugPrint('[SwipeablePortrait] 存在: $path');
         exists.add(path);
       } catch (_) {
         debugPrint('[SwipeablePortrait] 不存在: $path');
-        // 遇到第一张不存在：保底放回
         if (i == 0 && exists.isEmpty) {
           exists.add(_getImagePath(0));
           debugPrint('[SwipeablePortrait] 全部不存在，默认保留: ${_getImagePath(0)}');
         }
-        // 不管第几张，遇到不存在就跳出
         break;
       }
     }
@@ -119,8 +111,17 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
     debugPrint('[SwipeablePortrait] 最终可用路径: $exists');
 
     if (mounted) {
+      final initIndex = exists.indexOf(widget.imagePath);
+      final targetIndex = initIndex >= 0 ? initIndex : 0;
+
       setState(() {
         _availablePaths = exists;
+        _currentPage = targetIndex;
+      });
+
+      // 🌟 初始化后跳转到正确页
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _controller.jumpToPage(targetIndex);
       });
     }
   }
@@ -142,7 +143,8 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
-        final locked = _currentPage == 1 && widget.favorability < _unlockFavorability;
+        final requiredFavorability = _currentPage * _unlockFavorability;
+        final locked = widget.favorability < requiredFavorability;
         if (locked) return;
         widget.onTap?.call();
       },
@@ -153,7 +155,8 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
             ? const PageScrollPhysics()
             : const NeverScrollableScrollPhysics(),
         itemBuilder: (context, index) {
-          final locked = index == 1 && widget.favorability < _unlockFavorability;
+          final requiredFavorability = index * _unlockFavorability;
+          final locked = widget.favorability < requiredFavorability;
 
           return Stack(
             children: [
@@ -172,7 +175,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 24),
                     child: Text(
-                      '好感度$_unlockFavorability解锁 🔒',
+                      '好感度$requiredFavorability解锁 🔒',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
