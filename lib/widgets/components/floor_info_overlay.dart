@@ -95,18 +95,18 @@ class FloorInfoOverlay extends StatelessWidget {
                   '第 $floor 层',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 14,
+                    fontSize: 10,
                     decoration: TextDecoration.none, // ✅ 强制去掉下划线
                   ),
                 );
               },
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 4),
             GestureDetector(
               onTap: () => _showInfoDialog(context),
               child: const Icon(
                 Icons.info_outline,
-                size: 18,
+                size: 14,
                 color: Colors.white,
               ),
             ),

@@ -177,7 +177,16 @@ class ZongmenDiscipleService {
     d.realmLevel = newLevel;
 
     debugPrint('💾【保存弟子】realmLevel=${d.realmLevel}, cultivation=${d.cultivation}');
-    await d.save();
+
+    // ✅ 防止 HiveError: This object is currently not in a box
+    if (!d.isInBox) {
+      debugPrint('⚠️ 弟子对象不在 Hive box 中，重新 put 保存');
+      final box = await Hive.openBox<Disciple>('disciples');
+      await box.put(d.id, d);
+    } else {
+      await d.save();
+    }
+
     return upgraded;
   }
 
@@ -219,5 +228,4 @@ class ZongmenDiscipleService {
     }
     return sum;
   }
-
 }

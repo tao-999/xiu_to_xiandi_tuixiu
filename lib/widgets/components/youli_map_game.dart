@@ -59,7 +59,6 @@ class YouliMapGame extends FlameGame {
     await _addEntry('youli_fukongxiandao.png', Vector2(1100, 650), onTap: () {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const FloatingIslandPage()));
     });
-    await _addEntry('youli_dengtianti.png', Vector2(150, 220));
     await _addEntry('youli_youmingguiku.png', Vector2(1450, 560), onTap: () {
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => const YoumingHellPage()));
     });

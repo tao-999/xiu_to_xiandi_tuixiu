@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_disciple_info_panel.dart';
-
 import '../widgets/components/swipeable_portrait.dart';
 
 class DiscipleDetailPage extends StatefulWidget {
-  final Disciple disciple;
+  final String discipleId;
 
-  const DiscipleDetailPage({super.key, required this.disciple});
+  const DiscipleDetailPage({super.key, required this.discipleId});
 
   @override
   State<DiscipleDetailPage> createState() => _DiscipleDetailPageState();
@@ -19,9 +19,8 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
   late AnimationController _controller;
   late Animation<double> _animation;
 
-  late Disciple disciple;
+  Disciple? disciple;
 
-  // 不再写死 offset
   double _offsetY = 0.0;
   double _startDragY = 0;
   double _startOffsetY = 0.0;
@@ -34,7 +33,17 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    disciple = widget.disciple; // 🌟 初始化
+    _loadDisciple();
+  }
+
+  Future<void> _loadDisciple() async {
+    final box = Hive.box<Disciple>('disciples');
+    final real = box.get(widget.discipleId);
+    if (real != null) {
+      setState(() {
+        disciple = real;
+      });
+    }
   }
 
   void animateTo(double targetOffset) {
@@ -57,21 +66,14 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
 
   @override
   Widget build(BuildContext context) {
+    final d = disciple;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // 🌟 面板高度 = 半屏
     final panelHeight = screenHeight * 0.5;
-
-    // 🌟 展开时：面板顶在屏幕中线
     final collapsedOffset = screenHeight * 0.5;
-
-    // 🌟 隐藏时：滑出视野底部
     final hiddenOffset = screenHeight;
-
-    // 🌟 拖动范围
     final maxRange = hiddenOffset - collapsedOffset;
 
-    // 🌟 初始化 offset（只在第一次 build 时）
     if (_offsetY == 0.0) {
       _offsetY = collapsedOffset;
     }
@@ -81,7 +83,9 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
 
     return Scaffold(
       backgroundColor: const Color(0xFF000000),
-      body: GestureDetector(
+      body: d == null
+          ? const Center(child: CircularProgressIndicator())
+          : GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () {
           if (_offsetY != collapsedOffset) {
@@ -91,7 +95,7 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
         },
         child: Stack(
           children: [
-            // 背景立绘
+            // 背景 + 立绘
             Positioned(
               top: 0,
               left: 0,
@@ -113,9 +117,9 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                       scale: scale,
                       alignment: Alignment.topCenter,
                       child: SwipeablePortrait(
-                        imagePath: disciple.imagePath,
-                        favorability: disciple.favorability,
-                        disciple: disciple,
+                        imagePath: d.imagePath,
+                        favorability: d.favorability,
+                        disciple: d,
                         isHidden: isHidden,
                         onTap: () {
                           if (!isHidden) return;
@@ -129,7 +133,7 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
               ),
             ),
 
-            // 拖动 info 面板
+            // 拖动面板
             Positioned(
               top: _offsetY,
               left: 0,
@@ -165,7 +169,7 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
                     color: const Color(0xFF1D1A17).withOpacity(0.9),
                   ),
                   child: ZongmenDiscipleInfoPanel(
-                    disciple: disciple,
+                    disciple: d,
                     onDiscipleChanged: (updated) {
                       setState(() {
                         disciple = updated;
@@ -176,7 +180,6 @@ class _DiscipleDetailPageState extends State<DiscipleDetailPage>
               ),
             ),
 
-            // 返回按钮
             if (!isHidden) const BackButtonOverlay(),
           ],
         ),

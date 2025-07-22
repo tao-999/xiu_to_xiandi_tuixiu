@@ -1,11 +1,8 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_disciples.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_danfang.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_cangjingge.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_task_dispatch.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_lianqi.dart';
-
 import '../../pages/page_zongmen_diplomacy.dart';
 import '../../pages/page_zongmen_roles.dart';
 
@@ -16,29 +13,46 @@ class ZongmenQuickMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = [
       ["弟子闺房", "dizi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiscipleListPage()))],
-      ["任务派遣", "renwu", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TaskDispatchPage()))],
       ["炼丹房", "liandan", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DanfangPage()))],
       ["炼器房", "lianqi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LianqiPage()))],
-      ["藏经阁", "gongfa", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CangjinggePage()))],
-      ["灵田", "lingtian", () => ToastTip.show(context, "灵田开发中")],
       ["宗门外交", "waijiao", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenDiplomacyPage()))],
       ["宗门广场", "zhiwei", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenRolesPage()))],
     ];
 
-    return Expanded(
-      child: GridView.count(
-        crossAxisCount: 4,              // ✅ 每行 4 项
-        childAspectRatio: 0.85,         // ✅ 更紧凑些
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        children: actions.map((action) {
-          return _quickButton(
-            label: action[0] as String,
-            iconName: action[1] as String,
-            onTap: action[2] as VoidCallback,
-          );
-        }).toList(),
-      ),
+    const radius = 120.0; // 圆形半径
+    const buttonWidth = 60.0;
+    const buttonHeight = 76.0;
+
+    final angles = [
+      -pi / 2,        // 顶部
+      -pi / 10,       // 右上
+      3 * pi / 10,    // 右下
+      7 * pi / 10,    // 左下
+      11 * pi / 10,   // 左上
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final centerX = constraints.maxWidth / 2;
+        final centerY = constraints.maxHeight / 2;
+
+        return Stack(
+          children: List.generate(5, (i) {
+            final angle = angles[i];
+            final dx = centerX + radius * cos(angle);
+            final dy = centerY + radius * sin(angle);
+            return Positioned(
+              left: dx - buttonWidth / 2,
+              top: dy - buttonHeight / 2,
+              child: _quickButton(
+                label: actions[i][0] as String,
+                iconName: actions[i][1] as String,
+                onTap: actions[i][2] as VoidCallback,
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 
@@ -50,27 +64,25 @@ class ZongmenQuickMenu extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      child: Container(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              'assets/images/zongmen_$iconName.png',
-              width: 60,
-              height: 60,
-              fit: BoxFit.contain,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            'assets/images/zongmen_$iconName.png',
+            width: 60,
+            height: 60,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white,
+              fontFamily: 'ZcoolCangEr',
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.white,
-                fontFamily: 'ZcoolCangEr',
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

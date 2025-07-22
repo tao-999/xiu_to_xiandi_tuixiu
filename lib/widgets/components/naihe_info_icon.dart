@@ -16,7 +16,7 @@ class NaiheInfoIcon extends StatelessWidget {
 
 否则，记忆与执念将成为下一世的心魔，永难登仙。
 
-你准备好轮回了吗？
+(注意：此操作会重置角色！)
 ''',
   });
 

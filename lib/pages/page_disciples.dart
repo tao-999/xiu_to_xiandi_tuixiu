@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_disciple_detail.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_zhaomu.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
@@ -8,8 +7,10 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_disciple_card.da
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/disciple_limit_info_dialog.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/disciple_list_header.dart';
 
+import '../models/disciple.dart';
 import '../services/zongmen_disciple_service.dart';
 import '../utils/route_observer.dart';
+import '../widgets/components/empty_disciple_hint.dart';
 
 class DiscipleListPage extends StatefulWidget {
   const DiscipleListPage({super.key});
@@ -21,8 +22,6 @@ class DiscipleListPage extends StatefulWidget {
 class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
   List<Disciple> disciples = [];
   int maxDiscipleCount = 0;
-
-  // 当前排序方式
   String _sortOption = 'apt_desc';
 
   @override
@@ -143,37 +142,7 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
                 const SizedBox(height: 16),
                 Expanded(
                   child: sortedDisciples.isEmpty
-                      ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          "一个人也没有，宗主你要孤独终老吗？",
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        const SizedBox(height: 12),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF9F5E3),
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                          ),
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ZhaomuPage()),
-                            );
-                            _loadDisciples();
-                          },
-                          child: const Text(
-                            "前往招募",
-                            style: TextStyle(fontSize: 16, fontFamily: 'ZcoolCangEr'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
+                      ? EmptyDiscipleHint(onRecruitSuccess: _loadDisciples)
                       : GridView.builder(
                     padding: const EdgeInsets.only(top: 4),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -190,14 +159,12 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
                           await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => DiscipleDetailPage(disciple: disciple),
+                              builder: (_) => DiscipleDetailPage(discipleId: disciple.id),
                             ),
                           );
+                          _loadDisciples();
                         },
-                        child: ZongmenDiscipleCard(
-                          key: ValueKey(disciple.id),
-                          disciple: disciple,
-                        ),
+                        child: ZongmenDiscipleCard(disciple: disciple),
                       );
                     },
                   ),

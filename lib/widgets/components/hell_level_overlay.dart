@@ -11,7 +11,7 @@ class HellLevelOverlay extends TextComponent with HasGameReference {
     position: Vector2.zero(), // ⚠️ 推迟设置
     textRenderer: TextPaint(
       style: const TextStyle(
-        fontSize: 12,
+        fontSize: 10,
         color: Colors.white,
         fontWeight: FontWeight.bold,
         shadows: [Shadow(blurRadius: 2, color: Colors.redAccent)],
