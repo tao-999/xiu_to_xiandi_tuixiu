@@ -1,71 +1,105 @@
 import 'dart:convert';
+import 'dart:math';
+import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:vector_math/vector_math_64.dart';
+import 'package:flame/components.dart';
 import '../widgets/components/hell_monster_component.dart';
+import '../models/hell_game_state.dart'; // ✅ 加入新模型
 
 class HellService {
-  static const _key = 'hell_state';
+  static const _monsterListKey = 'hell_alive_monsters';
+  static const _bossKey = 'hell_boss_monster';
+  static const _rewardKey = 'hell_earned_spirit_stone_mid';
+  static const _playerKey = 'hell_player_info';
 
-  /// 💾 保存当前地狱状态
-  static Future<void> save({
-    required int level,
-    required int currentWave,
-    required int totalWaves,
-    required int currentAlive,
-    required Vector2 playerPosition,
-    required int playerHp,
-    required int playerMaxHp,
-    required List<HellMonsterComponent> monsters,
+  // ✅ 保存基础状态
+  static Future<void> saveState({
+    required int killed,
+    required bool bossSpawned,
+    required int spawned,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final data = {
-      'level': level,
-      'currentWave': currentWave,
-      'totalWaves': totalWaves,
-      'currentAlive': currentAlive,
-      'player': {
-        'x': playerPosition.x,
-        'y': playerPosition.y,
-        'hp': playerHp,
-        'maxHp': playerMaxHp,
-      },
-      'monsters': monsters.map((m) => {
-        'id': m.id,
-        'isBoss': m.isBoss,
-        'level': m.level,
-        'waveIndex': m.waveIndex,
-        'x': m.position.x,
-        'y': m.position.y,
-        'hp': m.hp,
-        'maxHp': m.maxHp,
-        'atk': m.atk,
-        'def': m.def,
-      }).toList(),
-    };
-    await prefs.setString(_key, jsonEncode(data));
+    final prevSpawned = prefs.getInt('hell_spawned_count') ?? 0;
+    final newSpawned = max(prevSpawned, spawned); // ✅ 保底不回退
+    await prefs.setInt('hell_killed', killed);
+    await prefs.setBool('hell_boss_spawned', bossSpawned);
+    await prefs.setInt('hell_spawned_count', newSpawned);
   }
 
-  /// 📥 读取上次保存的状态（如无返回 null）
-  static Future<Map<String, dynamic>?> load() async {
+  // ✅ 加载状态为结构体
+  static Future<HellGameState?> loadState() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
+    if (!prefs.containsKey('hell_killed')) return null;
+
+    return HellGameState(
+      killed: prefs.getInt('hell_killed') ?? 0,
+      bossSpawned: prefs.getBool('hell_boss_spawned') ?? false,
+      spawned: prefs.getInt('hell_spawned_count') ?? 0,
+    );
+  }
+
+  static Future<void> saveStateAndLog({
+    required int killed,
+    required bool bossSpawned,
+    required int spawned,
+  }) async {
+    await saveState(killed: killed, bossSpawned: bossSpawned, spawned: spawned);
+    debugPrint('📦 [HellService] saveState → 🧮 killed=$killed, 🧬 spawned=$spawned, 👹 boss=$bossSpawned');
+  }
+
+  static Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('hell_killed');
+    await prefs.remove('hell_boss_spawned');
+    await prefs.remove('hell_spawned_count');
+    await prefs.remove(_monsterListKey);
+    await prefs.remove(_bossKey);
+    await prefs.remove(_playerKey);
+  }
+
+  static Future<void> saveAliveMonsters(List<HellMonsterComponent> list) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = list.map((m) => {
+      'id': m.id,
+      'level': m.level,
+      'hp': m.hp,
+      'maxHp': m.maxHp,
+      'atk': m.atk,
+      'def': m.def,
+      'x': m.position.x,
+      'y': m.position.y,
+    }).toList();
+    await prefs.setString(_monsterListKey, jsonEncode(jsonList));
+  }
+
+  static Future<List<Map<String, dynamic>>> loadAliveMonsters() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_monsterListKey);
+    if (raw == null) return [];
+    return List<Map<String, dynamic>>.from(jsonDecode(raw));
+  }
+
+  static Future<void> saveBossMonster(HellMonsterComponent boss) async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = jsonEncode({
+      'id': boss.id,
+      'level': boss.level,
+      'hp': boss.hp,
+      'maxHp': boss.maxHp,
+      'atk': boss.atk,
+      'def': boss.def,
+      'x': boss.position.x,
+      'y': boss.position.y,
+    });
+    await prefs.setString(_bossKey, json);
+  }
+
+  static Future<Map<String, dynamic>?> loadBossMonster() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_bossKey);
     if (raw == null) return null;
-    return jsonDecode(raw);
+    return Map<String, dynamic>.from(jsonDecode(raw));
   }
-
-  /// 🔥 清除当前保存的状态
-  static Future<void> clear() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_key);
-  }
-
-  /// 🧪 检查是否已有保存
-  static Future<bool> hasSave() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey(_key);
-  }
-
-  static const _rewardKey = 'hell_earned_spirit_stone_mid';
 
   static Future<void> saveSpiritStoneReward(int amount) async {
     final prefs = await SharedPreferences.getInstance();
@@ -77,28 +111,47 @@ class HellService {
     return prefs.getInt(_rewardKey) ?? 0;
   }
 
-  static Future<void> clearSpiritStoneReward() async {
+  static Future<void> savePlayerInfo({
+    required Vector2 position,
+    required int hp,
+    required int maxHp,
+    required int level,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_rewardKey);
+    final map = {
+      'x': position.x,
+      'y': position.y,
+      'hp': hp,
+      'maxHp': maxHp,
+      'level': level,
+    };
+    await prefs.setString(_playerKey, jsonEncode(map));
   }
 
-  /// 根据等级、波次和是否Boss返回怪物属性
+  static Future<Map<String, dynamic>?> loadPlayerInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_playerKey);
+    if (raw == null) return null;
+    return Map<String, dynamic>.from(jsonDecode(raw));
+  }
+
+  static Future<void> clearPlayerInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_playerKey);
+  }
+
   static Map<String, int> calculateMonsterAttributes({
     required int level,
-    required int waveIndex,
     required bool isBoss,
   }) {
-    final waveBonusAtk = waveIndex * 100;
     final levelBonusAtk = (level - 1) * 300;
-    final atk = isBoss ? 3000 : 1000 + waveBonusAtk + levelBonusAtk;
+    final atk = isBoss ? 3000 : 1000 + levelBonusAtk;
 
-    final waveBonusDef = waveIndex * 50;
     final levelBonusDef = (level - 1) * 150;
-    final def = isBoss ? 1500 : 500 + waveBonusDef + levelBonusDef;
+    final def = isBoss ? 1500 : 500 + levelBonusDef;
 
-    final waveBonusHp = waveIndex * 1000;
     final levelBonusHp = (level - 1) * 3000;
-    final hp = isBoss ? 50000 : 10000 + waveBonusHp + levelBonusHp;
+    final hp = isBoss ? 50000 : 10000 + levelBonusHp;
 
     return {
       'atk': atk,

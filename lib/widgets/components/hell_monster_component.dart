@@ -5,35 +5,31 @@ import 'package:flame/collisions.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart';
-import '../../services/hell_service.dart';
 import '../../services/player_storage.dart';
-import '../../services/resources_storage.dart';
 import 'hell_player_component.dart';
-import 'youming_hell_map_game.dart';
 import 'hp_bar_wrapper.dart';
+import 'youming_hell_map_game.dart';
 
 class HellMonsterComponent extends SpriteComponent
     with CollisionCallbacks, HasGameReference<YoumingHellMapGame> {
   final int id;
   final int level;
-  final int waveIndex;
   final bool isBoss;
+  void Function()? onDeathCallback;
 
-  PositionComponent? _target;
+  int atk;
+  int def;
+  int hp;
+  int maxHp;
+
   double _moveSpeed = 10;
-
-  int atk = 0;
-  int def = 0;
-  int hp = 0;
-  int maxHp = 0;
-
   Vector2? _safeZoneCenter;
   double _safeZoneRadius = 0;
 
+  PositionComponent? _target;
   bool _isWandering = false;
   double _wanderTimer = 0;
   Vector2 _wanderDirection = Vector2.zero();
-
   bool _isTouchingPlayer = false;
   double _attackCooldown = 0;
 
@@ -42,30 +38,19 @@ class HellMonsterComponent extends SpriteComponent
   late final HpBarWrapper _hpBar;
   late final TextComponent _damageText;
 
+  bool get isDead => hp <= 0;
+
   HellMonsterComponent({
     required this.id,
     required this.level,
-    required this.waveIndex,
-    this.isBoss = false,
+    required this.isBoss,
     required Vector2 position,
-    int? atk,
-    int? def,
-    int? hp,
-  }) : super(
-    position: position,
-    anchor: Anchor.center,
-  ) {
-    final attr = HellService.calculateMonsterAttributes(
-      level: level,
-      waveIndex: waveIndex,
-      isBoss: isBoss,
-    );
-
-    this.atk = atk ?? attr['atk']!;
-    this.def = def ?? attr['def']!;
-    this.hp = hp ?? attr['hp']!;
-    this.maxHp = this.hp;
-  }
+    required this.hp,
+    required this.maxHp,
+    required this.atk,
+    required this.def,
+    this.onDeathCallback,
+  }) : super(position: position, anchor: Anchor.center);
 
   @override
   Future<void> onLoad() async {
@@ -74,17 +59,13 @@ class HellMonsterComponent extends SpriteComponent
     size = isBoss ? Vector2.all(32) * 2 : Vector2.all(32);
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
-    _hpBar = HpBarWrapper(
-      width: size.x,
-      height: isBoss ? 4 : 2,
-    )
+    _hpBar = HpBarWrapper(width: size.x, height: isBoss ? 4 : 2)
       ..position = Vector2(0, -size.y / 2 - 6)
       ..anchor = Anchor.topLeft;
 
-    // 🌟先添加再setHp，避免LateInitializationError
     Future.microtask(() {
       add(_hpBar);
-      _hpBar.setHp(hp, maxHp);
+      _hpBar.setStats(currentHp: hp, maxHp: maxHp, atk: atk, def: def);
     });
 
     _damageText = TextComponent(
@@ -95,9 +76,7 @@ class HellMonsterComponent extends SpriteComponent
         style: const TextStyle(
           fontSize: 12,
           color: Colors.red,
-          shadows: [
-            Shadow(offset: Offset(1, 1), blurRadius: 1, color: Colors.black),
-          ],
+          shadows: [Shadow(offset: Offset(1, 1), blurRadius: 1, color: Colors.black)],
         ),
       ),
     )..priority = 999;
@@ -119,11 +98,9 @@ class HellMonsterComponent extends SpriteComponent
   @override
   void update(double dt) {
     super.update(dt);
-
     if (!isMounted || _target == null || _safeZoneCenter == null) return;
 
     _attackCooldown -= dt;
-
     final toSafeCenter = position - _safeZoneCenter!;
     final distToSafe = toSafeCenter.length;
 
@@ -135,7 +112,7 @@ class HellMonsterComponent extends SpriteComponent
     final playerPos = _target!.position;
     final distToPlayer = (playerPos - position).length;
 
-    if ((playerPos - _safeZoneCenter!).length < _safeZoneRadius || distToPlayer > 200) {
+    if ((playerPos - _safeZoneCenter!).length < _safeZoneRadius || distToPlayer > 250) {
       _isWandering = true;
       _wanderTimer -= dt;
 
@@ -150,7 +127,7 @@ class HellMonsterComponent extends SpriteComponent
       _isWandering = false;
       final toPlayer = playerPos - position;
       if (toPlayer.length > 1e-2) {
-        position += toPlayer.normalized() * _moveSpeed * dt;
+        position += toPlayer.normalized() * (_moveSpeed * 2.0) * dt;
       }
     }
 
@@ -176,7 +153,6 @@ class HellMonsterComponent extends SpriteComponent
   @override
   void onCollisionStart(Set<Vector2> points, PositionComponent other) {
     super.onCollisionStart(points, other);
-
     if (other is HellPlayerComponent && !other.isDead) {
       _isTouchingPlayer = true;
       _attackCooldown = 0;
@@ -186,58 +162,41 @@ class HellMonsterComponent extends SpriteComponent
   @override
   void onCollisionEnd(PositionComponent other) {
     super.onCollisionEnd(other);
-
     if (other is HellPlayerComponent) {
       _isTouchingPlayer = false;
     }
   }
 
-  void _giveReward() async {
-    final base = 10 + (level - 1);
-    final reward = isBoss ? base * 2 : base;
-
-    ResourcesStorage.add('spiritStoneMid', BigInt.from(reward));
-    print('💰 击杀奖励：$reward 个中品灵石');
-
-    final prev = await HellService.loadSpiritStoneReward();
-    await HellService.saveSpiritStoneReward(prev + reward);
-  }
-
   void onDeath({Vector2? from}) {
-    print('💀 怪物 #$id 死亡触发！当前波次：$waveIndex，剩余HP: $hp');
+    onDeathCallback?.call();
 
-    _giveReward();
-    game.checkWaveProgress();
+    final effect = from != null
+        ? MoveEffect.to(
+      position + (position - from).normalized() * 480,
+      EffectController(duration: 1.0, curve: Curves.easeOut),
+    )
+        : null;
 
-    if (from != null) {
-      final direction = (position - from).normalized();
-      final knockbackTarget = position + direction * 480;
-
-      final effect = MoveEffect.to(
-        knockbackTarget,
-        EffectController(duration: 1.0, curve: Curves.easeOut),
-      )..onComplete = () {
+    Future.microtask(() {
+      if (!isMounted) return;
+      if (effect != null) {
+        effect.onComplete = () => removeFromParent();
+        add(effect);
+      } else {
         removeFromParent();
-      };
-
-      Future.microtask(() {
-        if (isMounted) add(effect);
-      });
-    } else {
-      removeFromParent();
-    }
+      }
+    });
   }
 
   void receiveDamage(int damage, {Vector2? from}) {
     final reduced = damage - def;
-
     if (reduced <= 0) {
       _showDamageText('格挡');
       return;
     }
 
     hp -= reduced;
-    _hpBar.setHp(hp, maxHp);
+    _hpBar.setStats(currentHp: hp, maxHp: maxHp, atk: atk, def: def);
     _showDamageText('-$reduced');
 
     if (hp <= 0) {
@@ -248,25 +207,14 @@ class HellMonsterComponent extends SpriteComponent
   void _showDamageText(String text) {
     _damageText.text = text;
     _damageText.position = Vector2(0, -size.y / 2 - 2);
-
     _damageText.add(
       SequenceEffect([
-        MoveByEffect(
-          Vector2(0, -16),
-          EffectController(duration: 0.4),
-        ),
-        RemoveEffect(onComplete: () {
-          _damageText.text = ''; // 飘完清空
-        }),
+        MoveByEffect(Vector2(0, -16), EffectController(duration: 0.4)),
+        RemoveEffect(onComplete: () => _damageText.text = ''),
       ]),
     );
   }
 
-  int get power {
-    return PlayerStorage.calculatePower(
-      hp: hp,
-      atk: atk,
-      def: def,
-    );
-  }
+  int get power => PlayerStorage.calculatePower(hp: hp, atk: atk, def: def);
 }
+

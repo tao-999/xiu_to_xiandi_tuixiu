@@ -11,7 +11,10 @@ class HpBarWrapper extends PositionComponent {
 
   late final RectangleComponent _bg;
   late final RectangleComponent _fg;
-  late final TextComponent _text;
+
+  late final TextComponent _hpText;
+  late final TextComponent _atkText;
+  late final TextComponent _defText;
 
   HpBarWrapper({
     this.width = 40,
@@ -40,13 +43,29 @@ class HpBarWrapper extends PositionComponent {
         ..style = PaintingStyle.fill,
     );
 
-    _text = TextComponent(
+    const double lineHeight = 10.0;
+    final double totalHeight = lineHeight * 3;
+    final double offsetY = (totalHeight - height) / 2;
+
+    _hpText = _buildTextComponent(offsetY: -offsetY + 0);
+    _atkText = _buildTextComponent(offsetY: -offsetY + lineHeight);
+    _defText = _buildTextComponent(offsetY: -offsetY + lineHeight * 2);
+
+    add(_bg);
+    add(_fg);
+    add(_hpText);
+    add(_atkText);
+    add(_defText);
+  }
+
+  TextComponent _buildTextComponent({required double offsetY}) {
+    return TextComponent(
       text: '',
-      anchor: Anchor.centerLeft,
-      position: Vector2(width + 4, height / 2),
+      anchor: Anchor.topLeft,
+      position: Vector2(width + 4, offsetY),
       textRenderer: TextPaint(
         style: TextStyle(
-          fontSize: 10,
+          fontSize: 8,
           color: textColor,
           shadows: const [
             Shadow(offset: Offset(1, 1), blurRadius: 1, color: Colors.black),
@@ -54,16 +73,20 @@ class HpBarWrapper extends PositionComponent {
         ),
       ),
     );
-
-    add(_bg);
-    add(_fg);
-    add(_text);
   }
 
-  /// 🌟外部调用此方法更新血条和文字
-  void setHp(int current, int max) {
-    final ratio = max == 0 ? 0.0 : (current / max).clamp(0.0, 1.0);
+  /// 🌟外部调用此方法更新属性展示
+  void setStats({
+    required int currentHp,
+    required int maxHp,
+    required int atk,
+    required int def,
+  }) {
+    final ratio = maxHp == 0 ? 0.0 : (currentHp / maxHp).clamp(0.0, 1.0);
     _fg.scale.x = ratio;
-    _text.text = formatAnyNumber(current);
+
+    _hpText.text = 'HP: ${formatAnyNumber(currentHp)}';
+    _atkText.text = 'ATK: ${formatAnyNumber(atk)}';
+    _defText.text = 'DEF: ${formatAnyNumber(def)}';
   }
 }

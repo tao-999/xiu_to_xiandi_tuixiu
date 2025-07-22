@@ -54,8 +54,8 @@ class _HuanyueExplorePageState extends State<HuanyueExplorePage> {
               ),
             ),
             Positioned(
-              top: 8,
-              left: 8,
+              top: 32,
+              left: 12,
               child: RewardCounterOverlay(),
             ),
             const BackButtonOverlay(),

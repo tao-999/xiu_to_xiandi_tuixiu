@@ -75,7 +75,7 @@ class HellPlayerComponent extends SpriteComponent
     // 🌟先添加，再设置血量，避免LateInitializationError
     Future.microtask(() {
       parent?.add(_hpBar);
-      _hpBar.setHp(hp, maxHp);
+      _hpBar.setStats(currentHp: hp, maxHp: maxHp, atk: atk, def: def);
     });
   }
 
@@ -101,7 +101,7 @@ class HellPlayerComponent extends SpriteComponent
     if (isInSafeZone && !isDead) {
       if (hp < maxHp) {
         hp = maxHp;
-        _hpBar.setHp(hp, maxHp);
+        _hpBar.setStats(currentHp: hp, maxHp: maxHp, atk: atk, def: def);
         _showFloatingText('🌿 安全区恢复满血！', color: Colors.greenAccent);
       }
     }
@@ -129,7 +129,7 @@ class HellPlayerComponent extends SpriteComponent
     }
 
     hp = (hp - reduced).clamp(0, maxHp);
-    _hpBar.setHp(hp, maxHp);
+    _hpBar.setStats(currentHp: hp, maxHp: maxHp, atk: atk, def: def);
     _showFloatingText('-$reduced', color: Colors.redAccent);
     _triggerDamageEffect();
 
@@ -158,7 +158,7 @@ class HellPlayerComponent extends SpriteComponent
   void _reviveAtSafeZone() {
     isDead = false;
     hp = maxHp;
-    _hpBar.setHp(hp, maxHp);
+    _hpBar.setStats(currentHp: hp, maxHp: maxHp, atk: atk, def: def);
     position = safeZoneCenter.clone();
 
     add(

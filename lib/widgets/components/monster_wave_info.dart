@@ -2,29 +2,17 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/hell_service.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
-import 'hell_monster_component.dart';
 
 class MonsterWaveInfo extends PositionComponent {
   final FlameGame gameRef;
-  final Map<int, List<HellMonsterComponent>> waves;
-
-  int currentWave = 0;
-  int totalWaves = 0;
-  int currentTotal = 0;
-  int currentAlive = 0;
+  final int currentTotal; // 怪物总数
+  int killedCount = 0;    // 只由外部 updateInfo 控制
   int spiritStoneReward = 0;
-
   late TextComponent _mainText;
-  late TextComponent _powerText;
 
   MonsterWaveInfo({
     required this.gameRef,
-    required this.waves,
-    this.currentWave = 0,
-    this.totalWaves = 0,
-    this.currentAlive = 0,
-    this.currentTotal = 0,
+    required this.currentTotal,
   }) : super(
     anchor: Anchor.topLeft,
     position: Vector2(8, 36),
@@ -33,8 +21,8 @@ class MonsterWaveInfo extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
+    // 这里不赋 killedCount！只展示UI！
     spiritStoneReward = await HellService.loadSpiritStoneReward();
-
     _mainText = TextComponent(
       text: _buildMainText(),
       anchor: Anchor.topLeft,
@@ -49,129 +37,36 @@ class MonsterWaveInfo extends PositionComponent {
         ),
       ),
     );
-
     add(_mainText);
     await _mainText.onLoad();
-
-    _powerText = TextComponent(
-      text: '推荐战力：加载中...',
-      anchor: Anchor.topLeft,
-      position: Vector2(0, _mainText.size.y + 2),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          fontSize: 10,
-          color: Colors.grey,
-          fontWeight: FontWeight.bold,
-          shadows: [
-            Shadow(color: Colors.black, offset: Offset(1, 1), blurRadius: 2),
-          ],
-        ),
-      ),
-    );
-
-    add(_powerText);
-
-    await _refreshPowerText();
+    _mainText.text = _buildMainText();
   }
 
   String _buildMainText() {
-    return '第 $currentWave / $totalWaves 波\n'
-        '怪物：$currentAlive / ${currentTotal + 1}\n'
+    return '怪物：$killedCount / $currentTotal\n'
         '累计：$spiritStoneReward 个中品灵石';
   }
 
-  int _getRecommendedPower() {
-    final waveMonsters = waves[currentWave]?.where((m) => !m.isBoss);
-    if (waveMonsters == null || waveMonsters.isEmpty) return -1;
-
-    // 任意一只怪物，用它的 level & waveIndex
-    final sample = waveMonsters.first;
-
-    // 用 HellService 算出属性
-    final attr = HellService.calculateMonsterAttributes(
-      level: sample.level,
-      waveIndex: sample.waveIndex,
-      isBoss: false,
-    );
-
-    // 用满血计算战力
-    return PlayerStorage.calculatePower(
-      hp: attr['hp']!,
-      atk: attr['atk']!,
-      def: attr['def']!,
-    );
-  }
-
-  Future<void> _refreshPowerText() async {
-    final recommendedPower = _getRecommendedPower();
-
-    final player = await PlayerStorage.getPlayer();
-    print('💡 推荐战力: $recommendedPower');
-    print('💡 玩家: $player');
-
-    if (recommendedPower <= 0) {
-      _powerText.text = '推荐战力：未知';
-      _powerText.textRenderer = TextPaint(
-        style: const TextStyle(
-          fontSize: 10,
-          color: Colors.grey,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      return;
+  /// 只由 Manager 调用，不自增，只赋值和刷UI
+  Future<void> updateInfo(int killed, {int? rewardOverride}) async {
+    killedCount = killed;
+    if (rewardOverride != null) {
+      spiritStoneReward = rewardOverride;
+    } else {
+      spiritStoneReward = await HellService.loadSpiritStoneReward();
     }
 
-    if (player == null) {
-      _powerText.text = '推荐战力：$recommendedPower';
-      _powerText.textRenderer = TextPaint(
-        style: const TextStyle(
-          fontSize: 10,
-          color: Colors.grey,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      return;
+    if (_mainText.isMounted) {
+      _mainText.text = _buildMainText();
     }
-
-    final playerPower = PlayerStorage.getPower(player);
-    print('💡 玩家战力: $playerPower');
-
-    final isHigher = playerPower > recommendedPower;
-    final color = isHigher ? Colors.green : Colors.red;
-
-    _powerText.text = '推荐战力：$recommendedPower';
-    _powerText.textRenderer = TextPaint(
-      style: TextStyle(
-        fontSize: 10,
-        color: color,
-        fontWeight: FontWeight.bold,
-        shadows: const [
-          Shadow(color: Colors.black, offset: Offset(1, 1), blurRadius: 2),
-        ],
-      ),
-    );
   }
 
-  Future<void> updateInfo({
-    required int waveIndex,
-    required int waveTotal,
-    required int alive,
-    required int total,
-  }) async {
-    currentWave = waveIndex;
-    totalWaves = waveTotal;
-    currentAlive = alive;
-    currentTotal = total;
-
-    spiritStoneReward = await HellService.loadSpiritStoneReward();
-
-    if (!_mainText.isMounted) return;
-
-    _mainText.text = _buildMainText();
-
-    if (_powerText.isMounted) {
-      await _refreshPowerText();
-      _powerText.position = Vector2(0, _mainText.size.y + 2);
+  /// 新关卡/重置，归零并清空本地存储
+  Future<void> resetKillCount() async {
+    killedCount = 0;
+    await HellService.saveState(killed: 0, bossSpawned: false, spawned: 0);
+    if (_mainText.isMounted) {
+      _mainText.text = _buildMainText();
     }
   }
 }
