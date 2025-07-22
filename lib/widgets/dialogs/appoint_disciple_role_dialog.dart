@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/sect_role_limits.dart';
-
 import '../../models/zongmen.dart';
 import '../common/toast_tip.dart';
 
@@ -73,7 +72,6 @@ class AppointDiscipleRoleDialog extends StatelessWidget {
               final isSelected =
                   (role == currentRole) || (role == '弟子' && currentRole == null);
 
-              // ✅ 简洁判断逻辑
               bool isEnabled;
               if (role == '弟子') {
                 isEnabled = true;
@@ -90,9 +88,7 @@ class AppointDiscipleRoleDialog extends StatelessWidget {
 
               return ListTile(
                 title: Text(
-                  isDisabled && (role == '长老' || role == '执事') && sectLevel < 2
-                      ? '$role（需宗门2级）'
-                      : role,
+                  _buildRoleText(role, sectLevel),
                   style: TextStyle(
                     color: roleColor,
                     fontSize: 13,
@@ -121,5 +117,24 @@ class AppointDiscipleRoleDialog extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// 🧠 展示职位文案（包含加成 + 限制等级）
+  String _buildRoleText(String role, int sectLevel) {
+    const bonusMap = {
+      '宗主夫人': '+100%',
+      '长老': '+50%',
+      '执事': '+30%',
+    };
+
+    final bonus = bonusMap[role];
+
+    if (role == '弟子') return '弟子';
+
+    if ((role == '长老' || role == '执事') && sectLevel < 2) {
+      return '$role（需宗门2级 $bonus）';
+    }
+
+    return '$role（$bonus）';
   }
 }

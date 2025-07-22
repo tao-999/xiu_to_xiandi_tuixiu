@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:hive/hive.dart';
 
+import 'disciple_storage.dart';
+
 class RoleService {
   static const String _regionBoxName = 'role_regions';
 
@@ -68,4 +70,42 @@ class RoleService {
       return null;
     }
   }
+
+  static const Map<String, double> roleBonus = {
+    '宗主夫人': 1.0,
+    '长老': 0.5,
+    '执事': 0.3,
+  };
+
+  /// ✅ 将角色加成叠加写入 disciple.extra 属性（不覆盖、不清除）
+  static Future<void> updateDiscipleRoleBonus(
+      String discipleId,
+      String? oldRole,
+      String? newRole,
+      ) async {
+    final d = await DiscipleStorage.load(discipleId);
+    if (d == null) return;
+
+    // ✅ 职位加成表
+    final bonusMap = {
+      '宗主夫人': (1.0, 1.0, 1.0),
+      '长老': (0.5, 0.5, 0.5),
+      '执事': (0.3, 0.3, 0.3),
+      '弟子': (0.0, 0.0, 0.0),
+      null: (0.0, 0.0, 0.0), // 🧤 null 也当作“弟子”
+    };
+
+    final oldBonus = bonusMap[oldRole] ?? (0.0, 0.0, 0.0);
+    final newBonus = bonusMap[newRole] ?? (0.0, 0.0, 0.0);
+
+    d.extraHp += newBonus.$1 - oldBonus.$1;
+    d.extraAtk += newBonus.$2 - oldBonus.$2;
+    d.extraDef += newBonus.$3 - oldBonus.$3;
+
+    debugPrint('🔁 [职位更新] $oldRole → $newRole');
+    debugPrint('💠 [变化] HP: ${(newBonus.$1 - oldBonus.$1) * 100}%, ATK: ${(newBonus.$2 - oldBonus.$2) * 100}%, DEF: ${(newBonus.$3 - oldBonus.$3) * 100}%');
+
+    await DiscipleStorage.save(d);
+  }
+
 }

@@ -104,7 +104,7 @@ class ZongmenPositionMapGame extends FlameGame {
           for (final child in bg.children) {
             if (child is DiscipleNodeComponent && child.containsPoint(worldTap)) {
               if (child.role == '宗主') return;
-              debugPrint('🎯 命中弟子：${child.name}（ID: ${child.id}）');
+              debugPrint('🎯 命中弟子：${child.name}（ID: ${child.id}）(ROLE: ${child.role})');
 
               onAppointRequested?.call(
                 child.id,
@@ -112,7 +112,9 @@ class ZongmenPositionMapGame extends FlameGame {
                 child.role,
                 child.realm,
                     (newRole) async {
+                      final oldRole = child.role;
                   child.updateRole(newRole);
+                  await RoleService.updateDiscipleRoleBonus(child.id, oldRole, newRole);
                   await ZongmenStorage.setDiscipleRole(child.id, newRole ?? '弟子');
                     },
               );

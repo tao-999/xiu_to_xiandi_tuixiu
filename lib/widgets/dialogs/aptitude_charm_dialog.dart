@@ -5,8 +5,6 @@ import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 
-import '../../services/zongmen_disciple_service.dart';
-
 class AptitudeCharmDialog extends StatefulWidget {
   final Disciple disciple;
   final VoidCallback? onUpdated; // ✅ 外部刷新回调
