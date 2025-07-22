@@ -65,17 +65,20 @@ class ShallowOceanDecorator extends Component {
         allowedTerrains: {'shallow_ocean'},
         dynamicSpritesMap: {
           'shallow_ocean': [
-            DynamicSpriteEntry('floating_island/shallow_ocean_2.png', 10),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_1.png', 10),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_2.png', 5),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_3.png', 5),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_4.png', 5, defaultFacingRight: false),
           ],
         },
         dynamicTileSize: 128,
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
-        minDynamicObjectSize: 16,
+        minDynamicObjectSize: 32,
         maxDynamicObjectSize: 64,
-        minSpeed: 10,
-        maxSpeed: 30,
+        minSpeed: 20,
+        maxSpeed: 70,
         onDynamicComponentCreated: (mover, terrain) {
           mover.onCustomCollision = (points, other) {
             if (other is FloatingIslandPlayerComponent) {

@@ -41,12 +41,12 @@ class VolcanicDecorator extends Component {
             StaticSpriteEntry('floating_island/volcanic_3.png', 1),
           ],
         },
-        staticTileSize: 100.0,
+        staticTileSize: 128.0,
         seed: seed,
-        minCount: 10,
-        maxCount: 20,
-        minSize: 16.0,
-        maxSize: 32.0,
+        minCount: 5,
+        maxCount: 10,
+        minSize: 32.0,
+        maxSize: 64.0,
       ),
     );
 

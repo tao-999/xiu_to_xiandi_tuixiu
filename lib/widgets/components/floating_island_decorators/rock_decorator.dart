@@ -37,16 +37,17 @@ class RockDecorator extends Component {
             StaticSpriteEntry('floating_island/rock_1.png', 40),
             StaticSpriteEntry('floating_island/rock_2.png', 30),
             StaticSpriteEntry('floating_island/rock_3.png', 1),
-            StaticSpriteEntry('floating_island/rock_4.png', 1, fixedSize: 64.0, minCount: 0, maxCount: 1),
-            StaticSpriteEntry('floating_island/rock_5.png', 1, fixedSize: 64.0, minCount: 0, maxCount: 1),
+            StaticSpriteEntry('floating_island/rock_4.png', 1, fixedSize: 128.0, minCount: 0, maxCount: 1),
+            StaticSpriteEntry('floating_island/rock_5.png', 1, fixedSize: 128.0, minCount: 0, maxCount: 1),
+            StaticSpriteEntry('floating_island/rock_6.png', 30),
           ],
         },
-        staticTileSize: 100.0, // 全局 tile size，entry 不再单独搞
+        staticTileSize: 128.0,
         seed: seed,
-        minCount: 10,
-        maxCount: 25,
-        minSize: 16.0,
-        maxSize: 32.0,
+        minCount: 2,
+        maxCount: 4,
+        minSize: 48.0,
+        maxSize: 64.0,
       ),
     );
 
@@ -71,7 +72,7 @@ class RockDecorator extends Component {
         minDynamicObjectSize: 16,
         maxDynamicObjectSize: 32,
         minSpeed: 50,
-        maxSpeed: 150,
+        maxSpeed: 120,
         onDynamicComponentCreated: (mover, terrain) {
           mover.onCustomCollision = (points, other) {
             if (other is FloatingIslandPlayerComponent) {
