@@ -4,7 +4,6 @@ import 'package:flame/components.dart';
 import '../services/floating_island_storage.dart';
 import '../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../widgets/components/floating_island_dynamic_spawner_component.dart';
-import '../widgets/components/has_logical_position.dart';
 
 class FloatingIslandCleanupManager extends Component {
   final Component grid;

@@ -8,12 +8,14 @@ class FloatingIslandStaticDecorationComponent extends SpriteComponent
     required Sprite sprite,
     required Vector2 size,
     required Vector2 worldPosition,
+    required Vector2 logicalOffset, // ✅ 新增参数
     String? spritePath,
     Anchor anchor = Anchor.center,
   }) : super(
     sprite: sprite,
     size: size,
     anchor: anchor,
+    position: worldPosition - logicalOffset, // ✅ 初始化视觉位置
   ) {
     _worldPosition = worldPosition;
     this.spritePath = spritePath;
@@ -33,7 +35,7 @@ class FloatingIslandStaticDecorationComponent extends SpriteComponent
   void Function(Set<Vector2> intersectionPoints, PositionComponent other)?
   onCustomCollision;
 
-  /// 更新显示坐标
+  /// 更新显示坐标（可用于移动时刷新）
   void updateVisualPosition(Vector2 logicalOffset) {
     position = _worldPosition - logicalOffset;
   }

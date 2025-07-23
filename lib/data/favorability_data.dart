@@ -58,7 +58,7 @@ class FavorabilityData {
     return getByIndex(favorValue);
   }
 
-  static const int maxFavorability = 1000;
+  static const int maxFavorability = 2000;
 
   /// ✅ 根据名字返回索引（1~30）
   static int indexOf(String name) {

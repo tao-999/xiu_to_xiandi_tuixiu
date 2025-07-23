@@ -94,7 +94,7 @@ class FloatingIslandMapComponent extends FlameGame
       _grid.position = size / 2;
 
       // 玩家
-      player = FloatingIslandPlayerComponent()..anchor = Anchor.center;
+      player = FloatingIslandPlayerComponent()..anchor = Anchor.bottomCenter;
       _grid.add(player!);
       debugPrint('[FloatingIslandMap] Player added.');
 

@@ -95,7 +95,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     final visibleBottomRight = visibleTopLeft + viewSize;
 
     // buffer, 回收、生成等都挪进来
-    final bufferExtent = viewSize * 1.75;
+    final bufferExtent = viewSize * 2;
     final bufferTopLeft = offset - bufferExtent;
     final bufferBottomRight = offset + bufferExtent;
 
@@ -134,7 +134,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     int spawned = 0;
     while (_pendingTiles.isNotEmpty && spawned < tilesPerFrame) {
       final tile = _pendingTiles.removeAt(0);
-      _spawnTile(tile.tx, tile.ty, tile.terrain);
+      _spawnTile(tile.tx, tile.ty, tile.terrain, offset);
       spawned++;
     }
   }
@@ -193,7 +193,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     _pendingTiles.addAll(newlyFound);
   }
 
-  Future<void> _spawnTile(int tx, int ty, String terrain) async {
+  Future<void> _spawnTile(int tx, int ty, String terrain, Vector2 currentOffset) async {
     final tileKey = '${tx}_${ty}';
     if (_activeTiles.contains(tileKey)) return;
     _activeTiles.add(tileKey);
@@ -201,21 +201,18 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     final rand = Random(seed + tx * 92821 + ty * 53987 + 1);
 
     final tileSpawnChance = 0.5;
-    if (rand.nextDouble() > tileSpawnChance) {
-      return;
-    }
+    if (rand.nextDouble() > tileSpawnChance) return;
 
     final entries = staticSpritesMap[terrain] ?? [];
     if (entries.isEmpty) return;
 
-    // 只抽一种 entry
     final selected = _pickStaticByWeight(entries, rand);
 
     final count = (selected.minCount != null && selected.maxCount != null)
         ? rand.nextInt(selected.maxCount! - selected.minCount! + 1) + selected.minCount!
         : rand.nextInt(maxCount - minCount + 1) + minCount;
 
-    final tileSize = staticTileSize; // tile 分布始终统一
+    final tileSize = staticTileSize;
     final sizeValue = selected.fixedSize ?? (minSize + rand.nextDouble() * (maxSize - minSize));
 
     for (int i = 0; i < count; i++) {
@@ -234,7 +231,9 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         sprite: sprite,
         size: Vector2.all(sizeValue),
         worldPosition: worldPos,
+        logicalOffset: currentOffset, // ✅ 一开始就设好 position
         spritePath: selected.path,
+        anchor: Anchor.bottomCenter,
       )..add(RectangleHitbox()..collisionType = CollisionType.passive);
 
       onStaticComponentCreated?.call(deco, terrain);
