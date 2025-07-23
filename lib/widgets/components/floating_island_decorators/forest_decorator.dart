@@ -46,7 +46,7 @@ class ForestDecorator extends Component {
         staticTileSize: 128.0,
         seed: seed,
         minCount: 1,
-        maxCount: 2,
+        maxCount: 3,
         minSize: 64.0,
         maxSize: 128.0,
       ),

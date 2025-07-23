@@ -123,7 +123,6 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       other.logicalPosition -= rebound * 5;
       other.pickNewTarget();
 
-      debugPrint('[碰撞] 角色撞漂浮组件！双方立刻小弹一下');
     }
   }
 }

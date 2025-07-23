@@ -186,7 +186,7 @@ class BeachDecorator extends Component {
         allowedTerrains: {'beach'},
         staticSpritesMap: {
           'beach': [
-            StaticSpriteEntry('floating_island/beach_1.png', 1),
+            StaticSpriteEntry('floating_island/beach_1.png', 50),
           ],
         },
         staticTileSize: 128.0,
