@@ -14,25 +14,19 @@ class FlowerFieldTerrainEvent {
       Vector2 pos,
       FlameGame game,
       ) async {
-    print('🌸[FlowerFieldTerrainEvent] 尝试触发事件...');
     // 🌸4%概率
     final triggerRoll = _rand.nextDouble();
-    print('🎲 随机数(0~1): $triggerRoll');
     if (triggerRoll >= 0.04) {
-      print('❌ 未触发事件 (小于4%概率)');
       return false;
     }
 
     // 🌸随机1-30
     final materialIndex = _rand.nextInt(30) + 1;
-    print('✅ 事件触发，抽取材料 index: $materialIndex');
 
     final item = FavorabilityData.getByIndex(materialIndex);
-    print('🧩 材料详情: 名称="${item.name}", 好感度=${item.favorValue}, 图片路径=${item.assetPath}');
 
     // ✅ 增加材料库存
     await FavorabilityMaterialService.addMaterial(materialIndex, 1);
-    print('📦 已增加库存: +1');
 
     // ✅ 弹窗提示
     final popup = FloatingLingShiPopupComponent(
@@ -41,7 +35,6 @@ class FlowerFieldTerrainEvent {
       position: game.size / 2,
     );
     game.camera.viewport.add(popup);
-    print('✨ 弹窗已添加到画面');
 
     // ✅ 存储事件
     await TerrainEventStorageService.markTriggered(
@@ -55,7 +48,6 @@ class FlowerFieldTerrainEvent {
       },
       status: 'completed',
     );
-    print('📝 事件已存储');
 
     return true;
   }

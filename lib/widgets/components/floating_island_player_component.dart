@@ -17,7 +17,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   Vector2 logicalPosition = Vector2.zero();
 
   Vector2? _targetPosition;
-  final double moveSpeed = 160;
+  final double moveSpeed = 120;
 
   // ✅ 用于外部监听逻辑坐标变化
   final StreamController<Vector2> _positionStreamController = StreamController.broadcast();
