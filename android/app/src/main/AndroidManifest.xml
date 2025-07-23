@@ -2,7 +2,7 @@
     package="com.example.xiu_to_xiandi_tuixiu">
 
     <application
-        android:label="修到仙帝退休"
+        android:label="宗主请留步"
         android:icon="@mipmap/ic_launcher">
 
         <activity

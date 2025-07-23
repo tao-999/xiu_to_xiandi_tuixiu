@@ -91,12 +91,13 @@ class ZongmenDiplomacyService {
   /// 🌟 获取所有讨伐记录
   static Future<Map<int, Map<String, dynamic>>> getAllExpeditions() async {
     final box = await _getBox();
-    final map = box.get('expeditions') as Map<dynamic, dynamic>? ?? {};
+    final rawMap = box.get('expeditions') as Map<dynamic, dynamic>? ?? {};
 
-    return map.map((k, v) => MapEntry(
-      int.parse(k),
-      v as Map<String, dynamic>,
-    ));
+    return rawMap.map((k, v) {
+      final intKey = int.tryParse(k.toString()) ?? -1;
+      final valueMap = Map<String, dynamic>.from(v as Map);
+      return MapEntry(intKey, valueMap);
+    });
   }
 
   /// 🌟 清除某个宗门的讨伐
@@ -108,7 +109,6 @@ class ZongmenDiplomacyService {
     debugPrint('[Diplomacy] 已清除宗门$sectId的讨伐');
   }
 
-  /// 🌟 更新宗门等级
   /// 🌟 更新宗门等级
   static Future<void> updateSectLevel({
     required int sectId,
