@@ -15,31 +15,21 @@ class RockTerrainEvent {
     final roll = _rand.nextDouble();
 
     if (distance < 100_000) {
-      // 100% 下品
       return LingShiType.lower;
     } else if (distance < 1_000_000) {
-      // 50% 下品，50% 中品
-      return roll < 0.5 ? LingShiType.lower : LingShiType.middle;
+      // 下品70%、中品30%
+      return roll < 0.7 ? LingShiType.lower : LingShiType.middle;
     } else if (distance < 10_000_000) {
-      // 33% 下品、中品、上品
-      if (roll < 1 / 3) {
-        return LingShiType.lower;
-      } else if (roll < 2 / 3) {
-        return LingShiType.middle;
-      } else {
-        return LingShiType.upper;
-      }
+      // 下70%、中15%、上15%
+      if (roll < 0.7) return LingShiType.lower;
+      if (roll < 0.85) return LingShiType.middle;
+      return LingShiType.upper;
     } else {
-      // 25% 四种
-      if (roll < 0.25) {
-        return LingShiType.lower;
-      } else if (roll < 0.5) {
-        return LingShiType.middle;
-      } else if (roll < 0.75) {
-        return LingShiType.upper;
-      } else {
-        return LingShiType.supreme;
-      }
+      // 开启四种灵石概率
+      if (roll < 0.7) return LingShiType.lower;
+      if (roll < 0.85) return LingShiType.middle;
+      if (roll < 0.95) return LingShiType.upper;
+      return LingShiType.supreme;
     }
   }
 
@@ -64,13 +54,13 @@ class RockTerrainEvent {
         quantity = max((base * 1.0).round(), 1);
         break;
       case LingShiType.middle:
-        quantity = max((base * 0.1).round(), 1);
+        quantity = max((base * 0.001).round(), 1);
         break;
       case LingShiType.upper:
-        quantity = max((base * 0.05).round(), 1);
+        quantity = max((base * 0.0005).round(), 1);
         break;
       case LingShiType.supreme:
-        quantity = max((base * 0.01).round(), 1);
+        quantity = max((base * 0.0001).round(), 1);
         break;
     }
 
