@@ -4,7 +4,6 @@ import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart';
 
 import 'floating_island_dynamic_spawner_component.dart';
-import 'floating_island_player_component.dart';
 
 class FloatingIslandDynamicMoverComponent extends SpriteComponent
     with CollisionCallbacks, HasGameReference {
@@ -93,15 +92,14 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (collisionCooldown > 0) collisionCooldown -= dt;
     if (tauntCooldown > 0) tauntCooldown -= dt;
 
-    // 🚀 如果处于被外部移动阶段（弹开）
+    // 🚀 弹开/外部控制移动
     if (_externalTarget != null) {
       final delta = _externalTarget! - logicalPosition;
       final distance = delta.length;
-
       if (distance < 2) {
         logicalPosition = _externalTarget!;
         _externalTarget = null;
-        isMoveLocked = false; // 🟢 解锁，恢复游走
+        isMoveLocked = false; // 🟢 解锁
       } else {
         final moveStep = delta.normalized() * speed * dt;
         logicalPosition += moveStep;
@@ -110,18 +108,16 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       return;
     }
 
-    // 🔒 锁定中，不游走
+    // 🔒 锁定中，不自动游走
     if (isMoveLocked) return;
 
-    // ✅ 正常游走逻辑
+    // ✅ 自动游走逻辑
     final dir = targetPosition - logicalPosition;
     final distance = dir.length;
-
     if (distance < 2) {
       pickNewTarget();
       return;
     }
-
     dir.normalize();
     final nextPos = logicalPosition + dir * speed * dt;
 
@@ -135,11 +131,11 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     logicalPosition = nextPos;
 
+    // 边界修正
     final minX = movementBounds.left + size.x / 2;
     final maxX = movementBounds.right - size.x / 2;
     final minY = movementBounds.top + size.y / 2;
     final maxY = movementBounds.bottom - size.y / 2;
-
     logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
     logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
   }
@@ -157,11 +153,9 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     do {
       dir = Vector2(rand.nextDouble() * 2 - 1, rand.nextDouble() * 2 - 1);
     } while (dir.length < 0.1);
-
     dir.normalize();
     final distance = minDistance + rand.nextDouble() * (maxDistance - minDistance);
     targetPosition = logicalPosition + dir * distance;
-
     scale.x = (targetPosition.x > logicalPosition.x) == defaultFacingRight ? 1 : -1;
   }
 
@@ -174,25 +168,24 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (collisionCooldown > 0) return;
 
-    if (other is FloatingIslandPlayerComponent ||
-        other is FloatingIslandDynamicMoverComponent) {
-      final otherPos = other is FloatingIslandPlayerComponent
-          ? other.logicalPosition
-          : (other as FloatingIslandDynamicMoverComponent).logicalPosition;
+    // 🚀 只对怪物↔怪物 做轻微弹开处理
+    if (other is FloatingIslandDynamicMoverComponent && other != this) {
+      final delta = logicalPosition - other.logicalPosition;
 
-      final delta = logicalPosition - otherPos;
-      final direction = delta.length > 1e-3
+      final direction = delta.length > 0.01
           ? delta.normalized()
           : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
 
-      final offset = direction * 64;
-      moveTo(logicalPosition + offset);
-    } else {
+      final pushDistance = 8.0;
+
+      logicalPosition += direction * pushDistance;
+      other.logicalPosition -= direction * pushDistance;
       pickNewTarget();
     }
 
-    collisionCooldown = 0.5;
+    collisionCooldown = 0.1;
 
-    super.onCollision(points, other);
+    super.onCollision(points, other); // ✅ 最后一行，别漏
   }
+
 }

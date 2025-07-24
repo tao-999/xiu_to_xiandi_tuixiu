@@ -82,13 +82,6 @@ class ShallowOceanDecorator extends Component {
         maxDynamicObjectSize: 64,
         minSpeed: 20,
         maxSpeed: 70,
-        onDynamicComponentCreated: (mover, terrain) {
-          mover.onCustomCollision = (points, other) {
-            if (other is FloatingIslandPlayerComponent) {
-              debugPrint('✨ 动态漂浮物被角色撞: ${mover.spritePath}');
-            }
-          };
-        },
       ),
     );
   }

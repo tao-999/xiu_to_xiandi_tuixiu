@@ -25,12 +25,8 @@ class CollisionLogicHandler {
           );
           break;
 
-        case 'monster':
-          _handleMonsterCollision(playerPosition, other);
-          break;
-
         default:
-          print('⚠️ 未知 type=${other.type}，跳过特殊处理');
+          _handleMonsterCollision(playerPosition, other);
       }
     }
   }

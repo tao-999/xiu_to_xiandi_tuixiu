@@ -7,7 +7,6 @@ import 'package:xiu_to_xiandi_tuixiu/utils/player_sprite_util.dart';
 
 import '../../utils/collision_logic_handler.dart';
 import '../../utils/terrain_event_util.dart';
-import 'floating_island_dynamic_mover_component.dart';
 
 class FloatingIslandPlayerComponent extends SpriteComponent
     with HasGameReference, CollisionCallbacks {

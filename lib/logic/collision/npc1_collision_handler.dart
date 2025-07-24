@@ -3,7 +3,10 @@ import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/resources_storage.dart';
+import '../../utils/lingshi_util.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
+import '../../widgets/components/floating_lingshi_popup_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/effects/logical_move_effect.dart';
 
@@ -48,29 +51,69 @@ class Npc1CollisionHandler {
       ),
     );
 
-    // 🧾 打印调试信息
-    print('📦 [Npc1弹开] ${npc.labelText ?? 'NPC'}');
-    print('┣ 🧍 当前逻辑坐标: ${npc.logicalPosition}');
-    print('┣ 🎯 弹开目标逻辑坐标: $targetLogicalPos');
-    print('┣ 🎥 logicalOffset: $logicalOffset');
-
     // 💬 飘字嘴臭（冷却）
     if (npc.tauntCooldown <= 0) {
       npc.tauntCooldown = 5.0;
 
-      final taunt = taunts[Random().nextInt(taunts.length)];
+      final rand = Random();
+      final roll = rand.nextDouble();
+      final distance = npc.logicalPosition.length;
 
-      // 🛠️ FIX: 使用目标逻辑坐标作为飘字位置，避免旧坐标误差
-      final tauntPos = targetLogicalPos.clone() - Vector2(0, npc.size.y / 2 + 8);
+      if (roll < 0.1) {
+        // 🎁 10% 概率 → 奖励灵石
+        LingShiType lingShiType;
+        int minCount, maxCount;
 
-      print('💬 [Npc1飘字] text="$taunt"');
-      print('┣ 📍 逻辑坐标: $tauntPos');
+        if (distance < 100_000) {
+          lingShiType = LingShiType.lower;
+          minCount = 1;
+          maxCount = 10;
+        } else if (distance < 1_000_000) {
+          lingShiType = rand.nextDouble() < 0.8 ? LingShiType.lower : LingShiType.middle;
+          minCount = 10;
+          maxCount = 20;
+        } else if (distance < 10_000_000) {
+          final r = rand.nextDouble();
+          lingShiType = r < 0.6 ? LingShiType.lower : (r < 0.9 ? LingShiType.middle : LingShiType.upper);
+          minCount = 20;
+          maxCount = 40;
+        } else {
+          final r = rand.nextDouble();
+          lingShiType = r < 0.4
+              ? LingShiType.lower
+              : (r < 0.7 ? LingShiType.middle : (r < 0.9 ? LingShiType.upper : LingShiType.supreme));
+          minCount = 40;
+          maxCount = 80;
+        }
 
-      npc.parent?.add(FloatingTextComponent(
-        text: taunt,
-        logicalPosition: tauntPos,
-        color: Colors.redAccent,
-      ));
+        final count = rand.nextInt(maxCount - minCount + 1) + minCount;
+        final rewardText = '+$count ${lingShiNames[lingShiType]!}';
+        final game = npc.findGame()!;
+        final centerPos = game.size / 2;
+
+        // ✅ 加入灵石奖励组件
+        game.camera.viewport.add(FloatingLingShiPopupComponent(
+          text: rewardText,
+          imagePath: getLingShiImagePath(lingShiType),
+          position: centerPos.clone(),
+        ));
+
+        final field = lingShiFieldMap[lingShiType]!;
+        ResourcesStorage.add(field, BigInt.from(count));
+
+      } else {
+        // 🗯️ 嘴臭弹幕
+        final taunt = taunts[rand.nextInt(taunts.length)];
+        final tauntPos = targetLogicalPos.clone() - Vector2(0, npc.size.y / 2 + 8);
+
+        npc.parent?.add(FloatingTextComponent(
+          text: taunt,
+          logicalPosition: tauntPos,
+          color: Colors.redAccent,
+        ));
+
+      }
     }
+
   }
 }
