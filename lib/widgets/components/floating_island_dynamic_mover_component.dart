@@ -1,8 +1,6 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
-import 'package:flame/effects.dart';
-import 'package:flame/extensions.dart';
 import 'package:flutter/material.dart';
 
 import 'floating_island_dynamic_spawner_component.dart';
@@ -15,6 +13,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   final Rect movementBounds;
   double speed;
   double collisionCooldown = 0.0;
+  double tauntCooldown = 0.0;
+
   final String? spritePath;
   final dynamic spawner;
   final double dynamicTileSize;
@@ -22,18 +22,20 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   final double minDistance;
   final double maxDistance;
 
+  final String? type;
   final String? labelText;
   final double? labelFontSize;
   final Color? labelColor;
 
-  String? collisionText;
   void Function(Set<Vector2> points, PositionComponent other)? onCustomCollision;
   TextComponent? label;
 
-  double _lastCollisionTextTime = 0;
+  bool isMoveLocked = false;
+  Vector2? _externalTarget;
 
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
+    this.type,
     this.spawner,
     required Sprite sprite,
     required Vector2 position,
@@ -47,7 +49,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     this.labelText,
     this.labelFontSize,
     this.labelColor,
-    this.collisionText,
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
@@ -55,6 +56,11 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         size: size ?? Vector2.all(48),
         anchor: Anchor.center,
       );
+
+  void moveTo(Vector2 target) {
+    _externalTarget = target;
+    isMoveLocked = true;
+  }
 
   @override
   Future<void> onLoad() async {
@@ -84,10 +90,30 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   void update(double dt) {
     super.update(dt);
 
-    if (collisionCooldown > 0) {
-      collisionCooldown -= dt;
+    if (collisionCooldown > 0) collisionCooldown -= dt;
+    if (tauntCooldown > 0) tauntCooldown -= dt;
+
+    // 🚀 如果处于被外部移动阶段（弹开）
+    if (_externalTarget != null) {
+      final delta = _externalTarget! - logicalPosition;
+      final distance = delta.length;
+
+      if (distance < 2) {
+        logicalPosition = _externalTarget!;
+        _externalTarget = null;
+        isMoveLocked = false; // 🟢 解锁，恢复游走
+      } else {
+        final moveStep = delta.normalized() * speed * dt;
+        logicalPosition += moveStep;
+        scale.x = delta.x < 0 ? -1 : 1;
+      }
+      return;
     }
 
+    // 🔒 锁定中，不游走
+    if (isMoveLocked) return;
+
+    // ✅ 正常游走逻辑
     final dir = targetPosition - logicalPosition;
     final distance = dir.length;
 
@@ -114,17 +140,12 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     final minY = movementBounds.top + size.y / 2;
     final maxY = movementBounds.bottom - size.y / 2;
 
-    if (minX >= maxX || minY >= maxY) {
-      logicalPosition = movementBounds.center.toVector2();
-    } else {
-      logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
-      logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
-    }
+    logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
+    logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
   }
 
   void updateVisualPosition(Vector2 logicalOffset) {
     position = logicalPosition - logicalOffset;
-
     if (label != null) {
       label!.position = position - Vector2(0, size.y / 2 + 4);
     }
@@ -134,108 +155,44 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     final rand = Random();
     Vector2 dir;
     do {
-      dir = Vector2(
-        rand.nextDouble() * 2 - 1,
-        rand.nextDouble() * 2 - 1,
-      );
+      dir = Vector2(rand.nextDouble() * 2 - 1, rand.nextDouble() * 2 - 1);
     } while (dir.length < 0.1);
 
     dir.normalize();
     final distance = minDistance + rand.nextDouble() * (maxDistance - minDistance);
     targetPosition = logicalPosition + dir * distance;
 
-    final movingRight = targetPosition.x > logicalPosition.x;
-    final sameDirection =
-        (defaultFacingRight && movingRight) || (!defaultFacingRight && !movingRight);
-    scale.x = sameDirection ? 1 : -1;
+    scale.x = (targetPosition.x > logicalPosition.x) == defaultFacingRight ? 1 : -1;
   }
 
   @override
   void onCollision(Set<Vector2> points, PositionComponent other) {
     if (onCustomCollision != null) {
       onCustomCollision!(points, other);
-    } else if (collisionCooldown <= 0) {
-      if (other is FloatingIslandPlayerComponent || other is FloatingIslandDynamicMoverComponent) {
-        final otherLogicalPosition = other is FloatingIslandPlayerComponent
-            ? other.logicalPosition
-            : (other as FloatingIslandDynamicMoverComponent).logicalPosition;
-
-        final delta = logicalPosition - otherLogicalPosition;
-        final rebound = delta.length > 0.01
-            ? delta.normalized()
-            : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
-
-        // 🚀平滑弹开
-        final offset = rebound * 10;
-        add(
-          MoveEffect.by(
-            offset,
-            EffectController(duration: 0.15, curve: Curves.easeOut),
-          ),
-        );
-
-        if (other is FloatingIslandPlayerComponent) {
-          other.add(
-            MoveEffect.by(
-              -offset / 2,
-              EffectController(duration: 0.15, curve: Curves.easeOut),
-            ),
-          );
-        } else if (other is FloatingIslandDynamicMoverComponent) {
-          other.add(
-            MoveEffect.by(
-              -offset / 2,
-              EffectController(duration: 0.15, curve: Curves.easeOut),
-            ),
-          );
-        }
-
-        pickNewTarget();
-        collisionCooldown = 0.5;
-
-        if (other is FloatingIslandPlayerComponent && collisionText != null && collisionText!.isNotEmpty) {
-          _showCollisionText();
-        }
-      } else {
-        pickNewTarget();
-        collisionCooldown = 0.5;
-      }
-    }
-
-    super.onCollision(points, other);
-  }
-
-  void _showCollisionText() {
-    final now = game.currentTime();
-    if (now - _lastCollisionTextTime < 1.0) {
       return;
     }
-    _lastCollisionTextTime = now;
 
-    final textComponent = TextComponent(
-      text: collisionText!,
-      anchor: Anchor.bottomCenter,
-      position: position - Vector2(0, size.y / 2 + 4),
-      priority: 999,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFFF6666),
-          fontSize: 11,
-        ),
-      ),
-    );
+    if (collisionCooldown > 0) return;
 
-    textComponent.add(
-      MoveEffect.by(
-        Vector2(0, -32),
-        EffectController(duration: 1.0, curve: Curves.easeOut),
-      ),
-    );
+    if (other is FloatingIslandPlayerComponent ||
+        other is FloatingIslandDynamicMoverComponent) {
+      final otherPos = other is FloatingIslandPlayerComponent
+          ? other.logicalPosition
+          : (other as FloatingIslandDynamicMoverComponent).logicalPosition;
 
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      textComponent.removeFromParent();
-    });
+      final delta = logicalPosition - otherPos;
+      final direction = delta.length > 1e-3
+          ? delta.normalized()
+          : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
 
-    parent?.add(textComponent);
+      final offset = direction * 64;
+      moveTo(logicalPosition + offset);
+    } else {
+      pickNewTarget();
+    }
+
+    collisionCooldown = 0.5;
+
+    super.onCollision(points, other);
   }
 }

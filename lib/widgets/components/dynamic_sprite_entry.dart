@@ -9,6 +9,9 @@ class DynamicSpriteEntry {
   /// 权重（用于随机挑选）
   final int weight;
 
+  /// ✅ 类型（如 npc / monster / merchant 等，可选）
+  final String? type;
+
   /// 最小尺寸（⚠️当 desiredWidth 为 null 时启用）
   final double? minSize;
 
@@ -63,6 +66,7 @@ class DynamicSpriteEntry {
   const DynamicSpriteEntry(
       this.path,
       this.weight, {
+        this.type, // ✅ 改为可选
         this.minSize,
         this.maxSize,
         this.minCount,
@@ -72,7 +76,7 @@ class DynamicSpriteEntry {
         this.maxSpeed,
         this.defaultFacingRight = true,
         this.baseSize,
-        this.desiredWidth, // 🌟新增
+        this.desiredWidth,
         this.labelText,
         this.labelFontSize,
         this.labelColor,

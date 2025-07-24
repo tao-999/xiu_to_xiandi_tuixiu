@@ -25,7 +25,7 @@ class ShallowOceanDecorator extends Component {
 
   @override
   Future<void> onLoad() async {
-    // 🌊 静态浅海
+
     add(
       FloatingIslandStaticSpawnerComponent(
         grid: grid,
@@ -36,14 +36,15 @@ class ShallowOceanDecorator extends Component {
         staticSpritesMap: {
           'shallow_ocean': [
             StaticSpriteEntry('floating_island/shallow_ocean_1.png', 1),
+            StaticSpriteEntry('floating_island/shallow_ocean_2.png', 1),
           ],
         },
-        staticTileSize: 256,
+        staticTileSize: 512,
         seed: seed,
         minCount: 0,
         maxCount: 1,
-        minSize: 64,
-        maxSize: 64,
+        minSize: 128,
+        maxSize: 128,
         onStaticComponentCreated: (deco, terrain) {
           deco.onCustomCollision = (points, other) {
             if (other is FloatingIslandPlayerComponent) {
@@ -69,6 +70,8 @@ class ShallowOceanDecorator extends Component {
             DynamicSpriteEntry('floating_island/shallow_ocean_d_2.png', 5),
             DynamicSpriteEntry('floating_island/shallow_ocean_d_3.png', 5),
             DynamicSpriteEntry('floating_island/shallow_ocean_d_4.png', 5, defaultFacingRight: false),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_5.png', 10, defaultFacingRight: false),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_6.png', 2, defaultFacingRight: false),
           ],
         },
         dynamicTileSize: 128,

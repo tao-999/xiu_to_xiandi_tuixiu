@@ -198,11 +198,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         finalLabelText = selected.labelText;
       }
 
-      String? finalCollisionText;
-      if (selected.collisionTexts != null && selected.collisionTexts!.isNotEmpty) {
-        finalCollisionText = selected.collisionTexts![rand.nextInt(selected.collisionTexts!.length)];
-      }
-
       final mover = FloatingIslandDynamicMoverComponent(
         spawner: this,
         dynamicTileSize: dynamicTileSize,
@@ -218,7 +213,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         labelText: finalLabelText,
         labelFontSize: selected.labelFontSize,
         labelColor: selected.labelColor,
-        collisionText: finalCollisionText,
+        type: selected.type,
       );
 
       onDynamicComponentCreated?.call(mover, terrain);

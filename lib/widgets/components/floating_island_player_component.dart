@@ -5,6 +5,7 @@ import 'package:flutter/material.dart' hide Image;
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/player_sprite_util.dart';
 
+import '../../utils/collision_logic_handler.dart';
 import '../../utils/terrain_event_util.dart';
 import 'floating_island_dynamic_mover_component.dart';
 
@@ -111,18 +112,11 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
-
-    if (other is FloatingIslandDynamicMoverComponent) {
-      // 🚀 和漂浮小怪碰撞：双方立刻弹一下
-      final delta = logicalPosition - other.logicalPosition;
-      final rebound = delta.length > 0.01
-          ? delta.normalized()
-          : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
-
-      // 小怪弹飞 + 换目标
-      other.logicalPosition -= rebound * 5;
-      other.pickNewTarget();
-
-    }
+    final mapGame = game as dynamic;
+    CollisionLogicHandler.handleCollision(
+      playerPosition: logicalPosition,
+      logicalOffset: mapGame.logicalOffset,
+      other: other,
+    );
   }
 }
