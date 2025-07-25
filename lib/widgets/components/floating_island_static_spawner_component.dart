@@ -34,8 +34,8 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     required this.getLogicalOffset,
     required this.getViewSize,
     required this.getTerrainType,
-    required this.allowedTerrains,
-    required this.staticSpritesMap,
+    required Set<String> allowedTerrains,
+    required Map<String, List<StaticSpriteEntry>> staticSpritesMap,
     this.staticTileSize = 128.0,
     this.seed = 8888,
     this.minCount = 1,
@@ -43,7 +43,8 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     this.minSize = 16.0,
     this.maxSize = 48.0,
     this.onStaticComponentCreated,
-  });
+  })  : allowedTerrains = allowedTerrains,
+        staticSpritesMap = _normalizeSpriteMap(staticSpritesMap);
 
   @override
   Future<void> onLoad() async {
@@ -66,6 +67,22 @@ class FloatingIslandStaticSpawnerComponent extends Component {
 
     _lastLogicalOffset = offset.clone();
     updateTileRendering(offset, viewSize);
+  }
+
+  static Map<String, List<StaticSpriteEntry>> _normalizeSpriteMap(
+      Map<String, List<StaticSpriteEntry>> original) {
+    const defaultType = 'default_static'; // ✅ 默认类型，保证所有 entry 都有 type
+
+    final result = <String, List<StaticSpriteEntry>>{};
+    for (final entry in original.entries) {
+      final terrain = entry.key;
+      final list = entry.value;
+
+      result[terrain] = list.map((e) {
+        return e.copyWith(type: e.type ?? defaultType);
+      }).toList();
+    }
+    return result;
   }
 
   /// 🌟立即强制刷新（跳过逻辑坐标检查）
@@ -169,21 +186,17 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         // 🧠 是否已经存在目标类型的装饰物
         final alreadyExists = grid.children
             .whereType<FloatingIslandStaticDecorationComponent>()
-            .any((c) {
+            .where((c) {
           final pos = c.worldPosition;
           final sameTile = pos.x >= tx * staticTileSize &&
               pos.x < (tx + 1) * staticTileSize &&
               pos.y >= ty * staticTileSize &&
               pos.y < (ty + 1) * staticTileSize;
-          if (!sameTile) return false;
-
-          // 没有指定 type → 只要 tile 有装饰物就跳过
-          if (expectedTypes.every((t) => t == null)) {
-            return true;
-          }
-
-          // 指定了 type → 仅当已有相同 type 时才跳过
-          return expectedTypes.contains(c.type);
+          return sameTile;
+        })
+            .any((c) {
+          if (expectedTypes.isEmpty) return true; // 没指定类型，tile 只要有东西就跳过
+          return expectedTypes.contains(c.type);  // 否则必须命中同类型
         });
 
         if (alreadyExists) {
