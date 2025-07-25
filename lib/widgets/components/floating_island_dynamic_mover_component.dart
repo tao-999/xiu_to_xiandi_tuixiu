@@ -56,11 +56,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         anchor: Anchor.center,
       );
 
-  void moveTo(Vector2 target) {
-    _externalTarget = target;
-    isMoveLocked = true;
-  }
-
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -136,8 +131,15 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     final maxX = movementBounds.right - size.x / 2;
     final minY = movementBounds.top + size.y / 2;
     final maxY = movementBounds.bottom - size.y / 2;
-    logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
-    logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
+
+// 🛡️ 确保 clamp 不会非法
+    if (minX <= maxX) {
+      logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
+    }
+    if (minY <= maxY) {
+      logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
+    }
+
   }
 
   void updateVisualPosition(Vector2 logicalOffset) {

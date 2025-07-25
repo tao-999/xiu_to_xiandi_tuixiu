@@ -7,6 +7,7 @@ import 'package:xiu_to_xiandi_tuixiu/utils/player_sprite_util.dart';
 
 import '../../utils/collision_logic_handler.dart';
 import '../../utils/terrain_event_util.dart';
+import 'floating_island_static_decoration_component.dart';
 
 class FloatingIslandPlayerComponent extends SpriteComponent
     with HasGameReference, CollisionCallbacks {
@@ -76,20 +77,26 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       _positionStreamController.add(logicalPosition);
     }
 
-    // ✅ 同步逻辑Offset
+    // ✅ 同步 logicalOffset
     final mapGame = game as dynamic;
     if (_targetPosition != null) {
       mapGame.logicalOffset = logicalPosition.clone();
     }
 
-    // ✅ 实时Y排序
+    // ✅ 实时 Y 排序
     priority = ((logicalPosition.y + 1e14) * 1000).toInt();
 
-    // ✅ 获取地形
+    // ✅ 🆕 在逻辑坐标更新后，实时检查哪些静态组件已离开 → 解锁
+    final staticList = parent?.children
+        .whereType<FloatingIslandStaticDecorationComponent>()
+        .toList();
+    if (staticList != null) {
+      CollisionLogicHandler.updateLockStatus(logicalPosition, staticList);
+    }
+
+    // ✅ 异步触发地形事件（不阻塞主线程）
     final noiseGenerator = mapGame.noiseMapGenerator;
     final currentTerrain = noiseGenerator.getTerrainTypeAtPosition(logicalPosition);
-
-// ✅ 调用工具类 (不阻塞主线程)
     Future.microtask(() async {
       final triggered = await TerrainEventUtil.checkAndTrigger(currentTerrain, logicalPosition, game);
       if (triggered) {
@@ -107,6 +114,12 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   void notifyPositionChanged() {
     _positionStreamController.add(logicalPosition);
   }
+
+  void stopMoving() {
+    _targetPosition = null;
+  }
+
+  bool get isMoving => _targetPosition != null;
 
   @override
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {

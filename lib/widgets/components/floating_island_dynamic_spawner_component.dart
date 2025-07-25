@@ -101,9 +101,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
     for (int tx = dStartX; tx < dEndX; tx++) {
       for (int ty = dStartY; ty < dEndY; ty++) {
-        final tileKey = '${tx}_${ty}';
-        if (_loadedDynamicTiles.contains(tileKey)) continue;
-
         final tileCenter = Vector2(
           tx * dynamicTileSize + dynamicTileSize / 2,
           ty * dynamicTileSize + dynamicTileSize / 2,
@@ -112,8 +109,16 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         final terrain = getTerrainType(tileCenter);
         if (!allowedTerrains.contains(terrain)) continue;
 
-        newlyFound.add(_PendingTile(tx, ty, terrain));
-        _loadedDynamicTiles.add(tileKey);
+        // 💡 获取当前 tile 对应的所有 type（包含 null）
+        final typesInThisSpawner = dynamicSpritesMap[terrain]?.map((e) => e.type ?? 'null').toSet() ?? {'null'};
+
+        for (final type in typesInThisSpawner) {
+          final tileKey = '${tx}_${ty}_$type';
+          if (_loadedDynamicTiles.contains(tileKey)) continue;
+
+          _loadedDynamicTiles.add(tileKey);
+          newlyFound.add(_PendingTile(tx, ty, terrain));
+        }
       }
     }
 

@@ -45,13 +45,6 @@ class ShallowOceanDecorator extends Component {
         maxCount: 1,
         minSize: 128,
         maxSize: 128,
-        onStaticComponentCreated: (deco, terrain) {
-          deco.onCustomCollision = (points, other) {
-            if (other is FloatingIslandPlayerComponent) {
-              debugPrint('🌿 静态装饰被角色撞: ${deco.spritePath}');
-            }
-          };
-        },
       ),
     );
 

@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/static_sprite_entry.dart';
+import '../../utils/floating_static_event_state_util.dart';
 import 'floating_island_static_decoration_component.dart';
 
 class FloatingIslandStaticSpawnerComponent extends Component {
@@ -152,27 +153,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
       for (int ty = sStartY; ty < sEndY; ty++) {
         final tileKey = '${tx}_${ty}';
 
-        if (_activeTiles.contains(tileKey)) continue;
-
-        bool alreadyExists = false;
-        if (_pendingTiles.isEmpty) {
-          alreadyExists = grid.children.any((c) {
-            if (c is FloatingIslandStaticDecorationComponent) {
-              final pos = c.worldPosition;
-              return pos.x >= tx * staticTileSize &&
-                  pos.x < (tx + 1) * staticTileSize &&
-                  pos.y >= ty * staticTileSize &&
-                  pos.y < (ty + 1) * staticTileSize;
-            }
-            return false;
-          });
-        }
-
-        if (alreadyExists) {
-          _activeTiles.add(tileKey);
-          continue;
-        }
-
+        // 获取该 tile 中预期生成的 type 列表
         final tileCenter = Vector2(
           tx * staticTileSize + staticTileSize / 2,
           ty * staticTileSize + staticTileSize / 2,
@@ -180,10 +161,38 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         final terrain = getTerrainType(tileCenter);
         if (!allowedTerrains.contains(terrain)) continue;
 
+        final expectedTypes = staticSpritesMap[terrain]?.map((e) => e.type).toSet() ?? {};
+
+        // 🧠 是否已经存在目标类型的装饰物
+        final alreadyExists = grid.children
+            .whereType<FloatingIslandStaticDecorationComponent>()
+            .any((c) {
+          final pos = c.worldPosition;
+          final sameTile = pos.x >= tx * staticTileSize &&
+              pos.x < (tx + 1) * staticTileSize &&
+              pos.y >= ty * staticTileSize &&
+              pos.y < (ty + 1) * staticTileSize;
+          if (!sameTile) return false;
+
+          // 没有指定 type → 只要 tile 有装饰物就跳过
+          if (expectedTypes.every((t) => t == null)) {
+            return true;
+          }
+
+          // 指定了 type → 仅当已有相同 type 时才跳过
+          return expectedTypes.contains(c.type);
+        });
+
+        if (alreadyExists) {
+          _activeTiles.add(tileKey);
+          continue;
+        }
+
         newlyFound.add(_PendingTile(tx, ty, terrain));
       }
     }
 
+    // 按中心距离排序
     newlyFound.sort((a, b) {
       final d1 = (a.center(staticTileSize) - center).length;
       final d2 = (b.center(staticTileSize) - center).length;
@@ -225,16 +234,30 @@ class FloatingIslandStaticSpawnerComponent extends Component {
 
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
-      final sprite = await Sprite.load(selected.path);
+      final spritePath = FloatingStaticEventStateUtil.getEffectiveSpritePath(
+        originalPath: selected.path,
+        worldPosition: worldPos,
+        type: selected.type,
+      );
+
+      final flameGame = grid.findGame();
+      if (flameGame == null) {
+        debugPrint('❌ 找不到 FlameGame 实例，贴图加载失败：$spritePath');
+        return;
+      }
+
+      final sprite = Sprite(flameGame.images.fromCache(spritePath)); // ✅ 走同步缓存
 
       final deco = FloatingIslandStaticDecorationComponent(
         sprite: sprite,
         size: Vector2.all(sizeValue),
         worldPosition: worldPos,
-        logicalOffset: currentOffset, // ✅ 一开始就设好 position
+        logicalOffset: currentOffset,
         spritePath: selected.path,
         anchor: Anchor.bottomCenter,
-      )..add(RectangleHitbox()..collisionType = CollisionType.passive);
+      )
+        ..type = selected.type // ✅ 关键！设置 type 字段
+        ..add(RectangleHitbox()..collisionType = CollisionType.passive);
 
       onStaticComponentCreated?.call(deco, terrain);
       grid.add(deco);
