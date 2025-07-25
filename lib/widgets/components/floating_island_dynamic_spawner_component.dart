@@ -191,6 +191,11 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         finalLabelText = selected.labelText;
       }
 
+      final dist = worldPos.length;
+      final hp = selected.hp != null ? (selected.hp! + dist / 10) : null;
+      final atk = selected.atk != null ? (selected.atk! + dist / 50) : null;
+      final def = selected.def != null ? (selected.def! + dist / 80) : null;
+
       final mover = FloatingIslandDynamicMoverComponent(
         spawner: this,
         dynamicTileSize: dynamicTileSize,
@@ -207,9 +212,9 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         labelFontSize: selected.labelFontSize,
         labelColor: selected.labelColor,
         type: selected.type,
-        hp: selected.hp,
-        atk: selected.atk,
-        def: selected.def,
+        hp: hp,
+        atk: atk,
+        def: def,
       );
 
       onDynamicComponentCreated?.call(mover, terrain);

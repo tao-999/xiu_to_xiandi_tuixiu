@@ -1,8 +1,7 @@
-import 'dart:math';
 import 'dart:ui';
+import 'dart:math';
 import 'package:flame/components.dart';
 
-import '../../../utils/name_generator.dart';
 import '../dynamic_sprite_entry.dart';
 import '../floating_island_dynamic_spawner_component.dart';
 import '../floating_island_static_spawner_component.dart';
@@ -26,165 +25,135 @@ class BeachDecorator extends Component {
 
   @override
   Future<void> onLoad() async {
+    // 🏝️ 普通装饰物（不变）
+    add(FloatingIslandStaticSpawnerComponent(
+      grid: grid,
+      getLogicalOffset: getLogicalOffset,
+      getViewSize: getViewSize,
+      getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+      allowedTerrains: {'beach'},
+      staticSpritesMap: {
+        'beach': [
+          StaticSpriteEntry('floating_island/beach_1.png', 10),
+          StaticSpriteEntry('floating_island/beach_8.png', 5),
+          StaticSpriteEntry('floating_island/beach_9.png', 2),
+        ],
+      },
+      staticTileSize: 150.0,
+      seed: seed,
+      minCount: 2,
+      maxCount: 6,
+      minSize: 32.0,
+      maxSize: 64.0,
+    ));
 
-    add(
-      FloatingIslandStaticSpawnerComponent(
-        grid: grid,
-        getLogicalOffset: getLogicalOffset,
-        getViewSize: getViewSize,
-        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        allowedTerrains: {'beach'},
-        staticSpritesMap: {
-          'beach': [
-            StaticSpriteEntry('floating_island/beach_1.png', 10),
-            StaticSpriteEntry('floating_island/beach_8.png', 5),
-            StaticSpriteEntry('floating_island/beach_9.png', 2),
-          ],
-        },
-        staticTileSize: 150.0,
-        seed: seed,
-        minCount: 2,
-        maxCount: 6,
-        minSize: 32.0,
-        maxSize: 64.0,
-      ),
-    );
+    // 🧊 宝箱（不变）
+    add(FloatingIslandStaticSpawnerComponent(
+      grid: grid,
+      getLogicalOffset: getLogicalOffset,
+      getViewSize: getViewSize,
+      getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+      allowedTerrains: {'beach'},
+      staticSpritesMap: {
+        'beach': [
+          StaticSpriteEntry('floating_island/beach_2.png', 1, type: 'baoxiang_1'),
+        ],
+      },
+      staticTileSize: 512.0,
+      seed: seed,
+      minCount: 0,
+      maxCount: 1,
+      minSize: 32.0,
+      maxSize: 64.0,
+    ));
 
-    add(
-      FloatingIslandStaticSpawnerComponent(
-        grid: grid,
-        getLogicalOffset: getLogicalOffset,
-        getViewSize: getViewSize,
-        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        allowedTerrains: {'beach'},
-        staticSpritesMap: {
-          'beach': [
-            StaticSpriteEntry('floating_island/beach_2.png', 1, type: 'baoxiang_1'),
-          ],
-        },
-        staticTileSize: 512.0,
-        seed: seed,
-        minCount: 0,
-        maxCount: 1,
-        minSize: 32.0,
-        maxSize: 64.0,
-      ),
-    );
+    // 🗿 雕塑（不变）
+    add(FloatingIslandStaticSpawnerComponent(
+      grid: grid,
+      getLogicalOffset: getLogicalOffset,
+      getViewSize: getViewSize,
+      getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+      allowedTerrains: {'beach'},
+      staticSpritesMap: {
+        'beach': [
+          StaticSpriteEntry('floating_island/beach_3.png', 1, type: 'beach_diaosu'),
+          StaticSpriteEntry('floating_island/beach_4.png', 1, type: 'beach_diaosu'),
+          StaticSpriteEntry('floating_island/beach_5.png', 1, type: 'beach_diaosu'),
+          StaticSpriteEntry('floating_island/beach_6.png', 1, type: 'beach_diaosu'),
+          StaticSpriteEntry('floating_island/beach_7.png', 1, type: 'beach_diaosu'),
+        ],
+      },
+      staticTileSize: 600.0,
+      seed: seed,
+      minCount: 0,
+      maxCount: 1,
+      minSize: 64.0,
+      maxSize: 128.0,
+    ));
 
-    add(
-      FloatingIslandStaticSpawnerComponent(
-        grid: grid,
-        getLogicalOffset: getLogicalOffset,
-        getViewSize: getViewSize,
-        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        allowedTerrains: {'beach'},
-        staticSpritesMap: {
-          'beach': [
-            StaticSpriteEntry('floating_island/beach_10.png', 1),
-            StaticSpriteEntry('floating_island/beach_11.png', 2),
-            StaticSpriteEntry('floating_island/beach_12.png', 2),
-          ],
-        },
-        staticTileSize: 765.0,
-        seed: seed,
-        minCount: 0,
-        maxCount: 1,
-        minSize: 128.0,
-        maxSize: 128.0,
-      ),
-    );
+    // 🧍 普通NPC（不变）
+    add(FloatingIslandDynamicSpawnerComponent(
+      grid: grid,
+      getLogicalOffset: getLogicalOffset,
+      getViewSize: getViewSize,
+      getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+      noiseMapGenerator: noiseMapGenerator,
+      allowedTerrains: {'beach'},
+      dynamicSpritesMap: {
+        'beach': [
+          DynamicSpriteEntry(
+            'floating_island/npc_1.png',
+            1,
+            type: 'npc_1',
+            generateRandomLabel: true,
+            labelFontSize: 10,
+            labelColor: const Color(0xFF000000),
+            minDistance: 500.0,
+            maxDistance: 5000.0,
+            desiredWidth: 32,
+          ),
+        ],
+      },
+      dynamicTileSize: 256.0,
+      seed: seed,
+      minDynamicObjectsPerTile: 0,
+      maxDynamicObjectsPerTile: 3,
+      minSpeed: 15.0,
+      maxSpeed: 55.0,
+    ));
 
-    add(
-      FloatingIslandStaticSpawnerComponent(
-        grid: grid,
-        getLogicalOffset: getLogicalOffset,
-        getViewSize: getViewSize,
-        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        allowedTerrains: {'beach'},
-        staticSpritesMap: {
-          'beach': [
-            StaticSpriteEntry('floating_island/beach_3.png', 1, type: 'beach_diaosu'),
-            StaticSpriteEntry('floating_island/beach_4.png', 1, type: 'beach_diaosu'),
-            StaticSpriteEntry('floating_island/beach_5.png', 1, type: 'beach_diaosu'),
-            StaticSpriteEntry('floating_island/beach_6.png', 1, type: 'beach_diaosu'),
-            StaticSpriteEntry('floating_island/beach_7.png', 1, type: 'beach_diaosu'),
-          ],
-        },
-        staticTileSize: 600.0,
-        seed: seed,
-        minCount: 0,
-        maxCount: 1,
-        minSize: 64.0,
-        maxSize: 128.0,
-      ),
-    );
-
-    add(
-      FloatingIslandDynamicSpawnerComponent(
-        grid: grid,
-        getLogicalOffset: getLogicalOffset,
-        getViewSize: getViewSize,
-        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        noiseMapGenerator: noiseMapGenerator,
-        allowedTerrains: {'beach'},
-        dynamicSpritesMap: {
-          'beach': [
-            DynamicSpriteEntry(
-              'floating_island/npc_1.png',
-              1,
-              type: 'npc_1',
-              generateRandomLabel: true,
-              labelFontSize: 10,
-              labelColor: const Color(0xFF000000),
-              minDistance: 500.0,
-              maxDistance: 5000.0,
-              desiredWidth: 32,
-            ),
-          ],
-        },
-        dynamicTileSize: 256.0,
-        seed: seed,
-        minDynamicObjectsPerTile: 0,
-        maxDynamicObjectsPerTile: 3,
-        minSpeed: 15.0,
-        maxSpeed: 55.0,
-      ),
-    );
-
-    add(
-      FloatingIslandDynamicSpawnerComponent(
-        grid: grid,
-        getLogicalOffset: getLogicalOffset,
-        getViewSize: getViewSize,
-        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        noiseMapGenerator: noiseMapGenerator,
-        allowedTerrains: {'beach'},
-        dynamicSpritesMap: {
-          'beach': [
-            DynamicSpriteEntry(
-              'floating_island/beach_boss_1.png',
-              1,
-              type: 'boss_1',
-              generateRandomLabel: true,
-              labelFontSize: 10,
-              labelColor: const Color(0xFF000000),
-              minDistance: 500.0,
-              maxDistance: 5000.0,
-              desiredWidth: 64,
-              defaultFacingRight: false,
-              atk: 100,
-              def: 50,
-              hp: 500,
-            ),
-          ],
-        },
-        dynamicTileSize: 800.0,
-        seed: seed,
-        minDynamicObjectsPerTile: 0,
-        maxDynamicObjectsPerTile: 1,
-        minSpeed: 40.0,
-        maxSpeed: 85.0,
-      ),
-    );
+    add(FloatingIslandDynamicSpawnerComponent(
+      grid: grid,
+      getLogicalOffset: getLogicalOffset,
+      getViewSize: getViewSize,
+      getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+      noiseMapGenerator: noiseMapGenerator,
+      allowedTerrains: {'beach'},
+      dynamicSpritesMap: {
+        'beach': [
+          DynamicSpriteEntry(
+            'floating_island/beach_boss_1.png',
+            1,
+            type: 'boss_1',
+            generateRandomLabel: true,
+            labelFontSize: 10,
+            labelColor: const Color(0xFF000000),
+            minDistance: 500.0,
+            maxDistance: 5000.0,
+            desiredWidth: 48,
+            defaultFacingRight: false,
+            hp: 1000,
+            atk: 100,
+            def: 50,
+          ),
+        ]
+      },
+      dynamicTileSize: 800.0,
+      seed: seed,
+      minDynamicObjectsPerTile: 0,
+      maxDynamicObjectsPerTile: 1,
+      minSpeed: 40.0,
+      maxSpeed: 85.0,
+    ));
   }
 }
