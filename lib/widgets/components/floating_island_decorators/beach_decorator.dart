@@ -36,13 +36,15 @@ class BeachDecorator extends Component {
         allowedTerrains: {'beach'},
         staticSpritesMap: {
           'beach': [
-            StaticSpriteEntry('floating_island/beach_1.png', 50),
+            StaticSpriteEntry('floating_island/beach_1.png', 10),
+            StaticSpriteEntry('floating_island/beach_8.png', 5),
+            StaticSpriteEntry('floating_island/beach_9.png', 2),
           ],
         },
-        staticTileSize: 128.0,
+        staticTileSize: 150.0,
         seed: seed,
-        minCount: 3,
-        maxCount: 8,
+        minCount: 2,
+        maxCount: 6,
         minSize: 32.0,
         maxSize: 64.0,
       ),
@@ -58,6 +60,7 @@ class BeachDecorator extends Component {
         staticSpritesMap: {
           'beach': [
             StaticSpriteEntry('floating_island/beach_2.png', 1, type: 'baoxiang_1'),
+            StaticSpriteEntry('floating_island/beach_10.png', 1),
           ],
         },
         staticTileSize: 512.0,
@@ -66,6 +69,28 @@ class BeachDecorator extends Component {
         maxCount: 1,
         minSize: 32.0,
         maxSize: 64.0,
+      ),
+    );
+
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'beach'},
+        staticSpritesMap: {
+          'beach': [
+            StaticSpriteEntry('floating_island/beach_11.png', 2),
+            StaticSpriteEntry('floating_island/beach_12.png', 2),
+          ],
+        },
+        staticTileSize: 765.0,
+        seed: seed,
+        minCount: 0,
+        maxCount: 1,
+        minSize: 128.0,
+        maxSize: 128.0,
       ),
     );
 
