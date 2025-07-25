@@ -74,7 +74,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
     final offset = getLogicalOffset();
     final viewSize = getViewSize();
-
     final visibleTopLeft = offset - viewSize / 2;
     final visibleBottomRight = visibleTopLeft + viewSize;
 
@@ -96,7 +95,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     final dEndY = (bottomRight.y / dynamicTileSize).ceil();
 
     final center = getLogicalOffset();
-
     final List<_PendingTile> newlyFound = [];
 
     for (int tx = dStartX; tx < dEndX; tx++) {
@@ -109,9 +107,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         final terrain = getTerrainType(tileCenter);
         if (!allowedTerrains.contains(terrain)) continue;
 
-        // 💡 获取当前 tile 对应的所有 type（包含 null）
         final typesInThisSpawner = dynamicSpritesMap[terrain]?.map((e) => e.type ?? 'null').toSet() ?? {'null'};
-
         for (final type in typesInThisSpawner) {
           final tileKey = '${tx}_${ty}_$type';
           if (_loadedDynamicTiles.contains(tileKey)) continue;
@@ -149,10 +145,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     for (int i = 0; i < count; i++) {
       final offsetX = rand.nextDouble() * tileSize;
       final offsetY = rand.nextDouble() * tileSize;
-      final worldPos = Vector2(
-        tx * tileSize + offsetX,
-        ty * tileSize + offsetY,
-      );
+      final worldPos = Vector2(tx * tileSize + offsetX, ty * tileSize + offsetY);
 
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
@@ -160,13 +153,10 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       final originalSize = sprite.srcSize;
 
       Vector2 sizeValue;
-
       if (selected.desiredWidth != null) {
-        // 🌟根据desiredWidth自动等比缩放
         final factor = selected.desiredWidth! / originalSize.x;
         sizeValue = originalSize * factor;
       } else {
-        // 老逻辑随机scale
         final minSize = selected.minSize ?? minDynamicObjectSize;
         final maxSize = selected.maxSize ?? maxDynamicObjectSize;
         final scale = minSize + rand.nextDouble() * (maxSize - minSize);
@@ -188,17 +178,15 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
           maxSteps: 2000,
         );
       } else {
-        bounds = Rect.fromLTWH(
-          tx * tileSize,
-          ty * tileSize,
-          tileSize,
-          tileSize,
-        );
+        bounds = Rect.fromLTWH(tx * tileSize, ty * tileSize, tileSize, tileSize);
       }
 
+      // ✅ 使用确定性随机生成名字（防止每次加载名字变）
       String? finalLabelText;
       if (selected.generateRandomLabel == true) {
-        finalLabelText = NameGenerator.generate(isMale: true);
+        final nameSeedKey = '${tx}_${ty}_${i}_${selected.path}_${selected.type ?? "null"}';
+        final nameRand = Random(seed + nameSeedKey.hashCode);
+        finalLabelText = NameGenerator.generateWithSeed(nameRand, isMale: true);
       } else {
         finalLabelText = selected.labelText;
       }
@@ -219,6 +207,9 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         labelFontSize: selected.labelFontSize,
         labelColor: selected.labelColor,
         type: selected.type,
+        hp: selected.hp,
+        atk: selected.atk,
+        def: selected.def,
       );
 
       onDynamicComponentCreated?.call(mover, terrain);

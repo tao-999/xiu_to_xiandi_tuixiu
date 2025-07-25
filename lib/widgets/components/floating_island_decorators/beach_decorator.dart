@@ -125,5 +125,41 @@ class BeachDecorator extends Component {
         maxSpeed: 55.0,
       ),
     );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'beach'},
+        dynamicSpritesMap: {
+          'beach': [
+            DynamicSpriteEntry(
+              'floating_island/beach_boss_1.png',
+              1,
+              type: 'boss_1',
+              generateRandomLabel: true,
+              labelFontSize: 10,
+              labelColor: const Color(0xFF000000),
+              minDistance: 500.0,
+              maxDistance: 5000.0,
+              desiredWidth: 64,
+              defaultFacingRight: false,
+              atk: 100,
+              def: 50,
+              hp: 500,
+            ),
+          ],
+        },
+        dynamicTileSize: 800.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minSpeed: 40.0,
+        maxSpeed: 85.0,
+      ),
+    );
   }
 }

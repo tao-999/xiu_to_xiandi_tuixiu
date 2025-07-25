@@ -63,10 +63,19 @@ class DynamicSpriteEntry {
   /// 是否生成随机名字
   final bool generateRandomLabel;
 
+  /// 🆕 攻击力
+  final double? atk;
+
+  /// 🆕 防御力
+  final double? def;
+
+  /// 🆕 血量
+  final double? hp;
+
   const DynamicSpriteEntry(
       this.path,
       this.weight, {
-        this.type, // ✅ 改为可选
+        this.type,
         this.minSize,
         this.maxSize,
         this.minCount,
@@ -84,5 +93,8 @@ class DynamicSpriteEntry {
         this.maxDistance,
         this.collisionTexts,
         this.generateRandomLabel = false,
+        this.atk,
+        this.def,
+        this.hp,
       });
 }

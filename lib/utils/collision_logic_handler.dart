@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import '../logic/collision/baoxiang1_collision_handler.dart';
+import '../logic/collision/boss1_collision_handler.dart';
 import '../logic/collision/npc1_collision_handler.dart';
 import '../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../widgets/components/floating_island_static_decoration_component.dart';
@@ -23,6 +24,13 @@ class CollisionLogicHandler {
           Npc1CollisionHandler.handle(
             playerLogicalPosition: playerPosition,
             npc: other,
+            logicalOffset: logicalOffset,
+          );
+          break;
+        case 'boss_1':
+          Boss1CollisionHandler.handle(
+            playerLogicalPosition: playerPosition,
+            boss: other,
             logicalOffset: logicalOffset,
           );
           break;

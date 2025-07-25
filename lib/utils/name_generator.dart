@@ -74,39 +74,54 @@ class NameCharacters {
 class NameGenerator {
   static final _rand = Random();
 
-  static String generate({required bool isMale}) {
-    final surname = Surnames.random();
+  static String generate({
+    required bool isMale,
+    Random? rand,
+  }) {
+    final r = rand ?? _rand;
 
-    // 🔄 25% 概率生成单字名（如 黄轩、李玄）
-    final isTwoChar = _rand.nextDouble() > 0.25;
+    final surname = Surnames.all[r.nextInt(Surnames.all.length)];
+
+    // 🔄 25% 概率生成单字名
+    final isTwoChar = r.nextDouble() > 0.25;
 
     if (!isTwoChar) {
-      final char = NameCharacters.pickForSingleName(isMale);
+      final pool = isMale
+          ? [...NameCharacters.male, ...NameCharacters.neutral]
+          : [...NameCharacters.female, ...NameCharacters.neutral];
+      final char = pool[r.nextInt(pool.length)];
       return surname + char;
     }
 
-    // 双字名逻辑（根据性别决定结构组合）
+    // 双字名结构
     List<NameComponentType> components;
+    final coin = r.nextDouble();
     if (isMale) {
-      components = _rand.nextDouble() < 0.5
+      components = coin < 0.5
           ? [NameComponentType.male, NameComponentType.neutral]
-          : (_rand.nextBool()
+          : (r.nextBool()
           ? [NameComponentType.neutral, NameComponentType.male]
           : [NameComponentType.male, NameComponentType.male]);
     } else {
-      components = _rand.nextDouble() < 0.5
+      components = coin < 0.5
           ? [NameComponentType.female, NameComponentType.neutral]
-          : (_rand.nextBool()
+          : (r.nextBool()
           ? [NameComponentType.neutral, NameComponentType.female]
           : [NameComponentType.female, NameComponentType.female]);
     }
 
-    String first = NameCharacters.pick(components[0]);
+    final first = NameCharacters.getPool(components[0])[r.nextInt(NameCharacters.getPool(components[0]).length)];
     String second;
     do {
-      second = NameCharacters.pick(components[1]);
+      second = NameCharacters.getPool(components[1])[r.nextInt(NameCharacters.getPool(components[1]).length)];
     } while (second == first);
 
     return surname + first + second;
   }
+
+  // ✅ 兼容旧调用方式
+  static String generateWithSeed(Random rand, {bool isMale = true}) {
+    return generate(isMale: isMale, rand: rand);
+  }
 }
+

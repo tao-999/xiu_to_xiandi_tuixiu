@@ -32,6 +32,11 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   bool isMoveLocked = false;
   Vector2? _externalTarget;
 
+  // 🛡️ 新增：攻击、防御、血量属性（默认值）
+  double? hp;
+  double? atk;
+  double? def;
+
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
     this.type,
@@ -48,6 +53,9 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     this.labelText,
     this.labelFontSize,
     this.labelColor,
+    this.hp = 100,
+    this.atk = 10,
+    this.def = 5,
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
@@ -87,14 +95,14 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (collisionCooldown > 0) collisionCooldown -= dt;
     if (tauntCooldown > 0) tauntCooldown -= dt;
 
-    // 🚀 弹开/外部控制移动
+    // 🚀 弹开或外部控制移动
     if (_externalTarget != null) {
       final delta = _externalTarget! - logicalPosition;
       final distance = delta.length;
       if (distance < 2) {
         logicalPosition = _externalTarget!;
         _externalTarget = null;
-        isMoveLocked = false; // 🟢 解锁
+        isMoveLocked = false;
       } else {
         final moveStep = delta.normalized() * speed * dt;
         logicalPosition += moveStep;
@@ -103,10 +111,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       return;
     }
 
-    // 🔒 锁定中，不自动游走
     if (isMoveLocked) return;
 
-    // ✅ 自动游走逻辑
     final dir = targetPosition - logicalPosition;
     final distance = dir.length;
     if (distance < 2) {
@@ -126,20 +132,17 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     logicalPosition = nextPos;
 
-    // 边界修正
     final minX = movementBounds.left + size.x / 2;
     final maxX = movementBounds.right - size.x / 2;
     final minY = movementBounds.top + size.y / 2;
     final maxY = movementBounds.bottom - size.y / 2;
 
-// 🛡️ 确保 clamp 不会非法
     if (minX <= maxX) {
       logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
     }
     if (minY <= maxY) {
       logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
     }
-
   }
 
   void updateVisualPosition(Vector2 logicalOffset) {
@@ -170,7 +173,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (collisionCooldown > 0) return;
 
-    // 🚀 只对怪物↔怪物 做轻微弹开处理
     if (other is FloatingIslandDynamicMoverComponent && other != this) {
       final delta = logicalPosition - other.logicalPosition;
 
@@ -187,7 +189,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     collisionCooldown = 0.1;
 
-    super.onCollision(points, other); // ✅ 最后一行，别漏
+    super.onCollision(points, other);
   }
-
 }
