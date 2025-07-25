@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'floating_island_dynamic_spawner_component.dart';
 import 'floating_island_static_decoration_component.dart';
+import 'hp_bar_wrapper.dart';
 
 class FloatingIslandDynamicMoverComponent extends SpriteComponent
     with CollisionCallbacks, HasGameReference {
@@ -33,10 +34,11 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   bool isMoveLocked = false;
   Vector2? _externalTarget;
 
-  // 🛡️ 新增：攻击、防御、血量属性（默认值）
   double? hp;
   double? atk;
   double? def;
+
+  HpBarWrapper? hpBar;
 
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
@@ -70,12 +72,13 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     await super.onLoad();
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
+    // ✅ 添加 label（挂到 parent 上，使用世界坐标）
     if (labelText != null && labelText!.isNotEmpty) {
       label = TextComponent(
         text: labelText!,
         anchor: Anchor.bottomCenter,
-        position: position - Vector2(0, size.y / 2 + 4),
-        priority: 998,
+        position: position - Vector2(0, size.y + 4),
+        priority: 9999,
         textRenderer: TextPaint(
           style: TextStyle(
             fontSize: labelFontSize ?? 12,
@@ -84,6 +87,27 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         ),
       );
       parent?.add(label!);
+      print('🧩 [Label] 添加成功: $labelText, priority=${label!.priority}, position=${label!.position}');
+    }
+
+    // ✅ 添加 HpBarWrapper（同样挂到 parent 上，使用世界坐标）
+    if (hp != null && atk != null && def != null) {
+      hpBar = HpBarWrapper()
+        ..anchor = Anchor.bottomCenter
+        ..position = position - Vector2(0, size.y + 24)
+        ..priority = 9998;
+
+      parent?.add(hpBar!);
+
+      Future.delayed(Duration.zero, () {
+        hpBar?.setStats(
+          currentHp: hp!.toInt(),
+          maxHp: hp!.toInt(),
+          atk: atk!.toInt(),
+          def: def!.toInt(),
+        );
+        print('🩸 [HpBar] 添加成功, HP=${hp!} ATK=${atk!} DEF=${def!}');
+      });
     }
 
     pickNewTarget();
@@ -96,7 +120,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (collisionCooldown > 0) collisionCooldown -= dt;
     if (tauntCooldown > 0) tauntCooldown -= dt;
 
-    // 🚀 弹开或外部控制移动
     if (_externalTarget != null) {
       final delta = _externalTarget! - logicalPosition;
       final distance = delta.length;
@@ -148,8 +171,13 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
   void updateVisualPosition(Vector2 logicalOffset) {
     position = logicalPosition - logicalOffset;
+
     if (label != null) {
       label!.position = position - Vector2(0, size.y + 4);
+    }
+
+    if (hpBar != null) {
+      hpBar!.position = position - Vector2(0, size.y + 24);
     }
   }
 
@@ -174,7 +202,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (collisionCooldown > 0) return;
 
-    // ✅ 碰撞静态装饰物 → 自己弹开
     if (other is FloatingIslandStaticDecorationComponent) {
       final delta = logicalPosition - other.worldPosition;
       final direction = delta.length > 0.01
@@ -186,7 +213,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
       pickNewTarget();
 
-      // ✅ 强制同步视觉位置
       if (spawner is FloatingIslandDynamicSpawnerComponent) {
         updateVisualPosition(spawner.getLogicalOffset());
       }
@@ -195,7 +221,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       return;
     }
 
-    // ✅ 动态组件互弹（怪物 vs 怪物）
     if (other is FloatingIslandDynamicMoverComponent && other != this) {
       final delta = logicalPosition - other.logicalPosition;
       final direction = delta.length > 0.01
@@ -203,16 +228,14 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
           : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
 
       final pushDistance = 1.0;
-
       logicalPosition += direction * pushDistance;
       other.logicalPosition -= direction * pushDistance;
 
       pickNewTarget();
-      other.pickNewTarget(); // 🔁 双方都变向
+      other.pickNewTarget();
     }
 
     collisionCooldown = 0.1;
     super.onCollision(points, other);
   }
-
 }
