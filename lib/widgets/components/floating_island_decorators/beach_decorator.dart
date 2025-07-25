@@ -70,6 +70,31 @@ class BeachDecorator extends Component {
     );
 
     add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'beach'},
+        staticSpritesMap: {
+          'beach': [
+            StaticSpriteEntry('floating_island/beach_3.png', 1, type: 'beach_diaosu'),
+            StaticSpriteEntry('floating_island/beach_4.png', 1, type: 'beach_diaosu'),
+            StaticSpriteEntry('floating_island/beach_5.png', 1, type: 'beach_diaosu'),
+            StaticSpriteEntry('floating_island/beach_6.png', 1, type: 'beach_diaosu'),
+            StaticSpriteEntry('floating_island/beach_7.png', 1, type: 'beach_diaosu'),
+          ],
+        },
+        staticTileSize: 600.0,
+        seed: seed,
+        minCount: 0,
+        maxCount: 1,
+        minSize: 64.0,
+        maxSize: 128.0,
+      ),
+    );
+
+    add(
       FloatingIslandDynamicSpawnerComponent(
         grid: grid,
         getLogicalOffset: getLogicalOffset,

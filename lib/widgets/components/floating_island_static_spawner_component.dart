@@ -100,7 +100,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     final bufferTopLeft = offset - bufferExtent;
     final bufferBottomRight = offset + bufferExtent;
 
-    // 清理超出buffer的tile key
+    // ✅ 清理超出buffer的tile key（这个没问题）
     _activeTiles.removeWhere((key) {
       final parts = key.split('_');
       final tx = int.tryParse(parts[0]) ?? 0;
@@ -113,7 +113,10 @@ class FloatingIslandStaticSpawnerComponent extends Component {
           tileCenterY > bufferBottomRight.y;
     });
 
-    for (final deco in grid.children.whereType<FloatingIslandStaticDecorationComponent>()) {
+    // ✅ 修复关键点：复制一份 grid.children 列表，避免遍历时修改集合
+    final decorations = grid.children.whereType<FloatingIslandStaticDecorationComponent>().toList();
+
+    for (final deco in decorations) {
       final pos = deco.worldPosition;
       if (pos.x < bufferTopLeft.x ||
           pos.x > bufferBottomRight.x ||
@@ -122,7 +125,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         final tx = (pos.x / staticTileSize).floor();
         final ty = (pos.y / staticTileSize).floor();
         _activeTiles.remove('${tx}_${ty}');
-        deco.removeFromParent();
+        deco.removeFromParent(); // ✅ 安全了，已脱离原集合的迭代
       } else {
         deco.updateVisualPosition(offset);
         deco.priority = ((deco.worldPosition.y + 1e14) * 1000).toInt();
@@ -246,7 +249,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         return;
       }
 
-      final sprite = Sprite(flameGame.images.fromCache(spritePath)); // ✅ 走同步缓存
+      final sprite = await Sprite.load(spritePath);
 
       final deco = FloatingIslandStaticDecorationComponent(
         sprite: sprite,
