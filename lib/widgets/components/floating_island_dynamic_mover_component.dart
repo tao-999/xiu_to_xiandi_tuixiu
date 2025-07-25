@@ -33,13 +33,10 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   bool isMoveLocked = false;
   Vector2? _externalTarget;
 
+  // 🛡️ 新增：攻击、防御、血量属性（默认值）
   double? hp;
   double? atk;
   double? def;
-
-  // 🧠 卡住检测用变量
-  Vector2 _lastLogicalPos = Vector2.zero();
-  double _stuckTime = 0.0;
 
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
@@ -65,7 +62,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         super(
         sprite: sprite,
         size: size ?? Vector2.all(48),
-        anchor: Anchor.center,
+        anchor: Anchor.bottomCenter,
       );
 
   @override
@@ -89,7 +86,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       parent?.add(label!);
     }
 
-    _lastLogicalPos = logicalPosition.clone();
     pickNewTarget();
   }
 
@@ -100,21 +96,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (collisionCooldown > 0) collisionCooldown -= dt;
     if (tauntCooldown > 0) tauntCooldown -= dt;
 
-    // 💥 卡住判断逻辑
-    final movement = (logicalPosition - _lastLogicalPos).length;
-    if (movement < 1.5) {
-      _stuckTime += dt;
-    } else {
-      _stuckTime = 0;
-    }
-    _lastLogicalPos = logicalPosition.clone();
-
-    if (_stuckTime >= 5.0) {
-      _teleportToRandomPosition();
-      _stuckTime = 0;
-      return;
-    }
-
+    // 🚀 弹开或外部控制移动
     if (_externalTarget != null) {
       final delta = _externalTarget! - logicalPosition;
       final distance = delta.length;
@@ -156,32 +138,18 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     final minY = movementBounds.top + size.y / 2;
     final maxY = movementBounds.bottom - size.y / 2;
 
-    if (minX <= maxX) logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
-    if (minY <= maxY) logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
-  }
-
-  void _teleportToRandomPosition() {
-    final rand = Random();
-    final newPos = Vector2(
-      movementBounds.left + rand.nextDouble() * movementBounds.width,
-      movementBounds.top + rand.nextDouble() * movementBounds.height,
-    );
-
-    logicalPosition = newPos;
-    pickNewTarget();
-
-    if (spawner is FloatingIslandDynamicSpawnerComponent) {
-      updateVisualPosition(spawner.getLogicalOffset());
+    if (minX <= maxX) {
+      logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
     }
-
-    // 🌀 瞬移也要清 cooldown，避免碰撞 bug
-    collisionCooldown = 0.1;
+    if (minY <= maxY) {
+      logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
+    }
   }
 
   void updateVisualPosition(Vector2 logicalOffset) {
     position = logicalPosition - logicalOffset;
     if (label != null) {
-      label!.position = position - Vector2(0, size.y / 2 + 4);
+      label!.position = position - Vector2(0, size.y + 4);
     }
   }
 
@@ -206,16 +174,19 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (collisionCooldown > 0) return;
 
+    // ✅ 碰撞静态装饰物 → 自己弹开
     if (other is FloatingIslandStaticDecorationComponent) {
       final delta = logicalPosition - other.worldPosition;
       final direction = delta.length > 0.01
           ? delta.normalized()
           : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
 
-      final pushDistance = 4.0;
+      final pushDistance = 2.0;
       logicalPosition += direction * pushDistance;
+
       pickNewTarget();
 
+      // ✅ 强制同步视觉位置
       if (spawner is FloatingIslandDynamicSpawnerComponent) {
         updateVisualPosition(spawner.getLogicalOffset());
       }
@@ -224,21 +195,24 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       return;
     }
 
+    // ✅ 动态组件互弹（怪物 vs 怪物）
     if (other is FloatingIslandDynamicMoverComponent && other != this) {
       final delta = logicalPosition - other.logicalPosition;
       final direction = delta.length > 0.01
           ? delta.normalized()
           : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
 
-      final pushDistance = 4.0;
+      final pushDistance = 1.0;
+
       logicalPosition += direction * pushDistance;
       other.logicalPosition -= direction * pushDistance;
 
       pickNewTarget();
-      other.pickNewTarget();
+      other.pickNewTarget(); // 🔁 双方都变向
     }
 
     collisionCooldown = 0.1;
     super.onCollision(points, other);
   }
+
 }
