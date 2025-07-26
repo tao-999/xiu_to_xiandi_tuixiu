@@ -3,9 +3,13 @@ import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/dead_boss_storage.dart';
 import '../../services/player_storage.dart';
+import '../../services/resources_storage.dart';
+import '../../utils/lingshi_util.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
+import '../../widgets/components/floating_lingshi_popup_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/effects/logical_move_effect.dart';
 
@@ -54,16 +58,72 @@ class Boss1CollisionHandler {
           fontSize: 18,
         ));
 
-        // ✅ 死亡处理
         if (newHp <= 0) {
+          final tileKey = boss.spawnedTileKey;
+          final deathPos = boss.logicalPosition.clone();
+
+          // ✅ 记录死亡 tileKey 和坐标
+          if (boss.type != null) {
+            DeadBossStorage.markDeadBoss(
+              tileKey: boss.spawnedTileKey,
+              position: boss.logicalPosition.clone(),
+              bossType: boss.type!,
+              size: boss.size.clone(),
+            );
+          }
+
+          // ✅ 移除boss组件
           boss.removeFromParent();
-          boss.parent?.add(FloatingTextComponent(
-            text: 'Boss已败',
-            logicalPosition: boss.logicalPosition.clone(),
-            color: Colors.purpleAccent,
-            fontSize: 14,
+          boss.hpBar?.removeFromParent();
+          boss.hpBar = null;
+          boss.label?.removeFromParent();
+          boss.label = null;
+          boss.isDead = true;
+
+          print('☠️ Boss1 已被击败！tileKey=$tileKey');
+
+          // ✅ 发放灵石奖励
+          final rand = Random();
+          final r = rand.nextDouble(); // 概率衰减判断
+          LingShiType type;
+          if (r < 0.7) {
+            type = LingShiType.lower;
+          } else if (r < 0.9) {
+            type = LingShiType.middle;
+          } else if (r < 0.98) {
+            type = LingShiType.upper;
+          } else {
+            type = LingShiType.supreme;
+          }
+
+          final bossAtk = boss.atk ?? 10;
+          late int count;
+          switch (type) {
+            case LingShiType.lower:
+              count = bossAtk.toInt(); // ✅ 转换为 int
+              break;
+            case LingShiType.middle:
+              count = (bossAtk ~/ 8).clamp(1, 9999);
+              break;
+            case LingShiType.upper:
+              count = (bossAtk ~/ 32).clamp(1, 9999);
+              break;
+            case LingShiType.supreme:
+              count = (bossAtk ~/ 128).clamp(1, 9999);
+              break;
+          }
+
+          final rewardText = '+$count ${lingShiNames[type] ?? "灵石"}';
+          final centerPos = boss.findGame()!.size / 2;
+
+          boss.findGame()!.camera.viewport.add(FloatingLingShiPopupComponent(
+            text: rewardText,
+            imagePath: getLingShiImagePath(type),
+            position: centerPos,
           ));
-          print('☠️ Boss1 已被击败！');
+
+          final field = lingShiFieldMap[type]!;
+          ResourcesStorage.add(field, BigInt.from(count));
         }
 
         // ✅ 延迟解锁 cooldown
@@ -93,8 +153,6 @@ class Boss1CollisionHandler {
     final playerTargetPos = player.logicalPosition - direction * pushDistance;
     player.moveTo(playerTargetPos);
 
-    // ✅【3】嘴臭（带冷却）
-    // ✅【3】嘴臭（根据属性判断 嘲讽 / 暴怒）
     // ✅【3】嘴臭（根据属性判断 嘲讽 / 暴怒）
     if (boss.tauntCooldown <= 0) {
       boss.tauntCooldown = double.infinity;

@@ -7,6 +7,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../utils/floating_island_cleanup_manager.dart';
+import 'dead_boss_decoration_component.dart';
 import 'floating_island_decorators.dart';
 import 'floating_island_dynamic_mover_component.dart';
 import 'floating_island_dynamic_spawner_component.dart';
@@ -133,6 +134,15 @@ class FloatingIslandMapComponent extends FlameGame
           getViewSize: () => size,
           noiseMapGenerator: _noiseMapGenerator,
           seed: seed,
+        ),
+      );
+
+      // 🌟 死亡 Boss 尸体渲染组件 💀
+      add(
+        DeadBossDecorationComponent(
+          parentLayer: _grid,
+          getViewCenter: () => logicalOffset + size / 2,
+          getViewSize: () => size,
         ),
       );
 

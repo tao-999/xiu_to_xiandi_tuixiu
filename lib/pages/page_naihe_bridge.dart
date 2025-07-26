@@ -12,6 +12,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/typewriter_poem_section.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/mengpo_soup_dialog.dart';
 
+import '../models/dead_boss_entry.dart';
 import '../models/disciple.dart';
 import '../models/pill.dart';
 import '../models/weapon.dart';
@@ -182,6 +183,11 @@ class _NaiheBridgePageState extends State<NaiheBridgePage>
       await Hive.box('opened_chests').close();
       print('[Hive] Closed box: opened_chests');
     }
+    if (Hive.isBoxOpen('dead_boss_box')) {
+      await Hive.box<DeadBossEntry>('dead_boss_box').close();
+      print('[Hive] Closed box: dead_boss_box');
+    }
+
   }
 
   @override

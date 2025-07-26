@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flame/components.dart';
+import '../../services/dead_boss_storage.dart';
 import '../../utils/name_generator.dart';
 import '../../utils/terrain_utils.dart';
 import 'dynamic_sprite_entry.dart';
@@ -127,7 +128,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     _pendingTiles.addAll(newlyFound);
   }
 
-  void _spawnDynamicComponentsForTile(int tx, int ty, String terrain) {
+  Future<void> _spawnDynamicComponentsForTile(int tx, int ty, String terrain) async {
     final entries = dynamicSpritesMap[terrain] ?? [];
     if (entries.isEmpty) return;
 
@@ -140,6 +141,14 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     final minCount = selected.minCount ?? minDynamicObjectsPerTile;
     final maxCount = selected.maxCount ?? maxDynamicObjectsPerTile;
     final tileSize = selected.tileSize ?? dynamicTileSize;
+    final tileCenter = Vector2(tx * tileSize + tileSize / 2, ty * tileSize + tileSize / 2);
+
+    final type = selected.type ?? 'null';
+    final tileKey = '${tx}_${ty}_$type';
+
+    // ✅ Boss 已死亡跳过
+    if (await DeadBossStorage.isDead(tileKey)) return;
+
     final count = rand.nextInt(maxCount - minCount + 1) + minCount;
 
     for (int i = 0; i < count; i++) {
@@ -181,10 +190,10 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         bounds = Rect.fromLTWH(tx * tileSize, ty * tileSize, tileSize, tileSize);
       }
 
-      // ✅ 使用确定性随机生成名字（防止每次加载名字变）
+      // ✅ 随机名称
       String? finalLabelText;
       if (selected.generateRandomLabel == true) {
-        final nameSeedKey = '${tx}_${ty}_${i}_${selected.path}_${selected.type ?? "null"}';
+        final nameSeedKey = '${tx}_${ty}_${i}_${selected.path}_$type';
         final nameRand = Random(seed + nameSeedKey.hashCode);
         finalLabelText = NameGenerator.generateWithSeed(nameRand, isMale: true);
       } else {
@@ -211,12 +220,13 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         labelText: finalLabelText,
         labelFontSize: selected.labelFontSize,
         labelColor: selected.labelColor,
-        type: selected.type,
+        type: type,
         hp: hp,
         atk: atk,
         def: def,
         enableAutoChase: selected.enableAutoChase ?? false,
         autoChaseRange: selected.autoChaseRange,
+        spawnedTileKey: tileKey,
       );
 
       onDynamicComponentCreated?.call(mover, terrain);

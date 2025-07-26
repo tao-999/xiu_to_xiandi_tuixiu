@@ -38,15 +38,20 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   double? hp;
   double? atk;
   double? def;
+  bool isDead = false;
 
   HpBarWrapper? hpBar;
 
-  // ✅ 自动追击参数
+  /// ✅ 自动追击参数
   final bool enableAutoChase;
   final double? autoChaseRange;
 
+  /// ✅ Boss死亡标记的tileKey（构造必传）
+  final String spawnedTileKey;
+
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
+    required this.spawnedTileKey,
     this.type,
     this.spawner,
     required Sprite sprite,
@@ -119,8 +124,13 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   @override
   void update(double dt) {
     super.update(dt);
+    if (isDead) return;
+    if (tauntCooldown > 0) {
+      tauntCooldown -= dt;
+      if (tauntCooldown < 0) tauntCooldown = 0; // 防止变负数
+    }
 
-    // ✅ 自动追击逻辑（改为 descendants 获取玩家）
+    // ✅ 自动追击逻辑
     if (enableAutoChase && autoChaseRange != null) {
       final player = game.descendants().whereType<FloatingIslandPlayerComponent>().firstOrNull;
       if (player != null) {
@@ -216,6 +226,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
   @override
   void onCollision(Set<Vector2> points, PositionComponent other) {
+    if (isDead) return;
+
     if (onCustomCollision != null) {
       onCustomCollision!(points, other);
       return;

@@ -27,19 +27,17 @@ class Npc1CollisionHandler {
   static void handle({
     required Vector2 playerLogicalPosition,
     required FloatingIslandDynamicMoverComponent npc,
-    required Vector2 logicalOffset, // ✅ 当前视口偏移
+    required Vector2 logicalOffset,
   }) {
-    // 🚀 计算弹开目标逻辑坐标
     final rand = Random();
+
+    // 🚀 弹开方向 & 目标
     final pushDistance = 10 + rand.nextDouble() * 10;
     final direction = (npc.logicalPosition - playerLogicalPosition).normalized();
     final targetLogicalPos = npc.logicalPosition + direction * pushDistance;
 
-
-    // ✅ 设置为弹开状态，防止游走
+    // ✅ 锁定移动，开始弹开
     npc.isMoveLocked = true;
-
-    // 🚀 添加逻辑坐标动画
     npc.add(
       LogicalMoveEffect(
         npc: npc,
@@ -51,16 +49,15 @@ class Npc1CollisionHandler {
       ),
     );
 
-    // 💬 飘字嘴臭（冷却）
+    // 💬 嘴臭冷却判断
     if (npc.tauntCooldown <= 0) {
       npc.tauntCooldown = 5.0;
 
-      final rand = Random();
       final roll = rand.nextDouble();
       final distance = npc.logicalPosition.length;
 
       if (roll < 0.1) {
-        // 🎁 10% 概率 → 奖励灵石
+        // 🎁 10% 奖励灵石逻辑
         LingShiType lingShiType;
         int minCount, maxCount;
 
@@ -74,7 +71,9 @@ class Npc1CollisionHandler {
           maxCount = 20;
         } else if (distance < 10_000_000) {
           final r = rand.nextDouble();
-          lingShiType = r < 0.6 ? LingShiType.lower : (r < 0.9 ? LingShiType.middle : LingShiType.upper);
+          lingShiType = r < 0.6
+              ? LingShiType.lower
+              : (r < 0.9 ? LingShiType.middle : LingShiType.upper);
           minCount = 20;
           maxCount = 40;
         } else {
@@ -91,7 +90,6 @@ class Npc1CollisionHandler {
         final game = npc.findGame()!;
         final centerPos = game.size / 2;
 
-        // ✅ 加入灵石奖励组件
         game.camera.viewport.add(FloatingLingShiPopupComponent(
           text: rewardText,
           imagePath: getLingShiImagePath(lingShiType),
@@ -100,20 +98,17 @@ class Npc1CollisionHandler {
 
         final field = lingShiFieldMap[lingShiType]!;
         ResourcesStorage.add(field, BigInt.from(count));
-
       } else {
-        // 🗯️ 嘴臭弹幕
+        // 😡 嘴臭弹幕
         final taunt = taunts[rand.nextInt(taunts.length)];
-        final tauntPos = targetLogicalPos.clone() - Vector2(0, npc.size.y / 2 + 8);
+        final tauntPos = targetLogicalPos - Vector2(0, npc.size.y / 2 + 8);
 
         npc.parent?.add(FloatingTextComponent(
           text: taunt,
           logicalPosition: tauntPos,
           color: Colors.redAccent,
         ));
-
       }
     }
-
   }
 }
