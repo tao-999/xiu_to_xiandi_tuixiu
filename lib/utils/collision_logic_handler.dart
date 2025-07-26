@@ -3,6 +3,7 @@ import '../logic/collision/baoxiang1_collision_handler.dart';
 import '../logic/collision/boss1_collision_handler.dart';
 import '../logic/collision/npc1_collision_handler.dart';
 import '../widgets/components/floating_island_dynamic_mover_component.dart';
+import '../widgets/components/floating_island_player_component.dart';
 import '../widgets/components/floating_island_static_decoration_component.dart';
 
 class CollisionLogicHandler {
@@ -10,38 +11,38 @@ class CollisionLogicHandler {
   static final Set<String> _staticCollisionLock = {};
 
   static void handleCollision({
-    required Vector2 playerPosition,
+    required FloatingIslandPlayerComponent player,
     required Vector2 logicalOffset,
     required PositionComponent other,
   }) {
     // ✅ 动态 NPC / 怪物
     if (other is FloatingIslandDynamicMoverComponent) {
-      final double logicalDistance = (playerPosition - other.logicalPosition).length;
-      if (logicalDistance > 32) return;
+      final double logicalDistance = (player.logicalPosition - other.logicalPosition).length;
+      if (logicalDistance > 24) return;
 
       switch (other.type) {
         case 'npc_1':
           Npc1CollisionHandler.handle(
-            playerLogicalPosition: playerPosition,
+            playerLogicalPosition: player.logicalPosition,
             npc: other,
             logicalOffset: logicalOffset,
           );
           break;
         case 'boss_1':
           Boss1CollisionHandler.handle(
-            playerLogicalPosition: playerPosition,
+            player: player,
             boss: other,
             logicalOffset: logicalOffset,
           );
           break;
         default:
-          _handleMonsterCollision(playerPosition, other);
+          _handleMonsterCollision(player.logicalPosition, other);
       }
     }
 
-    // ✅ 静态装饰物碰撞逻辑（避免重复触发）
+    // ✅ 静态装饰物
     else if (other is FloatingIslandStaticDecorationComponent) {
-      final double logicalDistance = (playerPosition - other.worldPosition).length;
+      final double logicalDistance = (player.logicalPosition - other.worldPosition).length;
       if (logicalDistance > 32) return;
 
       final key = _getComponentKey(other);
@@ -51,12 +52,11 @@ class CollisionLogicHandler {
       switch (other.type) {
         case 'baoxiang_1':
           Baoxiang1CollisionHandler.handle(
-            playerLogicalPosition: playerPosition,
+            playerLogicalPosition: player.logicalPosition,
             chest: other,
             logicalOffset: logicalOffset,
           );
           break;
-
         default:
           return;
       }

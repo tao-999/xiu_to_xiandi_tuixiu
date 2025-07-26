@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'floating_island_dynamic_spawner_component.dart';
 import 'floating_island_static_decoration_component.dart';
+import 'floating_island_player_component.dart';
 import 'hp_bar_wrapper.dart';
 
 class FloatingIslandDynamicMoverComponent extends SpriteComponent
@@ -40,6 +41,10 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
   HpBarWrapper? hpBar;
 
+  // ✅ 自动追击参数
+  final bool enableAutoChase;
+  final double? autoChaseRange;
+
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
     this.type,
@@ -59,6 +64,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     this.hp = 100,
     this.atk = 10,
     this.def = 5,
+    this.enableAutoChase = false,
+    this.autoChaseRange,
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
@@ -72,7 +79,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     await super.onLoad();
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
-    // ✅ 添加 label（挂到 parent 上，使用世界坐标）
     if (labelText != null && labelText!.isNotEmpty) {
       label = TextComponent(
         text: labelText!,
@@ -87,10 +93,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         ),
       );
       parent?.add(label!);
-      print('🧩 [Label] 添加成功: $labelText, priority=${label!.priority}, position=${label!.position}');
     }
 
-    // ✅ 添加 HpBarWrapper（同样挂到 parent 上，使用世界坐标）
     if (hp != null && atk != null && def != null) {
       hpBar = HpBarWrapper()
         ..anchor = Anchor.bottomCenter
@@ -106,7 +110,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
           atk: atk!.toInt(),
           def: def!.toInt(),
         );
-        print('🩸 [HpBar] 添加成功, HP=${hp!} ATK=${atk!} DEF=${def!}');
       });
     }
 
@@ -117,8 +120,20 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   void update(double dt) {
     super.update(dt);
 
-    if (collisionCooldown > 0) collisionCooldown -= dt;
-    if (tauntCooldown > 0) tauntCooldown -= dt;
+    // ✅ 自动追击逻辑（改为 descendants 获取玩家）
+    if (enableAutoChase && autoChaseRange != null) {
+      final player = game.descendants().whereType<FloatingIslandPlayerComponent>().firstOrNull;
+      if (player != null) {
+        final delta = player.logicalPosition - logicalPosition;
+        final distance = delta.length;
+        if (distance <= autoChaseRange!) {
+          final moveStep = delta.normalized() * speed * dt;
+          logicalPosition += moveStep;
+          scale.x = delta.x < 0 ? -1 : 1;
+          return;
+        }
+      }
+    }
 
     if (_externalTarget != null) {
       final delta = _externalTarget! - logicalPosition;
@@ -193,14 +208,18 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     scale.x = (targetPosition.x > logicalPosition.x) == defaultFacingRight ? 1 : -1;
   }
 
+  void moveToTarget(Vector2 target) {
+    _externalTarget = target.clone();
+    isMoveLocked = false;
+    print('🎯 [Mover] 设置追击目标 = $_externalTarget');
+  }
+
   @override
   void onCollision(Set<Vector2> points, PositionComponent other) {
     if (onCustomCollision != null) {
       onCustomCollision!(points, other);
       return;
     }
-
-    if (collisionCooldown > 0) return;
 
     if (other is FloatingIslandStaticDecorationComponent) {
       final delta = logicalPosition - other.worldPosition;
@@ -217,7 +236,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         updateVisualPosition(spawner.getLogicalOffset());
       }
 
-      collisionCooldown = 0.1;
       return;
     }
 
@@ -235,7 +253,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       other.pickNewTarget();
     }
 
-    collisionCooldown = 0.1;
     super.onCollision(points, other);
   }
 }

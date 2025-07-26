@@ -21,13 +21,6 @@ class FloatingStaticEventStateUtil {
             ? 'floating_island/beach_2_open.png'
             : originalPath;
 
-      case 'boss_1':
-        final defeated = TreasureChestStorage.isOpenedSync(worldPosition); // ✅ 复用 opened 状态当作“是否击杀Boss”
-        print('👹 [贴图判断] Boss类型 → pos=($worldPosition), defeated=$defeated');
-        return defeated
-            ? 'floating_island/boss_1_dead.png'
-            : originalPath;
-
       default:
         return originalPath;
     }

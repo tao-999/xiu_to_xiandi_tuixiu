@@ -72,6 +72,9 @@ class DynamicSpriteEntry {
   /// 🆕 血量
   final double? hp;
 
+  final bool? enableAutoChase;     // 是否启用自动追击
+  final double? autoChaseRange;    // 追击触发范围（像素）
+
   const DynamicSpriteEntry(
       this.path,
       this.weight, {
@@ -96,5 +99,7 @@ class DynamicSpriteEntry {
         this.atk,
         this.def,
         this.hp,
+        this.enableAutoChase = false,
+        this.autoChaseRange,
       });
 }

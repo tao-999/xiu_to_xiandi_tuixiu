@@ -31,7 +31,7 @@ class Npc1CollisionHandler {
   }) {
     // 🚀 计算弹开目标逻辑坐标
     final rand = Random();
-    final pushDistance = 50 + rand.nextDouble() * 50; // [50, 100)
+    final pushDistance = 10 + rand.nextDouble() * 10;
     final direction = (npc.logicalPosition - playerLogicalPosition).normalized();
     final targetLogicalPos = npc.logicalPosition + direction * pushDistance;
 

@@ -43,8 +43,8 @@ class BeachDecorator extends Component {
       seed: seed,
       minCount: 2,
       maxCount: 6,
-      minSize: 32.0,
-      maxSize: 64.0,
+      minSize: 48.0,
+      maxSize: 128.0,
     ));
 
     // 🧊 宝箱（不变）
@@ -110,7 +110,7 @@ class BeachDecorator extends Component {
             labelColor: const Color(0xFF000000),
             minDistance: 500.0,
             maxDistance: 5000.0,
-            desiredWidth: 32,
+            desiredWidth: 24,
           ),
         ],
       },
@@ -140,11 +140,13 @@ class BeachDecorator extends Component {
             labelColor: const Color(0xFF000000),
             minDistance: 500.0,
             maxDistance: 5000.0,
-            desiredWidth: 48,
+            desiredWidth: 42,
             defaultFacingRight: false,
             hp: 1000,
             atk: 100,
             def: 50,
+            enableAutoChase: true,
+            autoChaseRange: 200,
           ),
         ]
       },

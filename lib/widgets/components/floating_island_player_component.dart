@@ -126,7 +126,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     super.onCollision(intersectionPoints, other);
     final mapGame = game as dynamic;
     CollisionLogicHandler.handleCollision(
-      playerPosition: logicalPosition,
+      player: this,
       logicalOffset: mapGame.logicalOffset,
       other: other,
     );

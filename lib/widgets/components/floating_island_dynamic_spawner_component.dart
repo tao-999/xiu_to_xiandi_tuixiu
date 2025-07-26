@@ -215,6 +215,8 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         hp: hp,
         atk: atk,
         def: def,
+        enableAutoChase: selected.enableAutoChase ?? false,
+        autoChaseRange: selected.autoChaseRange,
       );
 
       onDynamicComponentCreated?.call(mover, terrain);
