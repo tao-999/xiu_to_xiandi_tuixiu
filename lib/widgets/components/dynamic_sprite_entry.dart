@@ -36,6 +36,9 @@ class DynamicSpriteEntry {
   /// 默认是否朝右（true=默认朝右，false=默认朝左）
   final bool defaultFacingRight;
 
+  /// 是否启用镜像（控制是否允许左右翻转贴图）
+  final bool enableMirror;
+
   /// 基准尺寸（可选，不需要时留 null）
   final Vector2? baseSize;
 
@@ -72,8 +75,11 @@ class DynamicSpriteEntry {
   /// 🆕 血量
   final double? hp;
 
-  final bool? enableAutoChase;     // 是否启用自动追击
-  final double? autoChaseRange;    // 追击触发范围（像素）
+  /// 是否启用自动追击
+  final bool? enableAutoChase;
+
+  /// 自动追击的范围
+  final double? autoChaseRange;
 
   const DynamicSpriteEntry(
       this.path,
@@ -87,6 +93,7 @@ class DynamicSpriteEntry {
         this.minSpeed,
         this.maxSpeed,
         this.defaultFacingRight = true,
+        this.enableMirror = true, // ✅ 新增参数，默认开启镜像
         this.baseSize,
         this.desiredWidth,
         this.labelText,

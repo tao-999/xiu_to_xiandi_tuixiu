@@ -23,6 +23,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   final bool defaultFacingRight;
   final double minDistance;
   final double maxDistance;
+  final bool enableMirror;
 
   final String? type;
   final String? labelText;
@@ -42,11 +43,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
   HpBarWrapper? hpBar;
 
-  /// ✅ 自动追击参数
   final bool enableAutoChase;
   final double? autoChaseRange;
-
-  /// ✅ Boss死亡标记的tileKey（构造必传）
   final String spawnedTileKey;
 
   FloatingIslandDynamicMoverComponent({
@@ -71,6 +69,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     this.def = 5,
     this.enableAutoChase = false,
     this.autoChaseRange,
+    this.enableMirror = true,
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
@@ -125,12 +124,12 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   void update(double dt) {
     super.update(dt);
     if (isDead) return;
+
     if (tauntCooldown > 0) {
       tauntCooldown -= dt;
-      if (tauntCooldown < 0) tauntCooldown = 0; // 防止变负数
+      if (tauntCooldown < 0) tauntCooldown = 0;
     }
 
-    // ✅ 自动追击逻辑
     if (enableAutoChase && autoChaseRange != null) {
       final player = game.descendants().whereType<FloatingIslandPlayerComponent>().firstOrNull;
       if (player != null) {
@@ -139,7 +138,9 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         if (distance <= autoChaseRange!) {
           final moveStep = delta.normalized() * speed * dt;
           logicalPosition += moveStep;
-          scale.x = delta.x < 0 ? -1 : 1;
+          if (enableMirror) {
+            scale.x = delta.x < 0 ? -1 : 1;
+          }
           return;
         }
       }
@@ -155,7 +156,9 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       } else {
         final moveStep = delta.normalized() * speed * dt;
         logicalPosition += moveStep;
-        scale.x = delta.x < 0 ? -1 : 1;
+        if (enableMirror) {
+          scale.x = delta.x < 0 ? -1 : 1;
+        }
       }
       return;
     }
@@ -215,7 +218,9 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     dir.normalize();
     final distance = minDistance + rand.nextDouble() * (maxDistance - minDistance);
     targetPosition = logicalPosition + dir * distance;
-    scale.x = (targetPosition.x > logicalPosition.x) == defaultFacingRight ? 1 : -1;
+    if (enableMirror) {
+      scale.x = (targetPosition.x > logicalPosition.x) == defaultFacingRight ? 1 : -1;
+    }
   }
 
   void moveToTarget(Vector2 target) {

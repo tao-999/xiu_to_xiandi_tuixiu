@@ -18,7 +18,7 @@ class CollisionLogicHandler {
     // ✅ 动态 NPC / 怪物
     if (other is FloatingIslandDynamicMoverComponent) {
       final double logicalDistance = (player.logicalPosition - other.logicalPosition).length;
-      if (logicalDistance > 24) return;
+      if (logicalDistance > 30) return;
 
       switch (other.type) {
         case 'npc_1':

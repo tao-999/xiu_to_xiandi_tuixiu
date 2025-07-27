@@ -59,22 +59,92 @@ class ShallowOceanDecorator extends Component {
         allowedTerrains: {'shallow_ocean'},
         dynamicSpritesMap: {
           'shallow_ocean': [
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_1.png', 10),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_2.png', 5),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_3.png', 5),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_4.png', 5, defaultFacingRight: false),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_5.png', 10, defaultFacingRight: false),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_6.png', 2, defaultFacingRight: false),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_4.png', 10, defaultFacingRight: false),
           ],
         },
         dynamicTileSize: 128,
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
-        minDynamicObjectSize: 32,
+        minDynamicObjectSize: 16,
+        maxDynamicObjectSize: 32,
+        minSpeed: 20,
+        maxSpeed: 70,
+      ),
+    );
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'shallow_ocean'},
+        dynamicSpritesMap: {
+          'shallow_ocean': [
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_2.png', 5),
+          ],
+        },
+        dynamicTileSize: 128,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 48,
         maxDynamicObjectSize: 64,
         minSpeed: 20,
         maxSpeed: 70,
+      ),
+    );
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'shallow_ocean'},
+        dynamicSpritesMap: {
+          'shallow_ocean': [
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_1.png', 3),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_3.png', 5),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_5.png', 10, defaultFacingRight: false),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_6.png', 2, defaultFacingRight: false),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_7.png', 5),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_8.png', 5),
+          ],
+        },
+        dynamicTileSize: 256,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 100,
+        maxDynamicObjectSize: 128,
+        minSpeed: 20,
+        maxSpeed: 70,
+      ),
+    );
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'shallow_ocean'},
+        dynamicSpritesMap: {
+          'shallow_ocean': [
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_9.png', 1, enableMirror: false),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_10.png', 1, enableMirror: false),
+          ],
+        },
+        dynamicTileSize: 699,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 200,
+        maxDynamicObjectSize: 256,
+        minSpeed: 20,
+        maxSpeed: 30,
       ),
     );
   }
