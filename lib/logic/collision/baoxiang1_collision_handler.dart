@@ -14,12 +14,9 @@ class Baoxiang1CollisionHandler {
     required FloatingIslandStaticDecorationComponent chest,
     required Vector2 logicalOffset,
   }) {
-    print('📦 [Baoxiang1] 触发宝箱事件 @ ${chest.worldPosition}');
-
     // ✅ 同步判断是否已打开
     final isAlreadyOpened = TreasureChestStorage.isOpenedSync(chest.worldPosition);
     if (isAlreadyOpened) {
-      print('❌ [Baoxiang1] 宝箱已打开，忽略事件');
       return;
     }
 

@@ -18,7 +18,7 @@ class CollisionLogicHandler {
     // ✅ 动态 NPC / 怪物
     if (other is FloatingIslandDynamicMoverComponent) {
       final double logicalDistance = (player.logicalPosition - other.logicalPosition).length;
-      if (logicalDistance > 30) return;
+      // if (logicalDistance > 30) return;
 
       switch (other.type) {
         case 'npc_1':
@@ -43,7 +43,7 @@ class CollisionLogicHandler {
     // ✅ 静态装饰物
     else if (other is FloatingIslandStaticDecorationComponent) {
       final double logicalDistance = (player.logicalPosition - other.worldPosition).length;
-      if (logicalDistance > 32) return;
+      // if (logicalDistance > 32) return;
 
       final key = _getComponentKey(other);
       if (_staticCollisionLock.contains(key)) return;
@@ -93,5 +93,6 @@ class CollisionLogicHandler {
 
     monster.logicalPosition -= rebound * 10;
     monster.pickNewTarget();
+
   }
 }
