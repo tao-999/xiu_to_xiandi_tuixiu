@@ -14,14 +14,13 @@ import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/effects/logical_move_effect.dart';
 
 class Boss1CollisionHandler {
-
   static void handle({
     required FloatingIslandPlayerComponent player,
     required FloatingIslandDynamicMoverComponent boss,
     required Vector2 logicalOffset,
   }) {
     print('👹 [Boss1] 玩家靠近 Boss → pos=${boss.logicalPosition}');
-    print('🧾 Boss 属性：HP=${boss.hp}, ATK=${boss.atk}, DEF=${boss.def}');
+    print('🧾 Boss 属性：HP=${boss.currentHp}/${boss.hp}, ATK=${boss.atk}, DEF=${boss.def}');
     print('⏳ collisionCooldown = ${boss.collisionCooldown.toStringAsFixed(2)} 秒');
 
     final rand = Random();
@@ -35,16 +34,16 @@ class Boss1CollisionHandler {
 
         final playerAtk = PlayerStorage.getAtk(playerData);
         final bossDef = boss.def ?? 0;
-        final bossHp = boss.hp ?? 0;
+        final bossHp = boss.currentHp;
 
         final damage = (playerAtk - bossDef).clamp(1, double.infinity).toDouble();
-        final newHp = (bossHp - damage).clamp(0, double.infinity).toDouble();
-        boss.hp = newHp;
+        final newHp = (bossHp - damage).clamp(0, boss.hp!).toDouble(); // ✅ maxHp 不动，currentHp 扣血
+        boss.currentHp = newHp;
 
-        // ✅ 同步血条（用 newHp 当 maxHp）
+        // ✅ 同步血条
         boss.hpBar?.setStats(
           currentHp: newHp.toInt(),
-          maxHp: boss.hp!.toInt(), // 用最新 hp，当作 maxHp
+          maxHp: boss.hp!.toInt(),
           atk: boss.atk?.toInt() ?? 0,
           def: boss.def?.toInt() ?? 0,
         );
@@ -58,11 +57,11 @@ class Boss1CollisionHandler {
           fontSize: 18,
         ));
 
+        // ✅ Boss 死亡逻辑
         if (newHp <= 0) {
           final tileKey = boss.spawnedTileKey;
           final deathPos = boss.logicalPosition.clone();
 
-          // ✅ 记录死亡 tileKey 和坐标
           if (boss.type != null) {
             DeadBossStorage.markDeadBoss(
               tileKey: boss.spawnedTileKey,
@@ -72,7 +71,6 @@ class Boss1CollisionHandler {
             );
           }
 
-          // ✅ 移除boss组件
           boss.removeFromParent();
           boss.hpBar?.removeFromParent();
           boss.hpBar = null;
@@ -83,8 +81,7 @@ class Boss1CollisionHandler {
           print('☠️ Boss1 已被击败！tileKey=$tileKey');
 
           // ✅ 发放灵石奖励
-          final rand = Random();
-          final r = rand.nextDouble(); // 概率衰减判断
+          final r = rand.nextDouble();
           LingShiType type;
           if (r < 0.7) {
             type = LingShiType.lower;
@@ -100,7 +97,7 @@ class Boss1CollisionHandler {
           late int count;
           switch (type) {
             case LingShiType.lower:
-              count = bossAtk.toInt(); // ✅ 转换为 int
+              count = bossAtk.toInt();
               break;
             case LingShiType.middle:
               count = (bossAtk ~/ 8).clamp(1, 9999);
@@ -153,7 +150,7 @@ class Boss1CollisionHandler {
     final playerTargetPos = player.logicalPosition - direction * pushDistance;
     player.moveTo(playerTargetPos);
 
-    // ✅【3】嘴臭（根据属性判断 嘲讽 / 暴怒）
+    // ✅【3】嘴臭逻辑
     if (boss.tauntCooldown <= 0) {
       boss.tauntCooldown = double.infinity;
 
@@ -198,3 +195,4 @@ class Boss1CollisionHandler {
     }
   }
 }
+

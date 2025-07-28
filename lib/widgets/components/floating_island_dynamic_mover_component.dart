@@ -36,7 +36,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   bool isMoveLocked = false;
   Vector2? _externalTarget;
 
-  double? hp;
+  double? hp; // ✅ 表示 maxHp
+  double currentHp = 0; // ✅ 当前血量，动态变化
   double? atk;
   double? def;
   bool isDead = false;
@@ -83,6 +84,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     await super.onLoad();
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
+    currentHp = hp ?? 100; // ✅ 初始化当前血量
+
     if (labelText != null && labelText!.isNotEmpty) {
       label = TextComponent(
         text: labelText!,
@@ -104,13 +107,12 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         ..anchor = Anchor.bottomCenter
         ..position = position - Vector2(0, size.y + 24)
         ..priority = 9998;
-
       parent?.add(hpBar!);
 
       Future.delayed(Duration.zero, () {
         hpBar?.setStats(
-          currentHp: hp!.toInt(),
-          maxHp: hp!.toInt(),
+          currentHp: currentHp.toInt(),
+          maxHp: hp!.toInt(), // ✅ 使用 maxHp
           atk: atk!.toInt(),
           def: def!.toInt(),
         );
@@ -199,14 +201,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
   void updateVisualPosition(Vector2 logicalOffset) {
     position = logicalPosition - logicalOffset;
-
-    if (label != null) {
-      label!.position = position - Vector2(0, size.y + 4);
-    }
-
-    if (hpBar != null) {
-      hpBar!.position = position - Vector2(0, size.y + 24);
-    }
+    label?.position = position - Vector2(0, size.y + 4);
+    hpBar?.position = position - Vector2(0, size.y + 24);
   }
 
   void pickNewTarget() {
@@ -243,16 +239,11 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       final direction = delta.length > 0.01
           ? delta.normalized()
           : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
-
-      final pushDistance = 2.0;
-      logicalPosition += direction * pushDistance;
-
+      logicalPosition += direction * 2.0;
       pickNewTarget();
-
       if (spawner is FloatingIslandDynamicSpawnerComponent) {
         updateVisualPosition(spawner.getLogicalOffset());
       }
-
       return;
     }
 
@@ -262,9 +253,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
           ? delta.normalized()
           : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
 
-      final pushDistance = 1.0;
-      logicalPosition += direction * pushDistance;
-      other.logicalPosition -= direction * pushDistance;
+      logicalPosition += direction * 1.0;
+      other.logicalPosition -= direction * 1.0;
 
       pickNewTarget();
       other.pickNewTarget();
@@ -273,3 +263,4 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     super.onCollision(points, other);
   }
 }
+

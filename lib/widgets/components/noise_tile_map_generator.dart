@@ -69,18 +69,31 @@ class NoiseTileMapGenerator extends PositionComponent {
     final endChunkX = (bottomRight.x / chunkPixelSize).ceil();
     final endChunkY = (bottomRight.y / chunkPixelSize).ceil();
 
+    final paint = ui.Paint()
+      ..isAntiAlias = false
+      ..filterQuality = ui.FilterQuality.none; // ✅ 禁止插值采样
+
     for (int cx = startChunkX; cx <= endChunkX; cx++) {
       for (int cy = startChunkY; cy <= endChunkY; cy++) {
         final key = '${cx}_$cy';
-        final chunkOrigin = Vector2(cx * chunkPixelSize.toDouble(), cy * chunkPixelSize.toDouble());
-        final paintOffset = chunkOrigin - logicalOffset;
-        final dx = (paintOffset.x * scale).floorToDouble();
-        final dy = (paintOffset.y * scale).floorToDouble();
-
         final img = _readyChunks[key];
-        if (img != null) {
-          canvas.drawImage(img, ui.Offset(dx, dy), ui.Paint());
-        }
+        if (img == null) continue;
+
+        final chunkOrigin = Vector2(
+          cx * chunkPixelSize.toDouble(),
+          cy * chunkPixelSize.toDouble(),
+        );
+        final paintOffset = chunkOrigin - logicalOffset;
+
+        final dx = (paintOffset.x * scale).floorToDouble(); // ✅ 对齐整像素
+        final dy = (paintOffset.y * scale).floorToDouble();
+        final dw = (chunkPixelSize * scale).ceilToDouble(); // ✅ 防止出现缝
+        final dh = (chunkPixelSize * scale).ceilToDouble();
+
+        final src = ui.Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
+        final dst = ui.Rect.fromLTWH(dx, dy, dw, dh);
+
+        canvas.drawImageRect(img, src, dst, paint);
       }
     }
   }
@@ -110,11 +123,18 @@ class NoiseTileMapGenerator extends PositionComponent {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
 
+    // ✅ 多画一圈：往外延伸 1 个 tile
+    final extra = tileSize;
+    final startX = -extra;
+    final startY = -extra;
+    final endX = chunkPixelSize + extra;
+    final endY = chunkPixelSize + extra;
+
     final originX = cx * chunkPixelSize.toDouble();
     final originY = cy * chunkPixelSize.toDouble();
 
-    for (double x = 0; x < chunkPixelSize; x += tileSize) {
-      for (double y = 0; y < chunkPixelSize; y += tileSize) {
+    for (double x = startX; x < endX; x += tileSize) {
+      for (double y = startY; y < endY; y += tileSize) {
         _renderAdaptiveTile(
           canvas,
           originX + x,
@@ -126,6 +146,8 @@ class NoiseTileMapGenerator extends PositionComponent {
     }
 
     final picture = recorder.endRecording();
+
+    // ✅ 生成图像大小仍然是 chunkPixelSize（不变）
     return picture.toImage(chunkPixelSize, chunkPixelSize);
   }
 
@@ -175,11 +197,14 @@ class NoiseTileMapGenerator extends PositionComponent {
     final terrain = _getTerrainType(nx, ny);
     final color = _getColorForTerrain(terrain);
 
-    final dx = (screenX * scale).roundToDouble();
-    final dy = (screenY * scale).roundToDouble();
-    final pxSize = (size * scale).roundToDouble();
+    final dx = (screenX * scale).floorToDouble(); // ✅ 保证整像素起点
+    final dy = (screenY * scale).floorToDouble();
+    final pxSize = (size * scale).ceilToDouble(); // ✅ 保证不漏一像素
 
-    final paint = ui.Paint()..color = color;
+    final paint = ui.Paint()
+      ..color = color
+      ..isAntiAlias = false;
+
     canvas.drawRect(ui.Rect.fromLTWH(dx, dy, pxSize, pxSize), paint);
   }
 
