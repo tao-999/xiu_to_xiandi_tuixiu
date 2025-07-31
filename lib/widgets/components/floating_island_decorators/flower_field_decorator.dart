@@ -42,10 +42,10 @@ class FlowerFieldDecorator extends Component {
         },
         staticTileSize: 128.0,
         seed: seed,
-        minCount: 5,
-        maxCount: 10,
-        minSize: 32.0,
-        maxSize: 64.0,
+        minCount: 3,
+        maxCount: 9,
+        minSize: 16.0,
+        maxSize: 48.0,
       ),
     );
 
@@ -66,10 +66,10 @@ class FlowerFieldDecorator extends Component {
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
-        minDynamicObjectSize: 16.0,
-        maxDynamicObjectSize: 32.0,
+        minDynamicObjectSize: 8.0,
+        maxDynamicObjectSize: 16.0,
         minSpeed: 15.0,
-        maxSpeed: 55.0,
+        maxSpeed: 35.0,
       ),
     );
   }

@@ -65,10 +65,12 @@ class ForestDecorator extends Component {
           'forest': [
             DynamicSpriteEntry('floating_island/tree_d_1.png', 1,
               defaultFacingRight: false,
+              priority: 9,
             ),
             DynamicSpriteEntry(
               'floating_island/tree_d_2.png',
               1,
+              priority: 9,
               defaultFacingRight: false,
             ),
             DynamicSpriteEntry('floating_island/tree_d_3.png', 1),

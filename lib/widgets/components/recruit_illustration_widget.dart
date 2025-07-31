@@ -47,13 +47,13 @@ class _RecruitIllustrationWidgetState extends State<RecruitIllustrationWidget>
       child: Align(
         alignment: Alignment.bottomCenter,
         child: Container(
-          height: 400,
+          height: 200,
           margin: const EdgeInsets.only(bottom: 20),
           child: Stack(
             alignment: Alignment.bottomCenter,
             children: [
               Positioned(
-                bottom: 20,
+                bottom: 0,
                 child: Container(
                   width: 260,
                   height: 30,

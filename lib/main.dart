@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io'; // ✅ 新增：平台判断
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_size/window_size.dart'; // ✅ 新增：窗口控制
+import 'package:xiu_to_xiandi_tuixiu/pages/page_floating_island.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/route_observer.dart';
 
 import 'models/disciple.dart';
@@ -12,14 +16,18 @@ import 'models/weapon.dart';
 import 'models/pill.dart';
 import 'models/character.dart';
 import 'pages/page_create_role.dart';
-import 'pages/page_root.dart';
 import 'widgets/effects/touch_effect_overlay.dart';
 import 'utils/app_lifecycle_manager.dart';
 
 void main() async {
-  // ✅ 捕获最外层所有异常
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+
+    // ✅ 桌面端设置窗口标题和最小尺寸
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      setWindowTitle('修到仙帝退休 · 桌面版');
+      setWindowMinSize(const Size(1280, 720));
+    }
 
     // ✅ 沉浸式 + 白色图标
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -33,7 +41,9 @@ void main() async {
     );
 
     debugPrint('✅ 准备初始化 Hive...');
-    await Hive.initFlutter();
+    // ✅ 获取安全的应用目录（不要用 getApplicationDocumentsDirectory，会踩坑）
+    final Directory dir = await getApplicationSupportDirectory();
+    Hive.init(dir.path); // ✅ 手动指定路径，避免“拒绝访问”错误
 
     // ✅ 注册所有模型
     Hive.registerAdapter(DiscipleAdapter());
@@ -98,7 +108,7 @@ class XiudiApp extends StatelessWidget {
       home: Scaffold(
         body: Stack(
           children: [
-            hasCreatedRole ? const XiudiRoot() : const CreateRolePage(),
+            hasCreatedRole ? const FloatingIslandPage() : const CreateRolePage(),
             const TouchEffectOverlay(),
             const Positioned(
               top: 0,

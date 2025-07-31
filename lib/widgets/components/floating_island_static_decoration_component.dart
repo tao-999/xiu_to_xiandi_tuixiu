@@ -17,6 +17,7 @@ class FloatingIslandStaticDecorationComponent extends SpriteComponent
     size: size,
     anchor: anchor,
     position: worldPosition - logicalOffset, // ✅ 初始化视觉位置
+    priority: 10,
   ) {
     _worldPosition = worldPosition;
   }

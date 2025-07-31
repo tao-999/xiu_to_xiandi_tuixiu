@@ -45,74 +45,80 @@ class _ZongmenDiscipleInfoPanelState extends State<ZongmenDiscipleInfoPanel> {
     final bool isMaxLevel = d.realmLevel >= ZongmenDiscipleService.maxRealmLevel;
     final realmName = ZongmenDiscipleService.getRealmNameByLevel(d.realmLevel);
 
-    return Stack(
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 720),
+        child: Stack(
           children: [
-            _buildInfoRowWithPillButton('道号', d.name),
-            _buildInfoRow(
-              '境界',
-              isMaxLevel ? '$realmName（已满级）' : realmName,
-              showPlus: !isMaxLevel,
-              onPlusTap: isMaxLevel
-                  ? null
-                  : () {
-                showDialog(
-                  context: context,
-                  builder: (_) => ImproveDiscipleRealmDialog(
-                    disciple: d,
-                    onRealmUpgraded: _refreshDisciple,
-                  ),
-                );
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInfoRowWithPillButton('道号', d.name),
+                _buildInfoRow(
+                  '境界',
+                  isMaxLevel ? '$realmName（已满级）' : realmName,
+                  showPlus: !isMaxLevel,
+                  onPlusTap: isMaxLevel
+                      ? null
+                      : () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => ImproveDiscipleRealmDialog(
+                        disciple: d,
+                        onRealmUpgraded: _refreshDisciple,
+                      ),
+                    );
+                  },
+                ),
+                _buildInfoRow('战力', formatAnyNumber(ZongmenDiscipleService.calculatePower(d))),
+                _buildStatRow('血量', d.hp, d.extraHp),
+                _buildStatRow('攻击', d.atk, d.extraAtk),
+                _buildStatRow('防御', d.def, d.extraDef),
+                _buildInfoRow(
+                  '资质',
+                  '${d.aptitude}',
+                  showPlus: true,
+                  onPlusTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AptitudeCharmDialog(
+                        disciple: d,
+                        onUpdated: _refreshDisciple,
+                      ),
+                    );
+                  },
+                ),
+                _buildInfoRow('职位', '${d.role}'),
+                _buildInfoRow('资料', d.description),
+              ],
             ),
-            _buildInfoRow('战力', formatAnyNumber(ZongmenDiscipleService.calculatePower(d))),
-            _buildStatRow('血量', d.hp, d.extraHp),
-            _buildStatRow('攻击', d.atk, d.extraAtk),
-            _buildStatRow('防御', d.def, d.extraDef),
-            _buildInfoRow(
-              '资质',
-              '${d.aptitude}',
-              showPlus: true,
-              onPlusTap: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => AptitudeCharmDialog(
-                    disciple: d,
-                    onUpdated: _refreshDisciple,
-                  ),
-                );
-              },
+
+            // ❤️ 好感度组件
+            Positioned(
+              top: 0,
+              right: 0,
+              child: FavorabilityHeart(
+                disciple: d,
+                onFavorabilityChanged: (updated) {
+                  setState(() => d = updated);
+                  widget.onDiscipleChanged?.call(updated);
+                },
+              ),
             ),
-            _buildInfoRow('职位', '${d.role}'),
-            _buildInfoRow('资料', d.description),
+
+            // 🛡️ 封装后装备区域
+            Positioned(
+              top: 80,
+              right: 0,
+              child: DiscipleEquipDialog(
+                currentOwnerId: d.id,
+                onChanged: _refreshDisciple,
+              ),
+            ),
           ],
         ),
-
-        // ❤️ 好感度组件
-        Positioned(
-          top: 0,
-          right: 0,
-          child: FavorabilityHeart(
-            disciple: d,
-            onFavorabilityChanged: (updated) {
-              setState(() => d = updated);
-              widget.onDiscipleChanged?.call(updated);
-            },
-          ),
-        ),
-
-        // 🛡️ 封装后装备区域
-        Positioned(
-          top: 80,
-          right: 0,
-          child: DiscipleEquipDialog(
-            currentOwnerId: d.id,
-            onChanged: _refreshDisciple,
-          ),
-        ),
-      ],
+      ),
     );
   }
 

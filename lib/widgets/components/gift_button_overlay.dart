@@ -12,7 +12,8 @@ class GiftButtonOverlay extends StatefulWidget {
   State<GiftButtonOverlay> createState() => _GiftButtonOverlayState();
 }
 
-class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindingObserver {
+class _GiftButtonOverlayState extends State<GiftButtonOverlay>
+    with WidgetsBindingObserver {
   DateTime? _lastClaimed;
   Timer? _countdownTimer;
   Duration _remaining = Duration.zero;
@@ -54,7 +55,8 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindi
     }
     final nextClaim = _lastClaimed!.add(GiftService.cooldown);
     final now = DateTime.now();
-    _remaining = nextClaim.isAfter(now) ? nextClaim.difference(now) : Duration.zero;
+    _remaining =
+    nextClaim.isAfter(now) ? nextClaim.difference(now) : Duration.zero;
   }
 
   void _startCountdown() {
@@ -75,7 +77,7 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindi
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        backgroundColor: Color(0xFFF9F5E3),
+        backgroundColor: const Color(0xFFF9F5E3),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         title: const Text(
           '🎁 修仙大礼包',
@@ -93,9 +95,12 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindi
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 12),
-            Text('💰 下品灵石 ×${preview.spiritStone}', style: const TextStyle(fontSize: 13)),
-            Text('📜 招募券 ×${preview.recruitTicket}', style: const TextStyle(fontSize: 13)),
-            Text('🧬 资质提升券 ×${preview.fateCharm}', style: const TextStyle(fontSize: 13)),
+            Text('💰 下品灵石 ×${preview.spiritStone}',
+                style: const TextStyle(fontSize: 13)),
+            Text('📜 招募券 ×${preview.recruitTicket}',
+                style: const TextStyle(fontSize: 13)),
+            Text('🧬 资质提升券 ×${preview.fateCharm}',
+                style: const TextStyle(fontSize: 13)),
             const SizedBox(height: 16),
             const Text(
               '请点击下方领取，方可继续修行！',
@@ -152,33 +157,25 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay> with WidgetsBindi
       final m = _remaining.inMinutes % 60;
       final s = _remaining.inSeconds % 60;
 
-      return Positioned(
-        top: 30,
-        right: 20,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: Text(
-            '下次领取：${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
-            style: const TextStyle(color: Colors.white, fontSize: 12),
-          ),
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Text(
+          '下次领取：${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
+          style: const TextStyle(color: Colors.black, fontSize: 12),
         ),
       );
     }
 
-    return Positioned(
-      top: 30,
-      right: 20,
-      child: GestureDetector(
-        onTap: _showGiftDialog,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          child: const Row(
-            children: [
-              Icon(Icons.card_giftcard, color: Colors.white, size: 20),
-              SizedBox(width: 6),
-              Text('修仙大礼包', style: TextStyle(color: Colors.white, fontSize: 14)),
-            ],
-          ),
+    return GestureDetector(
+      onTap: _showGiftDialog,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: const Row(
+          children: [
+            Icon(Icons.card_giftcard, color: Colors.black, size: 20),
+            SizedBox(width: 6),
+            Text('修仙大礼包', style: TextStyle(color: Colors.black, fontSize: 14)),
+          ],
         ),
       ),
     );

@@ -10,7 +10,7 @@ import 'package:xiu_to_xiandi_tuixiu/pages/page_xianling_qizhen.dart';
 import '../../pages/page_market.dart';
 import '../../pages/page_naihe_bridge.dart';
 import '../../pages/page_youming_hell.dart';
-import '../../pages/✅ page_floating_island.dart';
+import '../../pages/page_floating_island.dart';
 
 class YouliMapGame extends FlameGame {
   final BuildContext context;

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/cultivator_info_card.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/resource_bar.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/cultivation_status_panel.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/cultivation_boost_dialog.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/aptitude_upgrade_dialog.dart';
@@ -18,13 +17,10 @@ class CharacterPage extends StatefulWidget {
 }
 
 class _CharacterPageState extends State<CharacterPage> {
-  /// GlobalKey 用于刷新资源条
-  final GlobalKey<ResourceBarState> _resourceBarKey = GlobalKey<ResourceBarState>();
 
   /// 手动触发刷新用
   Future<void> _reloadData() async {
     setState(() {}); // ✅ 重新触发 FutureBuilder
-    _resourceBarKey.currentState?.refresh();
   }
 
   @override
@@ -54,9 +50,6 @@ class _CharacterPageState extends State<CharacterPage> {
                   fit: BoxFit.cover,
                 ),
               ),
-
-              /// 顶部资源条
-              ResourceBar(key: _resourceBarKey),
 
               /// 中央修为进度 + 角色信息
               Align(

@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
 
 class BackButtonOverlay extends StatelessWidget {
-  const BackButtonOverlay({super.key});
+  final Widget? targetPage;
+
+  const BackButtonOverlay({super.key, this.targetPage});
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
       left: 0,
-      bottom:-35,
+      bottom: -35,
       child: GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
+        onTap: () {
+          if (targetPage != null) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => targetPage!),
+            );
+          } else {
+            Navigator.of(context).pop();
+          }
+        },
         child: SizedBox(
           width: 82,
           height: 82,
           child: Image.asset(
-            'assets/images/back.png', // 确保你放在了 assets/images/ 目录
+            'assets/images/back.png',
             fit: BoxFit.contain,
           ),
         ),

@@ -1,5 +1,3 @@
-// 📂 widgets/jishi/duihuan_lingshi.dart
-
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,24 +43,27 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
           child: StatefulBuilder(
             builder: (context, setDialogState) => Padding(
               padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('灵石兑换', style: TextStyle(fontSize: 16, color: Colors.black87)),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildTypeSelector(true, setDialogState),
-                      const Icon(Icons.arrow_forward, color: Colors.black54),
-                      _buildTypeSelector(false, setDialogState),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildInputSection(setDialogState),
-                  const SizedBox(height: 12),
-                  _buildBalanceDisplay(),
-                ],
+              child: SizedBox(
+                width: 500,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('灵石兑换', style: TextStyle(fontSize: 16, color: Colors.black87)),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildTypeSelector(true, setDialogState),
+                        const Icon(Icons.arrow_forward, color: Colors.black54),
+                        _buildTypeSelector(false, setDialogState),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInputSection(setDialogState),
+                    const SizedBox(height: 12),
+                    _buildBalanceDisplay(),
+                  ],
+                ),
               ),
             ),
           ),
@@ -253,8 +254,8 @@ class _DuihuanLingshiState extends State<DuihuanLingshi> {
       onTap: () => _showDuihuanDialog(context),
       child: Image.asset(
         'assets/images/jishi_duihuanlingshi.png',
-        width: 82,
-        height: 82,
+        width: 128,
+        height: 128,
       ),
     );
   }

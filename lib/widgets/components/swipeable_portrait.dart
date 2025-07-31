@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart'; // ✅ 加这个！
+
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_disciple_service.dart';
 import '../../models/disciple.dart';
 
@@ -34,9 +36,7 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
   void initState() {
     super.initState();
 
-    // 先用 0 初始化，等加载完路径再跳转
     _controller = PageController(initialPage: 0);
-
     _initAvailablePaths();
 
     _controller.addListener(() async {
@@ -73,7 +73,6 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
     final ext = path.substring(dotIndex + 1);
     var base = path.substring(0, dotIndex);
 
-    // 如果末尾是 _数字，就去掉
     final underscore = base.lastIndexOf('_');
     if (underscore != -1) {
       final maybeNumber = base.substring(underscore + 1);
@@ -119,7 +118,6 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
         _currentPage = targetIndex;
       });
 
-      // 🌟 初始化后跳转到正确页
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _controller.jumpToPage(targetIndex);
       });
@@ -148,45 +146,53 @@ class _SwipeablePortraitState extends State<SwipeablePortrait> {
         if (locked) return;
         widget.onTap?.call();
       },
-      child: PageView.builder(
-        controller: _controller,
-        itemCount: _availablePaths.length,
-        physics: widget.isHidden && _availablePaths.length > 1
-            ? const PageScrollPhysics()
-            : const NeverScrollableScrollPhysics(),
-        itemBuilder: (context, index) {
-          final requiredFavorability = index * _unlockFavorability;
-          final locked = widget.favorability < requiredFavorability;
+      child: ScrollConfiguration(
+        behavior: const MaterialScrollBehavior().copyWith(
+          dragDevices: {
+            PointerDeviceKind.touch,
+            PointerDeviceKind.mouse, // ✅ 支持鼠标拖动
+          },
+        ),
+        child: PageView.builder(
+          controller: _controller,
+          itemCount: _availablePaths.length,
+          physics: widget.isHidden && _availablePaths.length > 1
+              ? const PageScrollPhysics()
+              : const NeverScrollableScrollPhysics(),
+          itemBuilder: (context, index) {
+            final requiredFavorability = index * _unlockFavorability;
+            final locked = widget.favorability < requiredFavorability;
 
-          return Stack(
-            children: [
-              Center(
-                child: Image.asset(
-                  _availablePaths[index],
-                  fit: BoxFit.contain,
-                  alignment: Alignment.topCenter,
-                  color: locked ? Colors.grey : null,
-                  colorBlendMode: locked ? BlendMode.saturation : null,
+            return Stack(
+              children: [
+                Center(
+                  child: Image.asset(
+                    _availablePaths[index],
+                    fit: BoxFit.contain,
+                    alignment: Alignment.topCenter,
+                    color: locked ? Colors.grey : null,
+                    colorBlendMode: locked ? BlendMode.saturation : null,
+                  ),
                 ),
-              ),
-              if (locked)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: Text(
-                      '好感度$requiredFavorability解锁 🔒',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                if (locked)
+                  Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: Text(
+                        '好感度$requiredFavorability解锁 🔒',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

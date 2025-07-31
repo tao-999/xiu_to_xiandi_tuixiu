@@ -81,6 +81,8 @@ class DynamicSpriteEntry {
   /// 自动追击的范围
   final double? autoChaseRange;
 
+  final int? priority;
+
   const DynamicSpriteEntry(
       this.path,
       this.weight, {
@@ -108,5 +110,6 @@ class DynamicSpriteEntry {
         this.hp,
         this.enableAutoChase = false,
         this.autoChaseRange,
+        this.priority,
       });
 }

@@ -28,7 +28,7 @@ class DisciplePillConsumer extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: SizedBox(
-            width: double.infinity,
+            width: 420, // ✅ 固定宽度
             child: pills.isEmpty
                 ? Column(
               mainAxisSize: MainAxisSize.min,

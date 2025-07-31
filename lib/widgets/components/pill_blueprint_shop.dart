@@ -111,8 +111,8 @@ class _PillBlueprintDialogContentState extends State<_PillBlueprintDialogContent
     }
 
     return SizedBox(
-      width: 360,
-      height: 480,
+      width: 500,
+      height: 720,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(

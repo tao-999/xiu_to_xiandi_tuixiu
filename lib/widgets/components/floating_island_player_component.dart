@@ -8,11 +8,16 @@ import 'package:xiu_to_xiandi_tuixiu/utils/player_sprite_util.dart';
 import '../../utils/collision_logic_handler.dart';
 import '../../utils/terrain_event_util.dart';
 import 'floating_island_static_decoration_component.dart';
+import 'resource_bar.dart';
 
 class FloatingIslandPlayerComponent extends SpriteComponent
     with HasGameReference, CollisionCallbacks {
-  FloatingIslandPlayerComponent()
-      : super(size: Vector2.all(32), anchor: Anchor.center);
+  FloatingIslandPlayerComponent({
+    required this.resourceBarKey,
+  }) : super(size: Vector2.all(32), anchor: Anchor.center, priority: 1000,);
+
+  /// 🌍 资源栏 key，用于刷新 UI
+  final GlobalKey<ResourceBarState> resourceBarKey;
 
   /// 🚀 逻辑世界坐标（用来移动、碰撞）
   Vector2 logicalPosition = Vector2.zero();
@@ -83,10 +88,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       mapGame.logicalOffset = logicalPosition.clone();
     }
 
-    // ✅ 实时 Y 排序
-    priority = ((logicalPosition.y + 1e14) * 1000).toInt();
-
-    // ✅ 🆕 在逻辑坐标更新后，实时检查哪些静态组件已离开 → 解锁
+    // ✅ 🆕 实时更新组件解锁状态
     final staticList = parent?.children
         .whereType<FloatingIslandStaticDecorationComponent>()
         .toList();
@@ -119,6 +121,10 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     _targetPosition = null;
   }
 
+  void syncVisualPosition(Vector2 logicalOffset) {
+    position = logicalPosition - logicalOffset;
+  }
+
   bool get isMoving => _targetPosition != null;
 
   @override
@@ -129,6 +135,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       player: this,
       logicalOffset: mapGame.logicalOffset,
       other: other,
+      resourceBarKey: resourceBarKey, // ✅ 加上传入
     );
   }
 }

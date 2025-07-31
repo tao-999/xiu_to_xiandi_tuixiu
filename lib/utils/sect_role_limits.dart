@@ -68,7 +68,7 @@ class SectRoleLimits {
       case '长老':
         return Colors.redAccent;
       case '执事':
-        return Colors.green;
+        return Colors.blueAccent;
       default:
         return Colors.black87;
     }

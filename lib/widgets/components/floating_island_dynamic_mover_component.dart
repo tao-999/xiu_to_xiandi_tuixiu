@@ -4,7 +4,6 @@ import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart';
 
 import 'floating_island_dynamic_spawner_component.dart';
-import 'floating_island_static_decoration_component.dart';
 import 'floating_island_player_component.dart';
 import 'hp_bar_wrapper.dart';
 
@@ -47,6 +46,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   final bool enableAutoChase;
   final double? autoChaseRange;
   final String spawnedTileKey;
+  final int? customPriority;
 
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
@@ -71,12 +71,14 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     this.enableAutoChase = false,
     this.autoChaseRange,
     this.enableMirror = true,
+    this.customPriority,
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
         sprite: sprite,
         size: size ?? Vector2.all(48),
         anchor: Anchor.bottomCenter,
+        priority: customPriority ?? 11,
       );
 
   @override
@@ -232,32 +234,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (onCustomCollision != null) {
       onCustomCollision!(points, other);
       return;
-    }
-
-    if (other is FloatingIslandStaticDecorationComponent) {
-      final delta = logicalPosition - other.worldPosition;
-      final direction = delta.length > 0.01
-          ? delta.normalized()
-          : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
-      logicalPosition += direction * 2.0;
-      pickNewTarget();
-      if (spawner is FloatingIslandDynamicSpawnerComponent) {
-        updateVisualPosition(spawner.getLogicalOffset());
-      }
-      return;
-    }
-
-    if (other is FloatingIslandDynamicMoverComponent && other != this) {
-      final delta = logicalPosition - other.logicalPosition;
-      final direction = delta.length > 0.01
-          ? delta.normalized()
-          : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
-
-      logicalPosition += direction * 1.0;
-      other.logicalPosition -= direction * 1.0;
-
-      pickNewTarget();
-      other.pickNewTarget();
     }
 
     super.onCollision(points, other);

@@ -24,7 +24,11 @@ class NoiseUtils {
 
   /// 🌱 Perlin噪声 (支持repeat)
   double perlin(double x, double y, [int? repeat]) {
-    if (repeat != null) {
+    if (x.isNaN || y.isNaN || x.isInfinite || y.isInfinite) {
+      throw Exception('💥 Invalid input to perlin: x=$x, y=$y');
+    }
+
+    if (repeat != null && repeat > 0) {
       x = x % repeat;
       y = y % repeat;
     }

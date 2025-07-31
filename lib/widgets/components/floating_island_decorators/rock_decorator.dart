@@ -36,16 +36,20 @@ class RockDecorator extends Component {
           'rock': [
             StaticSpriteEntry('floating_island/rock_1.png', 40),
             StaticSpriteEntry('floating_island/rock_2.png', 30),
-            StaticSpriteEntry('floating_island/rock_3.png', 1),
-            StaticSpriteEntry('floating_island/rock_4.png', 1, fixedSize: 128.0, minCount: 0, maxCount: 1),
-            StaticSpriteEntry('floating_island/rock_5.png', 1, fixedSize: 128.0, minCount: 0, maxCount: 1),
-            StaticSpriteEntry('floating_island/rock_6.png', 30),
+            StaticSpriteEntry('floating_island/rock_3.png', 2),
+            StaticSpriteEntry('floating_island/rock_4.png', 10),
+            StaticSpriteEntry('floating_island/rock_5.png', 10),
+            StaticSpriteEntry('floating_island/rock_6.png', 10, priority: 0),
+            StaticSpriteEntry('floating_island/rock_7.png', 10),
+            StaticSpriteEntry('floating_island/rock_8.png', 10),
+            StaticSpriteEntry('floating_island/rock_9.png', 10),
+            StaticSpriteEntry('floating_island/rock_10.png', 10),
           ],
         },
-        staticTileSize: 128.0,
+        staticTileSize: 100.0,
         seed: seed,
-        minCount: 2,
-        maxCount: 4,
+        minCount: 1,
+        maxCount: 2,
         minSize: 48.0,
         maxSize: 64.0,
       ),
@@ -61,7 +65,7 @@ class RockDecorator extends Component {
         allowedTerrains: {'rock'},
         dynamicSpritesMap: {
           'rock': [
-            DynamicSpriteEntry('floating_island/rock_d_1.png', 1),
+            DynamicSpriteEntry('floating_island/rock_d_1.png', 1, defaultFacingRight: false),
             DynamicSpriteEntry('floating_island/rock_d_2.png', 1),
           ],
         },
@@ -73,6 +77,54 @@ class RockDecorator extends Component {
         maxDynamicObjectSize: 32,
         minSpeed: 50,
         maxSpeed: 120,
+        onDynamicComponentCreated: (mover, terrain) {
+          mover.onCustomCollision = (points, other) {
+            if (other is FloatingIslandPlayerComponent) {
+              debugPrint('✨ 动态漂浮物被角色撞: ${mover.spritePath}');
+            }
+          };
+        },
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'rock'},
+        dynamicSpritesMap: {
+          'rock': [
+            DynamicSpriteEntry('hell/diyu_1.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_2.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_3.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_4.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_5.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_6.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_7.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_8.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_9.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_10.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_11.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_12.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_13.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_14.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_15.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_16.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_17.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+            DynamicSpriteEntry('hell/diyu_18.png', 1, hp: 500, atk: 50, def: 20, type: 'boss_2', enableAutoChase: true, autoChaseRange: 200),
+          ],
+        },
+        dynamicTileSize: 784,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 48,
+        maxDynamicObjectSize: 64,
+        minSpeed: 35,
+        maxSpeed: 75,
         onDynamicComponentCreated: (mover, terrain) {
           mover.onCustomCollision = (points, other) {
             if (other is FloatingIslandPlayerComponent) {

@@ -228,6 +228,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         autoChaseRange: selected.autoChaseRange,
         spawnedTileKey: tileKey,
         enableMirror: selected.enableMirror,
+        customPriority: selected.priority,
       );
 
       onDynamicComponentCreated?.call(mover, terrain);

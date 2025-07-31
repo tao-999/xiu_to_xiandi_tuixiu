@@ -1,14 +1,13 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_floating_island.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/widgets/charts/polygon_radar_chart.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/effects/xiuxian_particle_background.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_root.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/name_generator.dart'; // 👈 引入名字生成器
+import 'package:xiu_to_xiandi_tuixiu/utils/name_generator.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/fantasy_radio_box.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/fancy_name_input.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/five_element_slider_group.dart';
@@ -147,94 +146,99 @@ class _CreateRolePageState extends State<CreateRolePage> {
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("灵魂投放 · 创建角色", style: TextStyle(fontSize: 20, color: Colors.black)),
-                  const SizedBox(height: 16),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("灵魂投放 · 创建角色", style: TextStyle(fontSize: 20, color: Colors.black)),
+                      const SizedBox(height: 16),
 
-                  /// 昵称输入 + 随机按钮
-                  FancyNameInput(
-                    value: nickname,
-                    onChanged: (val) => setState(() => nickname = val),
-                    onRandom: () => setState(() => nickname = NameGenerator.generate(isMale: gender == 'male')),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  /// 性别选择
-                  FantasyRadioGroup(
-                    groupLabel: "性别：",
-                    selected: gender, // 这里一定是 "male" 或 "female"
-                    options: ["male", "female"],
-                    onChanged: (val) => setState(() => gender = val),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  /// 五行分配
-                  WuxingAllocationPanel(
-                    gold: gold,
-                    wood: wood,
-                    water: water,
-                    fire: fire,
-                    earth: earth,
-                    onValueChanged: _updateValue,
-                  ),
-
-                  /// 雷达图展示
-                  Center(
-                    child: SizedBox(
-                      width: 240,
-                      height: 240,
-                      child: PolygonRadarChart(
-                        values: [gold, wood, water, fire, earth],
-                        labels: ['金', '木', '水', '火', '土'],
-                        max: 14,
-                        strokeColor: Colors.black87,
-                        fillColor: Colors.teal.withOpacity(0.2),
-                        labelStyle: const TextStyle(fontSize: 14, color: Colors.black),
+                      /// 昵称输入 + 随机按钮
+                      FancyNameInput(
+                        value: nickname,
+                        onChanged: (val) => setState(() => nickname = val),
+                        onRandom: () => setState(() => nickname = NameGenerator.generate(isMale: gender == 'male')),
                       ),
-                    ),
-                  ),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 12),
 
-                  /// 启灵按钮
-                  Center(
-                    child: InkWell(
-                      onTap: () async {
-                        if (nickname.trim().isEmpty) return;
-                        await _saveRoleData();
-                        ToastTip.show(context, "角色 $nickname 创建完成！");
-                        await Future.delayed(const Duration(seconds: 1));
-                        if (!mounted) return;
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const XiudiRoot()),
-                              (route) => false,
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.auto_awesome, size: 20, color: Colors.black),
-                            SizedBox(width: 6),
-                            Text(
-                              "确认启灵",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontFamily: 'ZcoolCangEr',
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
+                      /// 性别选择
+                      FantasyRadioGroup(
+                        groupLabel: "性别：",
+                        selected: gender,
+                        options: ["male", "female"],
+                        onChanged: (val) => setState(() => gender = val),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      /// 五行分配
+                      WuxingAllocationPanel(
+                        gold: gold,
+                        wood: wood,
+                        water: water,
+                        fire: fire,
+                        earth: earth,
+                        onValueChanged: _updateValue,
+                      ),
+
+                      /// 雷达图展示
+                      Center(
+                        child: SizedBox(
+                          width: 240,
+                          height: 240,
+                          child: PolygonRadarChart(
+                            values: [gold, wood, water, fire, earth],
+                            labels: ['金', '木', '水', '火', '土'],
+                            max: 14,
+                            strokeColor: Colors.black87,
+                            fillColor: Colors.teal.withOpacity(0.2),
+                            labelStyle: const TextStyle(fontSize: 14, color: Colors.black),
+                          ),
                         ),
                       ),
-                    ),
+
+                      const SizedBox(height: 24),
+
+                      /// 启灵按钮
+                      Center(
+                        child: InkWell(
+                          onTap: () async {
+                            if (nickname.trim().isEmpty) return;
+                            await _saveRoleData();
+                            ToastTip.show(context, "角色 $nickname 创建完成！");
+                            await Future.delayed(const Duration(seconds: 1));
+                            if (!mounted) return;
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(builder: (context) => const FloatingIslandPage()),
+                                  (route) => false,
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.auto_awesome, size: 20, color: Colors.black),
+                                SizedBox(width: 6),
+                                Text(
+                                  "确认启灵",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontFamily: 'ZcoolCangEr',
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),

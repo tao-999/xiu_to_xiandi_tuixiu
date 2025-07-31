@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_disciple_detail.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_zhaomu.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_disciple_card.dart';
@@ -50,8 +49,12 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
 
   Future<void> _loadSortOption() async {
     final option = await ZongmenDiscipleService.loadSortOption();
-    setState(() {
-      _sortOption = option;
+    Future.microtask(() {
+      if (mounted) {
+        setState(() {
+          _sortOption = option;
+        });
+      }
     });
   }
 
@@ -63,9 +66,13 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
       max = ZongmenStorage.calcMaxDiscipleCount(zongmen.sectLevel);
     }
 
-    setState(() {
-      disciples = list;
-      maxDiscipleCount = max;
+    Future.microtask(() {
+      if (mounted) {
+        setState(() {
+          disciples = list;
+          maxDiscipleCount = max;
+        });
+      }
     });
   }
 
@@ -130,7 +137,9 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
                   sortOption: _sortOption,
                   onSortChanged: (v) async {
                     await ZongmenDiscipleService.saveSortOption(v);
-                    setState(() => _sortOption = v);
+                    Future.microtask(() {
+                      if (mounted) setState(() => _sortOption = v);
+                    });
                   },
                   onInfoTap: () {
                     showDialog(
@@ -143,30 +152,35 @@ class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
                 Expanded(
                   child: sortedDisciples.isEmpty
                       ? EmptyDiscipleHint(onRecruitSuccess: _loadDisciples)
-                      : GridView.builder(
-                    padding: const EdgeInsets.only(top: 4),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: 3 / 4.5,
-                    ),
-                    itemCount: sortedDisciples.length,
-                    itemBuilder: (context, index) {
-                      final disciple = sortedDisciples[index];
-                      return GestureDetector(
-                        onTap: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DiscipleDetailPage(discipleId: disciple.id),
+                      : SingleChildScrollView(
+                    child: Center( // ✅ 整个卡片区域居中
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: sortedDisciples.map((disciple) {
+                          return GestureDetector(
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => DiscipleDetailPage(discipleId: disciple.id),
+                                ),
+                              );
+                              Future.microtask(() {
+                                if (mounted) _loadDisciples();
+                              });
+                            },
+                            child: SizedBox(
+                              width: 200,
+                              child: AspectRatio(
+                                aspectRatio: 3 / 4.5,
+                                child: ZongmenDiscipleCard(disciple: disciple),
+                              ),
                             ),
                           );
-                          _loadDisciples();
-                        },
-                        child: ZongmenDiscipleCard(disciple: disciple),
-                      );
-                    },
+                        }).toList(),
+                      ),
+                    ),
                   ),
                 ),
               ],

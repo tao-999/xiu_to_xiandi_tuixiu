@@ -105,7 +105,7 @@ class ZongmenDiscipleCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    "${formatAnyNumber(power)}",
+                    formatAnyNumber(power),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 11,

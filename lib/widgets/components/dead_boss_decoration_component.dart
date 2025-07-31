@@ -97,6 +97,7 @@ class DeadBossDecorationComponent extends Component with HasGameReference {
   String _getSpritePath(String type) {
     switch (type) {
       case 'boss_1':
+      case 'boss_2':
         return 'floating_island/beach_boss_1_dead.png';
       default:
         return 'floating_island/beach_boss_1_dead.png';

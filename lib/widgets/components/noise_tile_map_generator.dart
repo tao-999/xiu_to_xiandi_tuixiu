@@ -36,6 +36,7 @@ class NoiseTileMapGenerator extends PositionComponent {
 
   int _chunksGeneratedThisFrame = 0;
   Vector2? _lastEnsureCenter;
+  Vector2? _lastEnsureExtra;
 
   NoiseTileMapGenerator({
     this.tileSize = 4.0,
@@ -208,18 +209,31 @@ class NoiseTileMapGenerator extends PositionComponent {
     canvas.drawRect(ui.Rect.fromLTWH(dx, dy, pxSize, pxSize), paint);
   }
 
-  /// 🌟 双模式加载
+  /// 🌟 双模式加载（已修复：全屏后不刷新的问题）
   Future<void> ensureChunksForView({
     required Vector2 center,
     required Vector2 extra,
     bool forceImmediate = false,
   }) async {
     final roundedCenter = Vector2(center.x.roundToDouble(), center.y.roundToDouble());
+
+    // 🌟 新增：记录上次 extra 区域大小
+    double extraArea = extra.x * extra.y;
+    double? lastArea;
+    if (_lastEnsureCenter != null && _lastEnsureExtra != null) {
+      lastArea = _lastEnsureExtra!.x * _lastEnsureExtra!.y;
+    }
+
+    // ✅ 如果中心变化小，同时 extra 区域几乎没变，则跳过（防抖优化）
     if (_lastEnsureCenter != null &&
-        (_lastEnsureCenter! - roundedCenter).length < 1) {
+        (_lastEnsureCenter! - roundedCenter).length < 1 &&
+        lastArea != null &&
+        (extraArea - lastArea).abs() < 1024) {
       return;
     }
+
     _lastEnsureCenter = roundedCenter;
+    _lastEnsureExtra = extra.clone(); // 🌟 保存当前区域
 
     final topLeft = roundedCenter - extra / 2;
     final bottomRight = roundedCenter + extra / 2;

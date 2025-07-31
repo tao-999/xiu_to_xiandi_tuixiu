@@ -16,13 +16,9 @@ class ZongmenDiplomacyMapComponent extends FlameGame
   late final DiplomacyNoiseTileMapGenerator _noiseMapGenerator;
   late final ZongmenDiplomacyPlayerComponent _player;
 
-  /// 当前视角逻辑偏移
   Vector2 logicalOffset = Vector2.zero();
-
-  /// 是否跟随角色
   bool isCameraFollowing = false;
 
-  // ====== 这里与地图类参数保持一致 ======
   static const int chunkPixelSize = 512;
   static const int chunkCountX = 10;
   static const int chunkCountY = 10;
@@ -37,13 +33,11 @@ class ZongmenDiplomacyMapComponent extends FlameGame
 
     WidgetsBinding.instance.addObserver(this);
 
-    // 地图尺寸
     final double mapWidth = this.mapWidth;
     final double mapHeight = this.mapHeight;
 
     debugPrint('[DiplomacyMap] 地图尺寸: $mapWidth x $mapHeight');
 
-    // 初始化地图生成器
     _noiseMapGenerator = DiplomacyNoiseTileMapGenerator(
       tileSize: 64.0,
       smallTileSize: 4,
@@ -54,20 +48,15 @@ class ZongmenDiplomacyMapComponent extends FlameGame
     );
     await _noiseMapGenerator.onLoad();
 
-    // 主角初始化在地图中心
     final Vector2 defaultPlayerPos = Vector2(mapWidth / 2, mapHeight / 2);
     debugPrint('[DiplomacyMap] 主角默认位置: $defaultPlayerPos');
 
     _player = ZongmenDiplomacyPlayerComponent()
       ..logicalPosition = defaultPlayerPos.clone();
 
-    // add地图
     add(_noiseMapGenerator);
+    await _noiseMapGenerator.add(_player);
 
-    // add主角
-    _noiseMapGenerator.add(_player);
-
-    // 添加宗门管理
     final sectManager = SectManagerComponent(
       grid: _noiseMapGenerator,
       getLogicalOffset: () => logicalOffset,
@@ -77,9 +66,8 @@ class ZongmenDiplomacyMapComponent extends FlameGame
       sectImageSize: 128.0,
       sectCircleRadius: 200.0,
     );
-    _noiseMapGenerator.add(sectManager);
+    await _noiseMapGenerator.add(sectManager);
 
-    // 初始化拖拽
     _dragMap = DragMap(
       onDragged: (delta) {
         if (_player.isMoving) return;
@@ -95,21 +83,18 @@ class ZongmenDiplomacyMapComponent extends FlameGame
     );
     add(_dragMap);
 
-    // FPS
     add(
       FpsTextComponent()
         ..anchor = Anchor.topLeft
         ..position = Vector2(10, 10),
     );
 
-    // 恢复存档
     final data = await ZongmenDiplomacyService.load();
 
     final savedSects = data['sects'] as List<Map<String, dynamic>>;
     final playerPosition = data['player'] as Vector2?;
     debugPrint('[DiplomacyMap] 存档玩家位置: $playerPosition');
 
-    // 恢复宗门位置
     for (final s in _noiseMapGenerator.children.whereType<SectComponent>()) {
       final saved = savedSects.firstWhere(
             (e) => (e['info'] as SectInfo).id == s.info.id,
@@ -126,7 +111,6 @@ class ZongmenDiplomacyMapComponent extends FlameGame
       );
     }
 
-    // 恢复玩家位置，越界兜底
     if (playerPosition != null &&
         playerPosition.x >= 0 && playerPosition.x < mapWidth &&
         playerPosition.y >= 0 && playerPosition.y < mapHeight) {
@@ -137,12 +121,9 @@ class ZongmenDiplomacyMapComponent extends FlameGame
       debugPrint('[DiplomacyMap] 玩家位置使用默认: ${_player.logicalPosition}');
     }
 
-    // 视角对准
     logicalOffset = _player.logicalPosition - size / 2;
     logicalOffset.x = logicalOffset.x.clamp(0.0, (mapWidth - size.x).clamp(0.0, double.infinity));
     logicalOffset.y = logicalOffset.y.clamp(0.0, (mapHeight - size.y).clamp(0.0, double.infinity));
-    debugPrint('[DiplomacyMap] 初始逻辑偏移: $logicalOffset');
-
     isCameraFollowing = true;
 
     _noiseMapGenerator

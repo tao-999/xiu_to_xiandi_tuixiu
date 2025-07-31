@@ -8,6 +8,9 @@ class DragMap extends PositionComponent
   final void Function(Vector2 position)? onTap;
   final ValueNotifier<bool>? isTapLocked;
 
+  final VoidCallback? onDragStartCallback;
+  final VoidCallback? onDragEndCallback;
+
   final bool showGrid;
 
   double scaleFactor = 1.0;
@@ -17,9 +20,11 @@ class DragMap extends PositionComponent
     this.onTap,
     this.isTapLocked,
     this.showGrid = false,
+    this.onDragStartCallback,
+    this.onDragEndCallback,
   }) {
-    size = Vector2(5000, 5000); // 交互区域
-    priority = 9999;
+    size = Vector2(5000, 5000); // 可交互区域范围
+    priority = 9999; // 保证在最上层处理拖动
     debugPrint('🔥 DragMap created: hashCode=$hashCode');
   }
 
@@ -30,10 +35,8 @@ class DragMap extends PositionComponent
   @override
   Future<void> onLoad() async {
     anchor = Anchor.topLeft;
-    // ❌ 不需要 RectangleHitbox
   }
 
-  // ✅ 这里最关键
   @override
   bool containsLocalPoint(Vector2 point) => true;
 
@@ -62,6 +65,8 @@ class DragMap extends PositionComponent
     _startPosition = event.localPosition;
     _totalDistance = 0;
     _startTime = DateTime.now();
+
+    onDragStartCallback?.call(); // ✅ 通知外部：开始拖动
   }
 
   @override
@@ -77,5 +82,7 @@ class DragMap extends PositionComponent
       if (isTapLocked?.value == true) return;
       onTap?.call(_startPosition ?? Vector2.zero());
     }
+
+    onDragEndCallback?.call(); // ✅ 通知外部：结束拖动
   }
 }

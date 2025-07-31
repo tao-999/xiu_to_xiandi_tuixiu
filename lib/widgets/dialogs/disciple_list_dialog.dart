@@ -86,7 +86,8 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       child: Container(
-        width: double.maxFinite,
+        width: 480,
+        height: 620,
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -118,7 +119,7 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
             const Divider(),
             // 列表区域
             SizedBox(
-              height: 400,
+              height: 470,
               child: sortedDisciples.isEmpty
                   ? const Center(child: Text('暂无记录，快去招募吧～'))
                   : ListView.builder(

@@ -57,27 +57,20 @@ class FloatingIslandStaticSpawnerComponent extends Component {
   @override
   void update(double dt) {
     super.update(dt);
-
     final offset = getLogicalOffset();
     final viewSize = getViewSize();
-
-    if (_lastLogicalOffset != null && (_lastLogicalOffset! - offset).length < 1) {
-      return;
-    }
-
+    if (_lastLogicalOffset != null && (_lastLogicalOffset! - offset).length < 1) return;
     _lastLogicalOffset = offset.clone();
     updateTileRendering(offset, viewSize);
   }
 
   static Map<String, List<StaticSpriteEntry>> _normalizeSpriteMap(
       Map<String, List<StaticSpriteEntry>> original) {
-    const defaultType = 'default_static'; // ✅ 默认类型，保证所有 entry 都有 type
-
+    const defaultType = 'default_static';
     final result = <String, List<StaticSpriteEntry>>{};
     for (final entry in original.entries) {
       final terrain = entry.key;
       final list = entry.value;
-
       result[terrain] = list.map((e) {
         return e.copyWith(type: e.type ?? defaultType);
       }).toList();
@@ -85,25 +78,13 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     return result;
   }
 
-  /// 🌟立即强制刷新（跳过逻辑坐标检查）
   void forceRefresh() {
     final offset = getLogicalOffset();
     final viewSize = getViewSize();
-    debugPrint(
-        '[Spawner] forceRefresh called.\n'
-            '  offset=$offset\n'
-            '  viewSize=$viewSize\n'
-            '  _lastLogicalOffset(before)=$_lastLogicalOffset'
-    );
-    _lastLogicalOffset = null; // 确保下一帧 update() 会刷新
+    _lastLogicalOffset = null;
     updateTileRendering(offset, viewSize);
-    debugPrint(
-        '[Spawner] forceRefresh completed.\n'
-            '  _lastLogicalOffset(after)=$_lastLogicalOffset'
-    );
   }
 
-  /// 强制刷新后，手动同步逻辑坐标
   void syncLogicalOffset(Vector2 offset) {
     _lastLogicalOffset = offset.clone();
   }
@@ -111,13 +92,10 @@ class FloatingIslandStaticSpawnerComponent extends Component {
   void updateTileRendering(Vector2 offset, Vector2 viewSize) {
     final visibleTopLeft = offset - viewSize / 2;
     final visibleBottomRight = visibleTopLeft + viewSize;
-
-    // buffer, 回收、生成等都挪进来
     final bufferExtent = viewSize * 1.25;
     final bufferTopLeft = offset - bufferExtent;
     final bufferBottomRight = offset + bufferExtent;
 
-    // ✅ 清理超出buffer的tile key（这个没问题）
     _activeTiles.removeWhere((key) {
       final parts = key.split('_');
       final tx = int.tryParse(parts[0]) ?? 0;
@@ -130,9 +108,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
           tileCenterY > bufferBottomRight.y;
     });
 
-    // ✅ 修复关键点：复制一份 grid.children 列表，避免遍历时修改集合
     final decorations = grid.children.whereType<FloatingIslandStaticDecorationComponent>().toList();
-
     for (final deco in decorations) {
       final pos = deco.worldPosition;
       if (pos.x < bufferTopLeft.x ||
@@ -142,10 +118,10 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         final tx = (pos.x / staticTileSize).floor();
         final ty = (pos.y / staticTileSize).floor();
         _activeTiles.remove('${tx}_${ty}');
-        deco.removeFromParent(); // ✅ 安全了，已脱离原集合的迭代
+        deco.removeFromParent();
       } else {
         deco.updateVisualPosition(offset);
-        deco.priority = ((deco.worldPosition.y + 1e14) * 1000).toInt();
+        // ✅ 移除了爆炸 priority 设置
       }
     }
 
@@ -172,8 +148,6 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     for (int tx = sStartX; tx < sEndX; tx++) {
       for (int ty = sStartY; ty < sEndY; ty++) {
         final tileKey = '${tx}_${ty}';
-
-        // 获取该 tile 中预期生成的 type 列表
         final tileCenter = Vector2(
           tx * staticTileSize + staticTileSize / 2,
           ty * staticTileSize + staticTileSize / 2,
@@ -182,8 +156,6 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         if (!allowedTerrains.contains(terrain)) continue;
 
         final expectedTypes = staticSpritesMap[terrain]?.map((e) => e.type).toSet() ?? {};
-
-        // 🧠 是否已经存在目标类型的装饰物
         final alreadyExists = grid.children
             .whereType<FloatingIslandStaticDecorationComponent>()
             .where((c) {
@@ -195,8 +167,8 @@ class FloatingIslandStaticSpawnerComponent extends Component {
           return sameTile;
         })
             .any((c) {
-          if (expectedTypes.isEmpty) return true; // 没指定类型，tile 只要有东西就跳过
-          return expectedTypes.contains(c.type);  // 否则必须命中同类型
+          if (expectedTypes.isEmpty) return true;
+          return expectedTypes.contains(c.type);
         });
 
         if (alreadyExists) {
@@ -208,7 +180,6 @@ class FloatingIslandStaticSpawnerComponent extends Component {
       }
     }
 
-    // 按中心距离排序
     newlyFound.sort((a, b) {
       final d1 = (a.center(staticTileSize) - center).length;
       final d2 = (b.center(staticTileSize) - center).length;
@@ -224,7 +195,6 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     _activeTiles.add(tileKey);
 
     final rand = Random(seed + tx * 92821 + ty * 53987 + 1);
-
     final tileSpawnChance = 0.5;
     if (rand.nextDouble() > tileSpawnChance) return;
 
@@ -272,8 +242,12 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         spritePath: selected.path,
         anchor: Anchor.bottomCenter,
       )
-        ..type = selected.type // ✅ 关键！设置 type 字段
+        ..type = selected.type
         ..add(RectangleHitbox()..collisionType = CollisionType.passive);
+
+      if (selected.priority != null) {
+        deco.priority = selected.priority!;
+      }
 
       onStaticComponentCreated?.call(deco, terrain);
       grid.add(deco);

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flame/game.dart';
+
 import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
@@ -6,9 +8,9 @@ import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/create_zongmen_card.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_header_widget.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_quick_menu.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/upgrade_zongmen_dialog.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/common/toast_tip.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_map_component.dart';
 
 class ZongmenPage extends StatefulWidget {
   const ZongmenPage({super.key});
@@ -48,30 +50,21 @@ class _ZongmenPageState extends State<ZongmenPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_checkingZongmen) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.orangeAccent)),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F0D0B),
       body: Stack(
         children: [
-          // 背景图及遮罩
+          // ✅ 修复黑屏：让地图组件填满整个页面
           Positioned.fill(
-            child: Image.asset(
-              'assets/images/bg_zongmen_shiwaitaoyuan.webp',
-              fit: BoxFit.cover,
-            ),
-          ),
-          Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.35)),
+            child: _checkingZongmen || zongmen == null
+                ? const SizedBox.shrink() // 或者 Loading 指示器
+                : GameWidget(game: ZongmenMapComponent(
+                sectLevel: zongmen!.sectLevel,
+              context: context,
+            )),
           ),
 
           if (zongmen != null) ...[
-            // ✅ 左上角宗门信息
             Positioned(
               left: 16,
               top: 36,
@@ -98,12 +91,8 @@ class _ZongmenPageState extends State<ZongmenPage> {
                 },
               ),
             ),
-
-            // ✅ 中央居中菜单
-            const Center(child: ZongmenQuickMenu()),
           ],
 
-          // 创建宗门
           if (_showCreateCard)
             Positioned.fill(
               child: Container(
@@ -129,7 +118,6 @@ class _ZongmenPageState extends State<ZongmenPage> {
               ),
             ),
 
-          // 返回按钮
           const BackButtonOverlay(),
         ],
       ),

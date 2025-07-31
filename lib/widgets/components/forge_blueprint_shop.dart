@@ -17,8 +17,8 @@ class ForgeBlueprintShop extends StatelessWidget {
       onTap: () => _showBlueprintShopDialog(context),
       child: Image.asset(
         'assets/images/sign_weapon_shop.png',
-        width: 80,
-        height: 80,
+        width: 128,
+        height: 128,
       ),
     );
   }
@@ -114,8 +114,8 @@ class _BlueprintDialogContentState extends State<_BlueprintDialogContent> {
     }
 
     return SizedBox(
-      width: 360,
-      height: 480,
+      width: 500,
+      height: 720,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(

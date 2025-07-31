@@ -47,7 +47,6 @@ class BeibaoTooltipOverlay {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.black87,
-                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.white24),
                   ),
                   constraints: const BoxConstraints(maxWidth: 200),

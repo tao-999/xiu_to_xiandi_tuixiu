@@ -1,14 +1,12 @@
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
+import 'package:flutter/cupertino.dart';
 
 import '../../utils/noise_utils.dart';
 
 class DiplomacyNoiseTileMapGenerator extends PositionComponent {
-  // ====== 关键参数 ======
   static const int chunkPixelSize = 512;
-  static const int chunkCountX = 10;
-  static const int chunkCountY = 10;
 
   final double tileSize;
   final double smallTileSize;
@@ -18,8 +16,8 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
   final int octaves;
   final double persistence;
 
-  final double mapWidth = chunkCountX * chunkPixelSize.toDouble();
-  final double mapHeight = chunkCountY * chunkPixelSize.toDouble();
+  final double mapWidth = double.infinity;
+  final double mapHeight = double.infinity;
 
   double viewScale = 1.0;
   Vector2 viewSize = Vector2.zero();
@@ -37,7 +35,7 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
 
   DiplomacyNoiseTileMapGenerator({
     this.tileSize = 64.0,
-    this.smallTileSize = 4.0, // 保证保留
+    this.smallTileSize = 4.0,
     this.seed = 2024,
     this.frequency = 0.002,
     this.octaves = 4,
@@ -60,7 +58,6 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
     final endChunkX = ((bottomRight.x) / chunkPixelSize).ceil() - 1;
     final endChunkY = ((bottomRight.y) / chunkPixelSize).ceil() - 1;
 
-    // 绘制已生成的图片
     for (int cx = startChunkX; cx <= endChunkX; cx++) {
       for (int cy = startChunkY; cy <= endChunkY; cy++) {
         final chunkLeft = cx * chunkPixelSize.toDouble();
@@ -69,10 +66,21 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
 
         final img = _readyChunkImages[key];
         if (img != null) {
-          canvas.drawImage(
+          final dx = ((chunkLeft - logicalOffset.x) * viewScale).floorToDouble();
+          final dy = ((chunkTop - logicalOffset.y) * viewScale).floorToDouble();
+
+          final dstRect = ui.Rect.fromLTWH(
+            dx,
+            dy,
+            (img.width * viewScale).ceilToDouble(),
+            (img.height * viewScale).ceilToDouble(),
+          );
+
+          canvas.drawImageRect(
             img,
-            ui.Offset(chunkLeft - logicalOffset.x, chunkTop - logicalOffset.y),
-            ui.Paint(),
+            ui.Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble()),
+            dstRect,
+            ui.Paint()..isAntiAlias = false,
           );
         }
       }
@@ -83,7 +91,6 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
   void update(double dt) {
     super.update(dt);
 
-    // 每帧限速生成最多2个chunk
     _chunksGeneratedThisFrame = 0;
     final pendingToGenerate = List<_PendingChunk>.from(_pendingChunks);
     for (final pending in pendingToGenerate) {
@@ -110,10 +117,6 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
         final wx = originX + x;
         final wy = originY + y;
 
-        // 只绘制地图有效范围内的tile
-        if (wx < 0 || wx >= mapWidth) continue;
-        if (wy < 0 || wy >= mapHeight) continue;
-
         _renderAdaptiveTile(
           canvas,
           wx,
@@ -138,10 +141,6 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
       int depth,
       ) {
     if (depth > maxRecursionDepth) return;
-
-    // 只画有效地图区域
-    if (wx < 0 || wx + size > mapWidth) return;
-    if (wy < 0 || wy + size > mapHeight) return;
 
     final levels = [
       _getHeightLevel(_getNoiseValue(wx, wy)),
@@ -173,10 +172,17 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
       ui.Offset offset,
       ui.Color color,
       ) {
-    final dx = wx + offset.dx;
-    final dy = wy + offset.dy;
-    final rect = ui.Rect.fromLTWH(dx, dy, size, size);
-    final paint = ui.Paint()..color = color;
+    final dx = (wx + offset.dx).floorToDouble();      // ✅ 整像素起点
+    final dy = (wy + offset.dy).floorToDouble();
+    final w = size.ceilToDouble();                    // ✅ 整数宽高
+    final h = size.ceilToDouble();
+
+    final rect = ui.Rect.fromLTWH(dx, dy, w, h);
+
+    final paint = ui.Paint()
+      ..color = color
+      ..isAntiAlias = false;                          // ✅ 禁用抗锯齿
+
     canvas.drawRect(rect, paint);
   }
 
@@ -198,8 +204,13 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
   }
 
   String? getTerrainTypeAtPosition(Vector2 worldPos) {
-    if (worldPos.x < 0 || worldPos.x >= mapWidth) return null;
-    if (worldPos.y < 0 || worldPos.y >= mapHeight) return null;
+    if (!worldPos.x.isFinite || !worldPos.y.isFinite) {
+      debugPrint('❌ getTerrainTypeAtPosition: 非法坐标 $worldPos');
+      return null;
+    }
+
+    if (worldPos.x < 0 || worldPos.y < 0) return null;
+
     final value = _getNoiseValue(worldPos.x, worldPos.y);
     return _getTerrainType(value);
   }
@@ -211,14 +222,12 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
     return 'mountain';
   }
 
-  /// 🚀 分帧生成chunk队列
   Future<void> ensureChunksForView({
     required Vector2 center,
     required Vector2 extra,
     bool forceImmediate = false,
   }) async {
     final roundedCenter = Vector2(center.x.roundToDouble(), center.y.roundToDouble());
-
     final scale = viewScale;
     final visibleSize = viewSize / scale;
 
@@ -232,15 +241,8 @@ class DiplomacyNoiseTileMapGenerator extends PositionComponent {
 
     for (int cx = startChunkX; cx <= endChunkX; cx++) {
       for (int cy = startChunkY; cy <= endChunkY; cy++) {
-        final chunkLeft = cx * chunkPixelSize.toDouble();
-        final chunkTop = cy * chunkPixelSize.toDouble();
-
-        if (chunkLeft < 0 || chunkLeft >= mapWidth) continue;
-        if (chunkTop < 0 || chunkTop >= mapHeight) continue;
-
         final key = '${cx}_${cy}';
         if (_readyChunkImages.containsKey(key)) continue;
-
         if (!_pendingChunks.any((e) => e.key == key)) {
           _pendingChunks.add(_PendingChunk(cx, cy, key));
         }

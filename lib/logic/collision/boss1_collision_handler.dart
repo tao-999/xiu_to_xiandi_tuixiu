@@ -12,12 +12,14 @@ import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_lingshi_popup_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/effects/logical_move_effect.dart';
+import '../../widgets/components/resource_bar.dart';
 
 class Boss1CollisionHandler {
   static void handle({
     required FloatingIslandPlayerComponent player,
     required FloatingIslandDynamicMoverComponent boss,
     required Vector2 logicalOffset,
+    required GlobalKey<ResourceBarState> resourceBarKey, // ✅ 新增
   }) {
     print('👹 [Boss1] 玩家靠近 Boss → pos=${boss.logicalPosition}');
     print('🧾 Boss 属性：HP=${boss.currentHp}/${boss.hp}, ATK=${boss.atk}, DEF=${boss.def}');
@@ -37,10 +39,9 @@ class Boss1CollisionHandler {
         final bossHp = boss.currentHp;
 
         final damage = (playerAtk - bossDef).clamp(1, double.infinity).toDouble();
-        final newHp = (bossHp - damage).clamp(0, boss.hp!).toDouble(); // ✅ maxHp 不动，currentHp 扣血
+        final newHp = (bossHp - damage).clamp(0, boss.hp!).toDouble();
         boss.currentHp = newHp;
 
-        // ✅ 同步血条
         boss.hpBar?.setStats(
           currentHp: newHp.toInt(),
           maxHp: boss.hp!.toInt(),
@@ -48,7 +49,6 @@ class Boss1CollisionHandler {
           def: boss.def?.toInt() ?? 0,
         );
 
-        // ✅ 飘字
         final hitPos = boss.logicalPosition - Vector2(0, boss.size.y / 2 + 8);
         boss.parent?.add(FloatingTextComponent(
           text: '-${damage.toInt()}',
@@ -57,7 +57,6 @@ class Boss1CollisionHandler {
           fontSize: 18,
         ));
 
-        // ✅ Boss 死亡逻辑
         if (newHp <= 0) {
           final tileKey = boss.spawnedTileKey;
           final deathPos = boss.logicalPosition.clone();
@@ -121,9 +120,9 @@ class Boss1CollisionHandler {
 
           final field = lingShiFieldMap[type]!;
           ResourcesStorage.add(field, BigInt.from(count));
+          resourceBarKey.currentState?.refresh(); // ✅ 刷新资源栏
         }
 
-        // ✅ 延迟解锁 cooldown
         Future.delayed(const Duration(seconds: 1), () {
           boss.collisionCooldown = 0;
         });
@@ -195,4 +194,3 @@ class Boss1CollisionHandler {
     }
   }
 }
-

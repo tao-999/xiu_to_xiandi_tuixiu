@@ -18,8 +18,8 @@ class RefineMaterialShop extends StatelessWidget {
       onTap: () => _showMaterialShopDialog(context),
       child: Image.asset(
         'assets/images/lianqi_shop.png',
-        width: 80,
-        height: 80,
+        width: 128,
+        height: 128,
       ),
     );
   }
@@ -170,8 +170,8 @@ class _RefineMaterialDialogContentState
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 360,
-      height: 480,
+      width: 500,
+      height: 720,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -192,9 +192,11 @@ class _RefineMaterialDialogContentState
                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
+                    Center(
+                      child: Wrap(
+                        spacing: 4, // 每个材料横向间距
+                        runSpacing: 6, // 多行时的纵向间距（如果需要换行）
+                        alignment: WrapAlignment.center, // ✅ 居中
                         children: materials
                             .where((m) => m.level == level)
                             .map((mat) {
@@ -203,7 +205,7 @@ class _RefineMaterialDialogContentState
                             onTap: () => _buy(mat),
                             child: Container(
                               width: 72,
-                              margin: const EdgeInsets.only(right: 2), // 控制得很紧
+                              margin: const EdgeInsets.all(2),
                               padding: const EdgeInsets.all(2),
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.black12),

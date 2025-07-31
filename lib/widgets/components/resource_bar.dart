@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/number_format.dart';
 
+import '../../utils/lingshi_util.dart';
+
 class ResourceBar extends StatefulWidget {
   const ResourceBar({super.key});
 
   @override
-  State<ResourceBar> createState() => ResourceBarState();
+  ResourceBarState createState() => ResourceBarState();
 }
 
 class ResourceBarState extends State<ResourceBar> {
@@ -15,6 +17,7 @@ class ResourceBarState extends State<ResourceBar> {
   BigInt high = BigInt.zero;
   BigInt supreme = BigInt.zero;
   int charm = 0;
+  int recruitTicket = 0;
 
   bool loading = true;
 
@@ -24,49 +27,53 @@ class ResourceBarState extends State<ResourceBar> {
     refresh();
   }
 
-  /// 🌟 对外暴露的刷新方法
+  /// 🌟 对外暴露的刷新方法（外部可用 key.currentState?.refresh() 调用）
   Future<void> refresh() async {
+    setState(() {
+      loading = true;
+    });
     low = await ResourcesStorage.getValue('spiritStoneLow');
     mid = await ResourcesStorage.getValue('spiritStoneMid');
     high = await ResourcesStorage.getValue('spiritStoneHigh');
     supreme = await ResourcesStorage.getValue('spiritStoneSupreme');
     charm = (await ResourcesStorage.getValue('fateRecruitCharm')).toInt();
+    recruitTicket = (await ResourcesStorage.getValue('recruitTicket')).toInt();
 
     if (mounted) setState(() => loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final topInset = MediaQuery.of(context).padding.top;
-
     if (loading) {
-      return SizedBox(height: topInset + 48);
+      return const SizedBox(height: 48); // 顶部固定高度
     }
 
     return Padding(
-      padding: EdgeInsets.only(top: topInset),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: const BoxDecoration(
-          color: Color(0xFFF8F0E3),
-          border: Border(
-            bottom: BorderSide(color: Colors.brown, width: 0.5),
+      padding: const EdgeInsets.only(top: 0),
+      child: Center(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.transparent,
           ),
-        ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _buildItem('下品灵石', low, 'assets/images/spirit_stone_low.png'),
-              const SizedBox(width: 16),
-              _buildItem('中品灵石', mid, 'assets/images/spirit_stone_mid.png'),
-              const SizedBox(width: 16),
-              _buildItem('上品灵石', high, 'assets/images/spirit_stone_high.png'),
-              const SizedBox(width: 16),
-              _buildItem('极品灵石', supreme, 'assets/images/spirit_stone_supreme.png'),
-              const SizedBox(width: 16),
-              _buildItem('资质提升券', charm, 'assets/images/fate_recruit_charm.png'),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildItem('下品灵石', low, getLingShiImagePath(LingShiType.lower)),
+                const SizedBox(width: 16),
+                _buildItem('中品灵石', mid, getLingShiImagePath(LingShiType.middle)),
+                const SizedBox(width: 16),
+                _buildItem('上品灵石', high, getLingShiImagePath(LingShiType.upper)),
+                const SizedBox(width: 16),
+                _buildItem('极品灵石', supreme, getLingShiImagePath(LingShiType.supreme)),
+                const SizedBox(width: 16),
+                _buildItem('资质提升券', charm, 'assets/images/fate_recruit_charm.png'),
+                const SizedBox(width: 16),
+                _buildItem('招募券', recruitTicket, 'assets/images/recruit_ticket.png'),
+              ],
+            ),
           ),
         ),
       ),
@@ -80,19 +87,19 @@ class ResourceBarState extends State<ResourceBar> {
       children: [
         Image.asset(
           imagePath,
-          width: 18,
-          height: 18,
+          width: 16,
+          height: 16,
           fit: BoxFit.contain,
         ),
         const SizedBox(width: 4),
         Text(
           formatted,
-          style: const TextStyle(fontSize: 14),
+          style: const TextStyle(fontSize: 12),
         ),
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
+          style: const TextStyle(fontSize: 10, color: Colors.black),
         ),
       ],
     );

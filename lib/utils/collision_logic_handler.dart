@@ -1,10 +1,13 @@
 import 'package:flame/components.dart';
+import 'package:flutter/cupertino.dart';
 import '../logic/collision/baoxiang1_collision_handler.dart';
 import '../logic/collision/boss1_collision_handler.dart';
+import '../logic/collision/boss2_collision_handler.dart';
 import '../logic/collision/npc1_collision_handler.dart';
 import '../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../widgets/components/floating_island_player_component.dart';
 import '../widgets/components/floating_island_static_decoration_component.dart';
+import '../widgets/components/resource_bar.dart';
 
 class CollisionLogicHandler {
   // ✅ 当前已经触发过的静态组件位置集合
@@ -14,6 +17,7 @@ class CollisionLogicHandler {
     required FloatingIslandPlayerComponent player,
     required Vector2 logicalOffset,
     required PositionComponent other,
+    required GlobalKey<ResourceBarState> resourceBarKey, // ✅ 新增参数
   }) {
     // ✅ 动态 NPC / 怪物
     if (other is FloatingIslandDynamicMoverComponent) {
@@ -33,6 +37,15 @@ class CollisionLogicHandler {
             player: player,
             boss: other,
             logicalOffset: logicalOffset,
+            resourceBarKey: resourceBarKey,
+          );
+          break;
+        case 'boss_2':
+          Boss2CollisionHandler.handle(
+            player: player,
+            boss: other,
+            logicalOffset: logicalOffset,
+            resourceBarKey: resourceBarKey,
           );
           break;
         default:
@@ -93,6 +106,5 @@ class CollisionLogicHandler {
 
     monster.logicalPosition -= rebound * 10;
     monster.pickNewTarget();
-
   }
 }
