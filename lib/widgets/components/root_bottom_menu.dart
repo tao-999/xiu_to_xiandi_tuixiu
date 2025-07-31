@@ -49,7 +49,6 @@ class _RootBottomMenuState extends State<RootBottomMenu>
       'assets/images/youli_fanchenshiji.png',
       'assets/images/youli_huanyueshan.png',
       'assets/images/youli_ciyangu.png',
-      'assets/images/youli_xianlingqizhen.png',
       'assets/images/youli_naiheqiao.png',
     ];
 
@@ -138,9 +137,6 @@ class _RootBottomMenuState extends State<RootBottomMenu>
         page = const ChiyanguPage();
         break;
       case 7:
-        page = const XianlingQizhenPage();
-        break;
-      case 8:
         page = const NaiheBridgePage();
         break;
       default:

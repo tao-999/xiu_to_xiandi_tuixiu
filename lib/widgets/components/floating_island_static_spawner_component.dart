@@ -1,7 +1,6 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/static_sprite_entry.dart';
 import '../../utils/floating_static_event_state_util.dart';
 import 'floating_island_static_decoration_component.dart';
@@ -26,7 +25,6 @@ class FloatingIslandStaticSpawnerComponent extends Component {
 
   final List<_PendingTile> _pendingTiles = [];
   final Set<String> _activeTiles = {};
-
   Vector2? _lastLogicalOffset;
 
   FloatingIslandStaticSpawnerComponent({
@@ -62,6 +60,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     if (_lastLogicalOffset != null && (_lastLogicalOffset! - offset).length < 1) return;
     _lastLogicalOffset = offset.clone();
     updateTileRendering(offset, viewSize);
+    _updateDecorationPriorities(); // ✅ 动态更新层级
   }
 
   static Map<String, List<StaticSpriteEntry>> _normalizeSpriteMap(
@@ -121,7 +120,6 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         deco.removeFromParent();
       } else {
         deco.updateVisualPosition(offset);
-        // ✅ 移除了爆炸 priority 设置
       }
     }
 
@@ -166,10 +164,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
               pos.y < (ty + 1) * staticTileSize;
           return sameTile;
         })
-            .any((c) {
-          if (expectedTypes.isEmpty) return true;
-          return expectedTypes.contains(c.type);
-        });
+            .any((c) => expectedTypes.isEmpty || expectedTypes.contains(c.type));
 
         if (alreadyExists) {
           _activeTiles.add(tileKey);
@@ -195,14 +190,12 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     _activeTiles.add(tileKey);
 
     final rand = Random(seed + tx * 92821 + ty * 53987 + 1);
-    final tileSpawnChance = 0.5;
-    if (rand.nextDouble() > tileSpawnChance) return;
+    if (rand.nextDouble() > 0.5) return;
 
     final entries = staticSpritesMap[terrain] ?? [];
     if (entries.isEmpty) return;
 
     final selected = _pickStaticByWeight(entries, rand);
-
     final count = (selected.minCount != null && selected.maxCount != null)
         ? rand.nextInt(selected.maxCount! - selected.minCount! + 1) + selected.minCount!
         : rand.nextInt(maxCount - minCount + 1) + minCount;
@@ -210,13 +203,12 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     final tileSize = staticTileSize;
     final sizeValue = selected.fixedSize ?? (minSize + rand.nextDouble() * (maxSize - minSize));
 
+    final List<FloatingIslandStaticDecorationComponent> components = [];
+
     for (int i = 0; i < count; i++) {
       final offsetX = rand.nextDouble() * tileSize;
       final offsetY = rand.nextDouble() * tileSize;
-      final worldPos = Vector2(
-        tx * tileSize + offsetX,
-        ty * tileSize + offsetY,
-      );
+      final worldPos = Vector2(tx * tileSize + offsetX, ty * tileSize + offsetY);
 
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
@@ -227,16 +219,16 @@ class FloatingIslandStaticSpawnerComponent extends Component {
       );
 
       final flameGame = grid.findGame();
-      if (flameGame == null) {
-        debugPrint('❌ 找不到 FlameGame 实例，贴图加载失败：$spritePath');
-        return;
-      }
+      if (flameGame == null) return;
 
       final sprite = await Sprite.load(spritePath);
+      final imageSize = sprite.srcSize;
+      final double scale = sizeValue / imageSize.x; // 👈 用宽度算缩放比
+      final Vector2 fixedSize = imageSize * scale; // 👈 高度 = 原高 * scale，自动适配
 
       final deco = FloatingIslandStaticDecorationComponent(
         sprite: sprite,
-        size: Vector2.all(sizeValue),
+        size: fixedSize,
         worldPosition: worldPos,
         logicalOffset: currentOffset,
         spritePath: selected.path,
@@ -247,10 +239,28 @@ class FloatingIslandStaticSpawnerComponent extends Component {
 
       if (selected.priority != null) {
         deco.priority = selected.priority!;
+        deco.ignoreAutoPriority = true; // ✅ 标记为不参与排序
       }
 
+      components.add(deco);
+    }
+
+    for (final deco in components) {
       onStaticComponentCreated?.call(deco, terrain);
       grid.add(deco);
+    }
+  }
+
+  void _updateDecorationPriorities() {
+    final decorations = grid.children
+        .whereType<FloatingIslandStaticDecorationComponent>()
+        .where((c) => !c.ignoreAutoPriority) // ✅ 只动态排序未标记的
+        .toList();
+
+    decorations.sort((a, b) => a.worldPosition.y.compareTo(b.worldPosition.y));
+
+    for (int i = 0; i < decorations.length; i++) {
+      decorations[i].priority = i + 1;
     }
   }
 

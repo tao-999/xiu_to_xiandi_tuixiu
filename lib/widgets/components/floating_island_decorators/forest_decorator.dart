@@ -34,23 +34,68 @@ class ForestDecorator extends Component {
           'forest': [
             StaticSpriteEntry('floating_island/tree_1.png', 1),
             StaticSpriteEntry('floating_island/tree_2.png', 1),
-            StaticSpriteEntry('floating_island/tree_3.png', 1),
             StaticSpriteEntry('floating_island/tree_4.png', 1),
             StaticSpriteEntry('floating_island/tree_5.png', 1),
-            StaticSpriteEntry('floating_island/tree_6.png', 1),
-            StaticSpriteEntry('floating_island/tree_7.png', 1),
+            StaticSpriteEntry('floating_island/tree_6.png', 10),
+            StaticSpriteEntry('floating_island/tree_7.png', 10),
             StaticSpriteEntry('floating_island/tree_8.png', 1),
             StaticSpriteEntry('floating_island/tree_9.png', 1),
+            StaticSpriteEntry('floating_island/tree_10.png', 1),
           ],
         },
         staticTileSize: 128.0,
         seed: seed,
         minCount: 1,
-        maxCount: 3,
+        maxCount: 5,
         minSize: 64.0,
         maxSize: 128.0,
       ),
     );
+
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'forest'},
+        staticSpritesMap: {
+          'forest': [
+            StaticSpriteEntry('floating_island/tree_3.png', 1),
+          ],
+        },
+        staticTileSize: 555.0,
+        seed: seed,
+        minCount: 0,
+        maxCount: 1,
+        minSize: 256.0,
+        maxSize: 512.0,
+      ),
+    );
+
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'forest'},
+        staticSpritesMap: {
+          'forest': [
+            StaticSpriteEntry('floating_island/tree_11.png', 1, priority: 0),
+            StaticSpriteEntry('floating_island/tree_12.png', 1, priority: 0),
+            StaticSpriteEntry('floating_island/tree_13.png', 1, priority: 0),
+          ],
+        },
+        staticTileSize: 140.0,
+        seed: seed,
+        minCount: 1,
+        maxCount: 3,
+        minSize: 8.0,
+        maxSize: 12.0,
+      ),
+    );
+
 
     // 🌲动态移动的树
     add(
@@ -70,10 +115,9 @@ class ForestDecorator extends Component {
             DynamicSpriteEntry(
               'floating_island/tree_d_2.png',
               1,
-              priority: 9,
-              defaultFacingRight: false,
+              priority: 999,
             ),
-            DynamicSpriteEntry('floating_island/tree_d_3.png', 1),
+            DynamicSpriteEntry('floating_island/tree_d_3.png', 1, priority: 999),
           ],
         },
         dynamicTileSize: 128.0,

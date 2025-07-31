@@ -99,7 +99,7 @@ class _XianlingQizhenPageState extends State<XianlingQizhenPage> {
 
     final screenWidth = MediaQuery.of(context).size.width;
     final boardSize = 12;
-    final cellSize = screenWidth * 0.95 / boardSize;
+    final cellSize = screenWidth * 0.5 / boardSize;
     final boardPx = cellSize * boardSize;
 
     return FutureBuilder<(String, String, int)>(

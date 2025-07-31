@@ -139,9 +139,21 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       if (player != null) {
         final delta = player.logicalPosition - logicalPosition;
         final distance = delta.length;
+
         if (distance <= autoChaseRange!) {
           final moveStep = delta.normalized() * speed * dt;
-          logicalPosition += moveStep;
+          final nextPos = logicalPosition + moveStep;
+
+          if (spawner is FloatingIslandDynamicSpawnerComponent) {
+            final nextTerrain = spawner.getTerrainType(nextPos);
+            if (!spawner.allowedTerrains.contains(nextTerrain)) {
+              pickNewTarget(); // ⛔ 不能跨地形边界，强制停下
+              return;
+            }
+          }
+
+          logicalPosition = nextPos;
+
           if (enableMirror) {
             scale.x = delta.x < 0 ? -1 : 1;
           }

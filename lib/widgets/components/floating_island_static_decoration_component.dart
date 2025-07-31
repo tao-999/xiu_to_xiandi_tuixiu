@@ -11,6 +11,7 @@ class FloatingIslandStaticDecorationComponent extends SpriteComponent
     required Vector2 logicalOffset,
     this.spritePath,
     this.type, // ✅ 新增：类型字段可传
+    this.ignoreAutoPriority = false, // ✅ 新增：是否跳过自动排序
     Anchor anchor = Anchor.center,
   }) : super(
     sprite: sprite,
@@ -32,6 +33,9 @@ class FloatingIslandStaticDecorationComponent extends SpriteComponent
 
   /// 🔖 类型字段（如 tree / rock / npc_statue）
   String? type;
+
+  /// 🚫 是否跳过自动排序（由 StaticSpriteEntry 的 priority 决定是否赋值）
+  bool ignoreAutoPriority = false;
 
   /// 🎯 自定义碰撞回调（可用于特效或交互）
   void Function(Set<Vector2> intersectionPoints, PositionComponent other)?

@@ -52,11 +52,11 @@ class FloatingIslandMapComponent extends FlameGame
     debugPrint('[FloatingIslandMap] onLoad started.');
 
     _noiseMapGenerator = NoiseTileMapGenerator(
-      tileSize: 64.0,
+      tileSize: 32.0,
       smallTileSize: 4,
       chunkPixelSize: 512,
       seed: seed,
-      frequency: 0.00001,
+      frequency: 0.00003,
       octaves: 10,
       persistence: 0.7,
     );

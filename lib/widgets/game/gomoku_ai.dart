@@ -1,4 +1,3 @@
-// 📦 文件：gomoku_ai_pro.dart（修复版）
 import 'dart:math';
 
 class GomokuAI {
@@ -7,10 +6,11 @@ class GomokuAI {
 
   List<int> getMove(List<List<int>> board, int aiPlayer) {
     final enemy = aiPlayer == 1 ? 2 : 1;
-    final depth = min(4, level + 1);
-    final candidates = _generateCandidateMoves(board);
+    final size = board.length;
+    final depth = size <= 9 ? 4 : (size <= 12 ? 3 : 2);
+    final candidates = _generateCandidateMoves(board, aiPlayer);
 
-    // ✅ Step 0：AI 自己能赢 → 立刻取胜
+    // ✅ Step 0：AI 直接赢
     for (final move in candidates) {
       board[move[0]][move[1]] = aiPlayer;
       if (_checkWin(board, aiPlayer)) {
@@ -20,7 +20,7 @@ class GomokuAI {
       board[move[0]][move[1]] = 0;
     }
 
-    // ✅ Step 1：玩家下一步能赢 → 马上封锁
+    // ✅ Step 1：封锁玩家五连
     for (final move in candidates) {
       board[move[0]][move[1]] = enemy;
       if (_checkWin(board, enemy)) {
@@ -30,42 +30,73 @@ class GomokuAI {
       board[move[0]][move[1]] = 0;
     }
 
-    // ✅ Step 2：封锁强势形势
-    for (final move in candidates) {
-      board[move[0]][move[1]] = enemy;
-      final danger = _evaluate(board, enemy);
-      board[move[0]][move[1]] = 0;
-      if (danger >= 8000) {
-        return move;
+    // ✅ Step 1.5：封锁三4连（改为寻找威胁点）
+    final threats = _findThreatLines(board, enemy);
+    if (threats.isNotEmpty) {
+      return threats.first;
+    }
+
+    // ✅ Step 2：搜索最优
+    return _minimaxMove(board, aiPlayer, depth: depth);
+  }
+
+  List<List<int>> _findThreatLines(List<List<int>> board, int player) {
+    final result = <List<int>>[];
+    final size = board.length;
+    final dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+
+    for (int r = 0; r < size; r++) {
+      for (int c = 0; c < size; c++) {
+        for (var dir in dirs) {
+          final line = <int>[];
+
+          for (int i = -1; i <= 5; i++) {
+            int nr = r + dir[0] * i;
+            int nc = c + dir[1] * i;
+            if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+              line.add(board[nr][nc]);
+            } else {
+              line.add(-1);
+            }
+          }
+
+          for (int i = 0; i <= 2; i++) {
+            final sub = line.sublist(i, i + 6);
+            final str = sub.toString();
+
+            if (str == '[0, $player, $player, $player, $player, 0]') {
+              int b1r = r + dir[0] * (i - 1);
+              int b1c = c + dir[1] * (i - 1);
+              int b2r = r + dir[0] * (i + 5);
+              int b2c = c + dir[1] * (i + 5);
+
+              if (_inBounds(board, b1r, b1c) && board[b1r][b1c] == 0) {
+                result.add([b1r, b1c]);
+              }
+              if (_inBounds(board, b2r, b2c) && board[b2r][b2c] == 0) {
+                result.add([b2r, b2c]);
+              }
+            }
+          }
+        }
       }
     }
 
-    // ✅ Step 3：正式搜索
-    return _minimaxMove(board, aiPlayer, depth: depth);
+    return result;
   }
 
   List<int> _minimaxMove(List<List<int>> board, int aiPlayer, {int depth = 4}) {
     final enemy = aiPlayer == 1 ? 2 : 1;
-    final transpositionTable = <String, int>{};
     List<int>? bestMove;
     int bestScore = -1000000;
-    final candidates = _generateCandidateMoves(board);
+    final transpositionTable = <int, int>{};
+    final candidates = _generateCandidateMoves(board, aiPlayer).take(10).toList();
 
     for (final move in candidates) {
       final r = move[0], c = move[1];
       board[r][c] = aiPlayer;
       final hash = _boardHash(board, depth, true, aiPlayer, enemy);
-      final score = _minimax(
-        board,
-        depth - 1,
-        false,
-        aiPlayer,
-        enemy,
-        -999999,
-        999999,
-        transpositionTable,
-        hash,
-      );
+      final score = _minimax(board, depth - 1, false, aiPlayer, enemy, -999999, 999999, transpositionTable, hash);
       board[r][c] = 0;
 
       if (score > bestScore) {
@@ -73,7 +104,8 @@ class GomokuAI {
         bestMove = [r, c];
       }
     }
-    return bestMove ?? _randomBestFallback(board, aiPlayer);
+
+    return bestMove ?? _randomBestFallback(board);
   }
 
   int _minimax(
@@ -84,15 +116,15 @@ class GomokuAI {
       int enemy,
       int alpha,
       int beta,
-      Map<String, int> cache,
-      String hash,
+      Map<int, int> cache,
+      int hash,
       ) {
     if (cache.containsKey(hash)) return cache[hash]!;
     if (_checkWin(board, aiPlayer)) return 99999 - (4 - depth);
     if (_checkWin(board, enemy)) return -99999 + (4 - depth);
     if (depth == 0) return _evaluate(board, aiPlayer);
 
-    final moves = _generateCandidateMoves(board);
+    final moves = _generateCandidateMoves(board, aiPlayer).take(10);
     int best = isMax ? -999999 : 999999;
 
     for (final move in moves) {
@@ -112,20 +144,21 @@ class GomokuAI {
 
       if (beta <= alpha) break;
     }
+
     cache[hash] = best;
     return best;
   }
 
-  List<List<int>> _generateCandidateMoves(List<List<int>> board) {
+  List<List<int>> _generateCandidateMoves(List<List<int>> board, int player) {
     final result = <List<int>>[];
     final n = board.length;
     final exists = <String>{};
+
     for (int r = 0; r < n; r++) {
       for (int c = 0; c < n; c++) {
         if (board[r][c] != 0) {
           for (int dr = -2; dr <= 2; dr++) {
             for (int dc = -2; dc <= 2; dc++) {
-              if (dr == 0 && dc == 0) continue;
               int nr = r + dr, nc = c + dc;
               if (nr >= 0 && nc >= 0 && nr < n && nc < n && board[nr][nc] == 0) {
                 final key = '$nr-$nc';
@@ -139,86 +172,79 @@ class GomokuAI {
         }
       }
     }
+
+    result.sort((a, b) =>
+        _evaluateMove(board, b[0], b[1], player).compareTo(_evaluateMove(board, a[0], a[1], player)));
     return result.isEmpty ? [[n ~/ 2, n ~/ 2]] : result;
   }
 
   int _evaluate(List<List<int>> board, int player) {
     int score = 0;
-    final patterns = {
-      [1, 1, 1, 1, 1]: 100000,
-      [0, 1, 1, 1, 1, 0]: 10000,
-      [0, 1, 1, 1, 1]: 8000,
-      [1, 1, 1, 1, 0]: 8000,
-      [0, 1, 1, 1, 0]: 2000,
-      [0, 1, 1, 0]: 500,
-    };
-    for (final entry in patterns.entries) {
-      score += _matchPattern(board, player, entry.key) * entry.value;
-    }
+    score += _countConnected(board, player, 5) * 100000;
+    score += _countConnected(board, player, 4) * 10000;
+    score += _countConnected(board, player, 3) * 500;
+    score += _countConnected(board, player, 2) * 100;
     return score;
   }
 
-  int _matchPattern(List<List<int>> board, int player, List<int> pattern) {
-    int count = 0;
-    final size = board.length;
+  int _evaluateMove(List<List<int>> board, int r, int c, int player) {
+    int score = 0;
     final dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+
+    for (var dir in dirs) {
+      int cnt = 1;
+      for (int i = 1; i <= 2; i++) {
+        int nr = r + dir[0] * i, nc = c + dir[1] * i;
+        if (_inBounds(board, nr, nc) && board[nr][nc] == player) cnt++;
+      }
+      for (int i = 1; i <= 2; i++) {
+        int nr = r - dir[0] * i, nc = c - dir[1] * i;
+        if (_inBounds(board, nr, nc) && board[nr][nc] == player) cnt++;
+      }
+      score += pow(cnt, 2).toInt();
+    }
+
+    return score;
+  }
+
+  int _countConnected(List<List<int>> board, int player, int length) {
+    int count = 0;
+    final dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
+    final size = board.length;
+
     for (int r = 0; r < size; r++) {
       for (int c = 0; c < size; c++) {
         for (var dir in dirs) {
-          int dr = dir[0], dc = dir[1];
-          List<int> line = [];
-          for (int i = 0; i < pattern.length; i++) {
-            int nr = r + dr * i, nc = c + dc * i;
-            if (nr >= 0 && nc >= 0 && nr < size && nc < size) {
-              line.add(board[nr][nc] == player ? 1 : (board[nr][nc] == 0 ? 0 : 2));
-            } else {
-              line.add(2);
+          bool ok = true;
+          for (int i = 0; i < length; i++) {
+            int nr = r + dir[0] * i, nc = c + dir[1] * i;
+            if (!_inBounds(board, nr, nc) || board[nr][nc] != player) {
+              ok = false;
+              break;
             }
           }
-          if (_listEquals(line, pattern)) count++;
+          if (ok) count++;
         }
       }
     }
+
     return count;
   }
 
   bool _checkWin(List<List<int>> board, int player) {
-    for (int r = 0; r < board.length; r++) {
-      for (int c = 0; c < board[r].length; c++) {
-        if (board[r][c] == player) {
-          if (_checkDir(board, r, c, 1, 0, player) ||
-              _checkDir(board, r, c, 0, 1, player) ||
-              _checkDir(board, r, c, 1, 1, player) ||
-              _checkDir(board, r, c, 1, -1, player)) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+    return _countConnected(board, player, 5) > 0;
   }
 
-  bool _checkDir(List<List<int>> board, int r, int c, int dr, int dc, int player) {
-    for (int i = 0; i < 5; i++) {
-      int nr = r + dr * i, nc = c + dc * i;
-      if (nr < 0 || nc < 0 || nr >= board.length || nc >= board.length || board[nr][nc] != player) return false;
-    }
-    return true;
+  bool _inBounds(List<List<int>> board, int r, int c) {
+    return r >= 0 && c >= 0 && r < board.length && c < board.length;
   }
 
-  bool _listEquals(List<int> a, List<int> b) {
-    if (a.length != b.length) return false;
-    for (int i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) return false;
-    }
-    return true;
+  int _boardHash(List<List<int>> board, int depth, bool isMax, int aiPlayer, int enemy) {
+    final flat = board.expand((e) => e).toList();
+    return Object.hashAll([...flat, depth, isMax, aiPlayer, enemy]);
   }
 
-  String _boardHash(List<List<int>> board, int depth, bool isMax, int aiPlayer, int enemy) {
-    return '${board.map((row) => row.join()).join()}_${depth}_${(isMax ? 1 : 0)}_${aiPlayer}${enemy}';
-  }
-
-  List<int> _randomBestFallback(List<List<int>> board, int aiPlayer) {
+  List<int> _randomBestFallback(List<List<int>> board) {
     final empty = <List<int>>[];
     for (int r = 0; r < board.length; r++) {
       for (int c = 0; c < board[r].length; c++) {
