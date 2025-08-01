@@ -218,13 +218,13 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
       final nextTerrain = spawner.getTerrainType(nextPos);
       if (!spawner.allowedTerrains.contains(nextTerrain)) {
-        pickNewTarget();
+        final goingRight = dir.x > 0; // 💡 move 正在往右走
+        pickNewTarget(preferRight: !goingRight); // 💥 撞到墙 → 反方向
         return;
       }
     }
 
     logicalPosition = nextPos;
-
 
     final minX = movementBounds.left + size.x / 2;
     final maxX = movementBounds.right - size.x / 2;
