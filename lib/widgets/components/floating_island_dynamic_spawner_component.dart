@@ -229,9 +229,14 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         spawnedTileKey: tileKey,
         enableMirror: selected.enableMirror,
         customPriority: selected.priority,
+        ignoreTerrainInMove: selected.ignoreTerrainInMove,
       );
 
       onDynamicComponentCreated?.call(mover, terrain);
+      mover.onRemoveCallback = () {
+        _loadedDynamicTiles.remove(tileKey);
+      };
+
       grid.add(mover);
     }
   }

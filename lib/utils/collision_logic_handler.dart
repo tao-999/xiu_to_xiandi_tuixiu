@@ -21,8 +21,6 @@ class CollisionLogicHandler {
   }) {
     // ✅ 动态 NPC / 怪物
     if (other is FloatingIslandDynamicMoverComponent) {
-      final double logicalDistance = (player.logicalPosition - other.logicalPosition).length;
-      // if (logicalDistance > 30) return;
 
       switch (other.type) {
         case 'npc_1':
@@ -55,8 +53,6 @@ class CollisionLogicHandler {
 
     // ✅ 静态装饰物
     else if (other is FloatingIslandStaticDecorationComponent) {
-      final double logicalDistance = (player.logicalPosition - other.worldPosition).length;
-      // if (logicalDistance > 32) return;
 
       final key = _getComponentKey(other);
       if (_staticCollisionLock.contains(key)) return;
@@ -100,11 +96,22 @@ class CollisionLogicHandler {
 
   static void _handleMonsterCollision(Vector2 playerPosition, FloatingIslandDynamicMoverComponent monster) {
     final delta = playerPosition - monster.logicalPosition;
+
     final rebound = delta.length > 0.01
         ? delta.normalized()
         : (Vector2.random() - Vector2(0.5, 0.5)).normalized();
 
+    // 🌀 推开怪物
     monster.logicalPosition -= rebound * 10;
-    monster.pickNewTarget();
+
+    // ✅ 判断朝向
+    if (delta.length > 0.01) {
+      final preferRight = playerPosition.x < monster.logicalPosition.x;
+      monster.pickNewTarget(preferRight: preferRight);
+    } else {
+      // ✅ 玩家和怪物坐标重合，随机方向
+      monster.pickNewTarget();
+    }
   }
+
 }

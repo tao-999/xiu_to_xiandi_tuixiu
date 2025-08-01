@@ -81,7 +81,11 @@ class DynamicSpriteEntry {
   /// 自动追击的范围
   final double? autoChaseRange;
 
+  /// 渲染优先级（可选）
   final int? priority;
+
+  /// ✅ 是否允许 moveToTarget 穿越地形（默认 false）
+  final bool ignoreTerrainInMove;
 
   const DynamicSpriteEntry(
       this.path,
@@ -95,7 +99,7 @@ class DynamicSpriteEntry {
         this.minSpeed,
         this.maxSpeed,
         this.defaultFacingRight = true,
-        this.enableMirror = true, // ✅ 新增参数，默认开启镜像
+        this.enableMirror = true,
         this.baseSize,
         this.desiredWidth,
         this.labelText,
@@ -111,5 +115,6 @@ class DynamicSpriteEntry {
         this.enableAutoChase = false,
         this.autoChaseRange,
         this.priority,
+        this.ignoreTerrainInMove = false, // ✅ 新增字段，默认 false
       });
 }

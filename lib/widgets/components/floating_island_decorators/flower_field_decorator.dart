@@ -72,5 +72,29 @@ class FlowerFieldDecorator extends Component {
         maxSpeed: 35.0,
       ),
     );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'flower_field'},
+        dynamicSpritesMap: {
+          'flower_field': [
+            DynamicSpriteEntry('floating_island/flower_field_d_2.png', 1, priority: 9999, defaultFacingRight: false ,ignoreTerrainInMove: true),
+          ],
+        },
+        dynamicTileSize: 1111.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 256.0,
+        maxDynamicObjectSize: 300.0,
+        minSpeed: 10.0,
+        maxSpeed: 15.0,
+      ),
+    );
   }
 }

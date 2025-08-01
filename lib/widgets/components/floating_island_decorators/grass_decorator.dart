@@ -80,5 +80,32 @@ class GrassDecorator extends Component {
         maxSpeed: 20.0,
       ),
     );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'grass'},
+        dynamicSpritesMap: {
+          'grass': [
+            DynamicSpriteEntry('floating_island/grass_d_3.png', 1,
+              defaultFacingRight: false,
+              ignoreTerrainInMove: true,
+            ),
+          ],
+        },
+        dynamicTileSize: 1333.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 256.0,
+        maxDynamicObjectSize: 356.0,
+        minSpeed: 10.0,
+        maxSpeed: 20.0,
+      ),
+    );
   }
 }

@@ -34,9 +34,10 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
   bool isMoveLocked = false;
   Vector2? _externalTarget;
+  VoidCallback? onRemoveCallback;
 
-  double? hp; // ✅ 表示 maxHp
-  double currentHp = 0; // ✅ 当前血量，动态变化
+  double? hp;
+  double currentHp = 0;
   double? atk;
   double? def;
   bool isDead = false;
@@ -47,6 +48,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   final double? autoChaseRange;
   final String spawnedTileKey;
   final int? customPriority;
+
+  final bool ignoreTerrainInMove; // ✅ 新增参数
 
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
@@ -72,6 +75,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     this.autoChaseRange,
     this.enableMirror = true,
     this.customPriority,
+    this.ignoreTerrainInMove = false, // ✅ 默认关闭
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
@@ -86,7 +90,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     await super.onLoad();
     add(RectangleHitbox()..collisionType = CollisionType.active);
 
-    currentHp = hp ?? 100; // ✅ 初始化当前血量
+    currentHp = hp ?? 100;
 
     if (labelText != null && labelText!.isNotEmpty) {
       label = TextComponent(
@@ -114,7 +118,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       Future.delayed(Duration.zero, () {
         hpBar?.setStats(
           currentHp: currentHp.toInt(),
-          maxHp: hp!.toInt(), // ✅ 使用 maxHp
+          maxHp: hp!.toInt(),
           atk: atk!.toInt(),
           def: def!.toInt(),
         );
@@ -122,6 +126,12 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     }
 
     pickNewTarget();
+  }
+
+  @override
+  void onRemove() {
+    onRemoveCallback?.call();
+    super.onRemove();
   }
 
   @override
@@ -134,6 +144,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       if (tauntCooldown < 0) tauntCooldown = 0;
     }
 
+    // ✅ 自动追击玩家
     if (enableAutoChase && autoChaseRange != null) {
       final player = game.descendants().whereType<FloatingIslandPlayerComponent>().firstOrNull;
       if (player != null) {
@@ -147,7 +158,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
           if (spawner is FloatingIslandDynamicSpawnerComponent) {
             final nextTerrain = spawner.getTerrainType(nextPos);
             if (!spawner.allowedTerrains.contains(nextTerrain)) {
-              pickNewTarget(); // ⛔ 不能跨地形边界，强制停下
+              pickNewTarget();
               return;
             }
           }
@@ -162,6 +173,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       }
     }
 
+    // ✅ 外部移动逻辑
     if (_externalTarget != null) {
       final delta = _externalTarget! - logicalPosition;
       final distance = delta.length;
@@ -171,7 +183,19 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         isMoveLocked = false;
       } else {
         final moveStep = delta.normalized() * speed * dt;
-        logicalPosition += moveStep;
+        final nextPos = logicalPosition + moveStep;
+
+        if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
+          final nextTerrain = spawner.getTerrainType(nextPos);
+          if (!spawner.allowedTerrains.contains(nextTerrain)) {
+            pickNewTarget();
+            _externalTarget = null;
+            isMoveLocked = false;
+            return;
+          }
+        }
+
+        logicalPosition = nextPos;
         if (enableMirror) {
           scale.x = delta.x < 0 ? -1 : 1;
         }
@@ -181,6 +205,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (isMoveLocked) return;
 
+    // ✅ 普通游走逻辑
     final dir = targetPosition - logicalPosition;
     final distance = dir.length;
     if (distance < 2) {
@@ -190,7 +215,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     dir.normalize();
     final nextPos = logicalPosition + dir * speed * dt;
 
-    if (spawner is FloatingIslandDynamicSpawnerComponent) {
+    if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
       final nextTerrain = spawner.getTerrainType(nextPos);
       if (!spawner.allowedTerrains.contains(nextTerrain)) {
         pickNewTarget();
@@ -199,6 +224,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     }
 
     logicalPosition = nextPos;
+
 
     final minX = movementBounds.left + size.x / 2;
     final maxX = movementBounds.right - size.x / 2;
@@ -219,15 +245,23 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     hpBar?.position = position - Vector2(0, size.y + 24);
   }
 
-  void pickNewTarget() {
+  void pickNewTarget({bool? preferRight}) {
     final rand = Random();
     Vector2 dir;
     do {
       dir = Vector2(rand.nextDouble() * 2 - 1, rand.nextDouble() * 2 - 1);
+
+      // ✅ 控制朝向（镜像闪烁的问题源头）
+      if (preferRight != null) {
+        if (preferRight && dir.x < 0) dir.x = dir.x.abs(); // 朝右
+        if (!preferRight && dir.x > 0) dir.x = -dir.x.abs(); // 朝左
+      }
     } while (dir.length < 0.1);
+
     dir.normalize();
     final distance = minDistance + rand.nextDouble() * (maxDistance - minDistance);
     targetPosition = logicalPosition + dir * distance;
+
     if (enableMirror) {
       scale.x = (targetPosition.x > logicalPosition.x) == defaultFacingRight ? 1 : -1;
     }
@@ -251,4 +285,3 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     super.onCollision(points, other);
   }
 }
-
