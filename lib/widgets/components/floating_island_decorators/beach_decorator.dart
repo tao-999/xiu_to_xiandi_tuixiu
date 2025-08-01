@@ -111,6 +111,7 @@ class BeachDecorator extends Component {
             minDistance: 500.0,
             maxDistance: 5000.0,
             desiredWidth: 24,
+            priority: 0,
           ),
           DynamicSpriteEntry(
             'floating_island/npc_2.png',
@@ -122,6 +123,7 @@ class BeachDecorator extends Component {
             minDistance: 500.0,
             maxDistance: 5000.0,
             desiredWidth: 24,
+            priority: 0,
           ),
           DynamicSpriteEntry(
             'floating_island/npc_3.png',
@@ -134,6 +136,7 @@ class BeachDecorator extends Component {
             maxDistance: 5000.0,
             desiredWidth: 24,
             defaultFacingRight: false,
+            priority: 0,
           ),
           DynamicSpriteEntry(
             'floating_island/npc_4.png',
@@ -145,6 +148,7 @@ class BeachDecorator extends Component {
             minDistance: 500.0,
             maxDistance: 5000.0,
             desiredWidth: 24,
+            priority: 0,
           ),
           DynamicSpriteEntry(
             'floating_island/npc_5.png',
@@ -157,6 +161,7 @@ class BeachDecorator extends Component {
             maxDistance: 5000.0,
             desiredWidth: 24,
             defaultFacingRight: false,
+            priority: 0,
           ),
           DynamicSpriteEntry(
             'floating_island/npc_6.png',
@@ -169,6 +174,7 @@ class BeachDecorator extends Component {
             maxDistance: 5000.0,
             desiredWidth: 24,
             defaultFacingRight: false,
+            priority: 0,
           ),
         ],
       },
@@ -205,6 +211,7 @@ class BeachDecorator extends Component {
             def: 50,
             enableAutoChase: true,
             autoChaseRange: 200,
+            priority: 0,
           ),
           DynamicSpriteEntry(
             'floating_island/beach_boss_2.png',
@@ -222,6 +229,7 @@ class BeachDecorator extends Component {
             def: 60,
             enableAutoChase: true,
             autoChaseRange: 200,
+            priority: 0,
           ),
           DynamicSpriteEntry(
             'floating_island/beach_boss_3.png',
@@ -239,6 +247,7 @@ class BeachDecorator extends Component {
             def: 70,
             enableAutoChase: true,
             autoChaseRange: 200,
+            priority: 0,
           ),
           DynamicSpriteEntry(
             'floating_island/beach_boss_4.png',
@@ -256,6 +265,7 @@ class BeachDecorator extends Component {
             def: 70,
             enableAutoChase: true,
             autoChaseRange: 200,
+            priority: 0,
           ),
         ]
       },

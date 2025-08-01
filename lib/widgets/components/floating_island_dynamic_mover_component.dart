@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart';
+import 'dart:async' as dart_async;
 
 import 'floating_island_dynamic_spawner_component.dart';
 import 'floating_island_player_component.dart';
@@ -50,6 +51,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   final int? customPriority;
 
   final bool ignoreTerrainInMove; // ✅ 新增参数
+  late dart_async.Timer _targetTimer;
 
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
@@ -126,11 +128,22 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     }
 
     pickNewTarget();
+
+    // ✅ 每1分钟执行一次换目标
+    _targetTimer = dart_async.Timer.periodic(
+      const Duration(minutes: 1),
+          (_) {
+        if (!isDead && !isMoveLocked && _externalTarget == null) {
+          pickNewTarget();
+        }
+      },
+    );
   }
 
   @override
   void onRemove() {
     onRemoveCallback?.call();
+    _targetTimer.cancel();
     super.onRemove();
   }
 
@@ -208,22 +221,43 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     // ✅ 普通游走逻辑
     final dir = targetPosition - logicalPosition;
     final distance = dir.length;
-    if (distance < 2) {
+
+// 🎯 太近或完全重合，直接换目标（防止 NaN 和卡死）
+    if (distance < 1e-3) {
+      print('📌 [Mover] 距离目标过近（$distance），换目标');
       pickNewTarget();
       return;
     }
-    dir.normalize();
-    final nextPos = logicalPosition + dir * speed * dt;
 
+// 🧮 每帧的移动向量
+    final moveVec = dir.normalized() * speed * dt;
+    final nextPos = logicalPosition + moveVec;
+
+// 🎯 如果这步会超过目标，直接拉到目标点
+    if (moveVec.length >= distance) {
+      logicalPosition = targetPosition.clone();
+      pickNewTarget();
+      return;
+    }
+
+// 🚧 地形判断
     if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
       final nextTerrain = spawner.getTerrainType(nextPos);
       if (!spawner.allowedTerrains.contains(nextTerrain)) {
-        final goingRight = dir.x > 0; // 💡 move 正在往右走
-        pickNewTarget(preferRight: !goingRight); // 💥 撞到墙 → 反方向
+        final goingRight = dir.x > 0;
+        pickNewTarget(preferRight: !goingRight);
         return;
       }
     }
 
+// 🐢 实际速度小于阈值，卡住了！
+    final actualSpeed = dt > 0 ? moveVec.length / dt : 0;
+    if (actualSpeed < 5) {
+      pickNewTarget();
+      return;
+    }
+
+// 🚶‍♂️ 一切正常，执行移动
     logicalPosition = nextPos;
 
     final minX = movementBounds.left + size.x / 2;
@@ -237,6 +271,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (minY <= maxY) {
       logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
     }
+
   }
 
   void updateVisualPosition(Vector2 logicalOffset) {
