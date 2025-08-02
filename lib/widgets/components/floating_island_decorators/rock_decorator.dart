@@ -50,8 +50,8 @@ class RockDecorator extends Component {
         seed: seed,
         minCount: 1,
         maxCount: 2,
-        minSize: 48.0,
-        maxSize: 64.0,
+        minSize: 32.0,
+        maxSize: 48.0,
       ),
     );
 

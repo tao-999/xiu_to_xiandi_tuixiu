@@ -10,8 +10,8 @@ class SectBuildingManagerComponent extends Component {
   final Component grid;
   final double mapWidth;
   final double mapHeight;
-  final double buildingRadius = 256;
-  final double imageSize = 128;
+  final double buildingRadius = 150;
+  final double imageSize = 100;
   final Vector2 Function() getLogicalOffset;
 
   final List<_MovingBuilding> _buildings = [];

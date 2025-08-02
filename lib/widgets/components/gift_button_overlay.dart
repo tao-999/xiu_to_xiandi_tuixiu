@@ -158,10 +158,9 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay>
       final s = _remaining.inSeconds % 60;
 
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Text(
           '下次领取：${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}',
-          style: const TextStyle(color: Colors.black, fontSize: 12),
+          style: const TextStyle(color: Colors.white, fontSize: 10),
         ),
       );
     }
@@ -169,12 +168,11 @@ class _GiftButtonOverlayState extends State<GiftButtonOverlay>
     return GestureDetector(
       onTap: _showGiftDialog,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: const Row(
           children: [
-            Icon(Icons.card_giftcard, color: Colors.black, size: 20),
-            SizedBox(width: 6),
-            Text('修仙大礼包', style: TextStyle(color: Colors.black, fontSize: 14)),
+            Icon(Icons.card_giftcard, color: Colors.white, size: 14),
+            SizedBox(width: 4),
+            Text('修仙大礼包', style: TextStyle(color: Colors.white, fontSize: 10)),
           ],
         ),
       ),

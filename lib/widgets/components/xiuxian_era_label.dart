@@ -40,8 +40,8 @@ class _XiuxianEraLabelState extends State<XiuxianEraLabel> {
     return Text(
       displayText,
       style: const TextStyle(
-        color: Colors.black,
-        fontSize: 12,
+        color: Colors.white,
+        fontSize: 10,
       ),
     );
   }

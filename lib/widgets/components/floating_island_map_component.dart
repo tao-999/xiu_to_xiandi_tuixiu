@@ -1,5 +1,6 @@
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/drag_map.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/infinite_grid_painter_component.dart';
@@ -43,9 +44,15 @@ class FloatingIslandMapComponent extends FlameGame
     await super.onLoad();
 
     add(
-      FpsTextComponent()
+      FpsTextComponent(
+          textRenderer: TextPaint(
+            style: TextStyle(
+              fontSize: 16,
+            ),
+          )
+      )
         ..anchor = Anchor.topLeft
-        ..position = Vector2(10, 10),
+        ..position = Vector2(5, 5),
     );
 
     WidgetsBinding.instance.addObserver(this);

@@ -75,21 +75,20 @@ class _PlayerDistanceIndicatorState extends State<PlayerDistanceIndicator> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(8),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             '距离原点: ${formatAnyNumber(_distance)} 米',
-            style: const TextStyle(color: Colors.black, fontSize: 10),
+            style: const TextStyle(color: Colors.white, fontSize: 10),
           ),
           const SizedBox(width: 4),
           GestureDetector(
             onTap: _showMapInfoDialog,
             child: const Icon(
               Icons.info_outline,
-              size: 14,
-              color: Colors.black54,
+              size: 12,
+              color: Colors.white,
             ),
           ),
         ],

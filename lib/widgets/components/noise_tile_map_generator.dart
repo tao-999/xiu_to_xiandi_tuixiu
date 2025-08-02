@@ -2,24 +2,17 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart' hide Image;
+import 'package:flutter/cupertino.dart';
 
 import '../../utils/noise_utils.dart';
 
-class _PendingChunk {
-  final int cx;
-  final int cy;
-  final String key;
-  _PendingChunk(this.cx, this.cy, this.key);
-}
-
 class NoiseTileMapGenerator extends PositionComponent {
   final double tileSize;
+  final double smallTileSize;
   final int seed;
   final double frequency;
   final int octaves;
   final double persistence;
-  final double smallTileSize;
   final int chunkPixelSize;
 
   double viewScale = 1.0;
@@ -46,15 +39,11 @@ class NoiseTileMapGenerator extends PositionComponent {
     this.octaves = 4,
     this.persistence = 0.5,
     this.chunkPixelSize = 256,
-  })  : assert(chunkPixelSize >= 32 && chunkPixelSize <= 4096),
-        assert(tileSize <= chunkPixelSize) {
+  }) {
     _noiseHeight = NoiseUtils(seed);
     _noiseHumidity = NoiseUtils(seed + 999);
     _noiseTemperature = NoiseUtils(seed - 999);
   }
-
-  @override
-  Future<void> onLoad() async {}
 
   @override
   void render(ui.Canvas canvas) {
@@ -72,7 +61,7 @@ class NoiseTileMapGenerator extends PositionComponent {
 
     final paint = ui.Paint()
       ..isAntiAlias = false
-      ..filterQuality = ui.FilterQuality.none; // ✅ 禁止插值采样
+      ..filterQuality = ui.FilterQuality.none;
 
     for (int cx = startChunkX; cx <= endChunkX; cx++) {
       for (int cy = startChunkY; cy <= endChunkY; cy++) {
@@ -80,15 +69,12 @@ class NoiseTileMapGenerator extends PositionComponent {
         final img = _readyChunks[key];
         if (img == null) continue;
 
-        final chunkOrigin = Vector2(
-          cx * chunkPixelSize.toDouble(),
-          cy * chunkPixelSize.toDouble(),
-        );
+        final chunkOrigin = Vector2(cx * chunkPixelSize.toDouble(), cy * chunkPixelSize.toDouble());
         final paintOffset = chunkOrigin - logicalOffset;
 
-        final dx = (paintOffset.x * scale).floorToDouble(); // ✅ 对齐整像素
+        final dx = (paintOffset.x * scale).floorToDouble();
         final dy = (paintOffset.y * scale).floorToDouble();
-        final dw = (chunkPixelSize * scale).ceilToDouble(); // ✅ 防止出现缝
+        final dw = (chunkPixelSize * scale).ceilToDouble();
         final dh = (chunkPixelSize * scale).ceilToDouble();
 
         final src = ui.Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
@@ -103,12 +89,10 @@ class NoiseTileMapGenerator extends PositionComponent {
   void update(double dt) {
     super.update(dt);
 
-    // 每帧限速生成2个
     _chunksGeneratedThisFrame = 0;
     final pending = List<_PendingChunk>.from(_pendingChunks);
     for (final p in pending) {
       if (_chunksGeneratedThisFrame >= 2) break;
-
       _pendingChunks.remove(p);
       _generatingChunks.add(p.key);
       _chunksGeneratedThisFrame++;
@@ -124,7 +108,6 @@ class NoiseTileMapGenerator extends PositionComponent {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
 
-    // ✅ 多画一圈：往外延伸 1 个 tile
     final extra = tileSize;
     final startX = -extra;
     final startY = -extra;
@@ -147,35 +130,29 @@ class NoiseTileMapGenerator extends PositionComponent {
     }
 
     final picture = recorder.endRecording();
-
-    // ✅ 生成图像大小仍然是 chunkPixelSize（不变）
     return picture.toImage(chunkPixelSize, chunkPixelSize);
   }
 
-  void _renderAdaptiveTile(
-      ui.Canvas canvas,
-      double wx,
-      double wy,
-      double size,
-      Offset localOffset,
-      ) {
+  void _renderAdaptiveTile(ui.Canvas canvas, double wx, double wy, double size, Offset localOffset) {
     final types = <String>{};
     for (double dx in [0, size]) {
       for (double dy in [0, size]) {
-        types.add(_getTerrainType(wx + dx, wy + dy));
+        types.add(_getTerrainAt(wx + dx, wy + dy).type);
       }
     }
-    types.add(_getTerrainType(wx + size / 2, wy + size / 2));
+    types.add(_getTerrainAt(wx + size / 2, wy + size / 2).type);
 
     if (types.length == 1 || size <= smallTileSize) {
-      _drawTile(
-        canvas,
-        wx + size / 2,
-        wy + size / 2,
-        wx + localOffset.dx,
-        wy + localOffset.dy,
-        size,
-        1.0,
+      final c = _getTerrainAt(wx + size / 2, wy + size / 2).color;
+      final dx = (wx + localOffset.dx).floorToDouble();
+      final dy = (wy + localOffset.dy).floorToDouble();
+      final pxSize = size.ceilToDouble();
+
+      canvas.drawRect(
+        ui.Rect.fromLTWH(dx, dy, pxSize, pxSize),
+        ui.Paint()
+          ..color = c
+          ..isAntiAlias = false,
       );
     } else {
       final half = size / 2;
@@ -186,30 +163,6 @@ class NoiseTileMapGenerator extends PositionComponent {
     }
   }
 
-  void _drawTile(
-      ui.Canvas canvas,
-      double nx,
-      double ny,
-      double screenX,
-      double screenY,
-      double size,
-      double scale,
-      ) {
-    final terrain = _getTerrainType(nx, ny);
-    final color = _getColorForTerrain(terrain);
-
-    final dx = (screenX * scale).floorToDouble(); // ✅ 保证整像素起点
-    final dy = (screenY * scale).floorToDouble();
-    final pxSize = (size * scale).ceilToDouble(); // ✅ 保证不漏一像素
-
-    final paint = ui.Paint()
-      ..color = color
-      ..isAntiAlias = false;
-
-    canvas.drawRect(ui.Rect.fromLTWH(dx, dy, pxSize, pxSize), paint);
-  }
-
-  /// 🌟 双模式加载（已修复：全屏后不刷新的问题）
   Future<void> ensureChunksForView({
     required Vector2 center,
     required Vector2 extra,
@@ -217,14 +170,12 @@ class NoiseTileMapGenerator extends PositionComponent {
   }) async {
     final roundedCenter = Vector2(center.x.roundToDouble(), center.y.roundToDouble());
 
-    // 🌟 新增：记录上次 extra 区域大小
     double extraArea = extra.x * extra.y;
     double? lastArea;
     if (_lastEnsureCenter != null && _lastEnsureExtra != null) {
       lastArea = _lastEnsureExtra!.x * _lastEnsureExtra!.y;
     }
 
-    // ✅ 如果中心变化小，同时 extra 区域几乎没变，则跳过（防抖优化）
     if (_lastEnsureCenter != null &&
         (_lastEnsureCenter! - roundedCenter).length < 1 &&
         lastArea != null &&
@@ -233,7 +184,7 @@ class NoiseTileMapGenerator extends PositionComponent {
     }
 
     _lastEnsureCenter = roundedCenter;
-    _lastEnsureExtra = extra.clone(); // 🌟 保存当前区域
+    _lastEnsureExtra = extra.clone();
 
     final topLeft = roundedCenter - extra / 2;
     final bottomRight = roundedCenter + extra / 2;
@@ -269,70 +220,73 @@ class NoiseTileMapGenerator extends PositionComponent {
     }
   }
 
-  String _getTerrainType(double nx, double ny) {
-    // 不要repeat了，直接无限平滑
+  ({String type, ui.Color color}) _getTerrainAt(double nx, double ny) {
     final h1 = (_noiseHeight.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
     final h2 = (_noiseHumidity.fbm(nx + 1e14, ny + 1e14, octaves, frequency, persistence) + 1) / 2;
     final h3 = (_noiseTemperature.fbm(nx - 1e14, ny - 1e14, octaves, frequency, persistence) + 1) / 2;
 
     final mixed = (h1 * 0.4 + h2 * 0.3 + h3 * 0.3).clamp(0, 1);
 
-    // 外部区域通通浅海
     if (mixed < 0.4 || mixed > 0.6) {
-      return 'shallow_ocean';
+      return (type: 'shallow_ocean', color: const ui.Color(0xFF4FA3C7));
     }
 
-    // 把0.4–0.6映射到0–1
     final normalized = (mixed - 0.4) / 0.2;
 
-    // 中心区间所有地形
     final terrains = [
-      'snow',
-      'grass',
-      'rock',
-      'forest',
-      'flower_field',
-      'shallow_ocean',
-      'beach',
-      'volcanic',
+      ('snow', const ui.Color(0xFFEFEFEF)),
+      ('grass', const ui.Color(0xFF9BCB75)),
+      ('rock', const ui.Color(0xFF6D6A5F)),
+      ('forest', const ui.Color(0xFF3B5F4B)),
+      ('flower_field', const ui.Color(0xFFCCC19B)),
+      ('shallow_ocean', const ui.Color(0xFF4FA3C7)),
+      ('beach', const ui.Color(0xFFEAD7B6)),
+      ('volcanic', const ui.Color(0xFF7E3B3B)),
     ];
 
-    final interval = 1.0 / terrains.length;
-    final index = (normalized / interval).floor().clamp(0, terrains.length - 1);
+    final index = (normalized * terrains.length).floor().clamp(0, terrains.length - 1);
+    final (type, baseColor) = terrains[index];
+    final hsl = HSLColor.fromColor(baseColor);
 
-    return terrains[index];
+    final brightnessOffset = _getBrightnessOffsetForY(ny);
+
+    final adjustedColor = hsl
+        .withLightness((hsl.lightness + brightnessOffset).clamp(0.0, 1.0))
+        .toColor();
+
+    return (type: type, color: adjustedColor);
   }
 
-  double getWaveOffset(double nx, double ny) {
-    final raw = (_noiseTemperature.perlin(nx * 0.0005, ny * 0.0005) + 1) / 2;
-    return (raw - 0.5) * 0.6;
+  double _getBrightnessOffsetForY(double ny) {
+    const segmentHeight = 200;
+    const groupSize = 100;
+    const offsetRange = 0.1; // 总亮度变化范围（0 ~ 0.02）
+
+    final blockIndex = ny ~/ segmentHeight;
+    final localIndex = blockIndex % groupSize;
+
+    // 回文：0 1 2 ... 24 25 24 23 ... 1 0
+    final mirroredIndex = localIndex <= groupSize ~/ 2
+        ? localIndex
+        : groupSize - localIndex;
+
+    final maxIndex = groupSize ~/ 2;
+    final step = offsetRange / maxIndex;
+
+    // 从 0 到 offsetRange，再回到 0
+    final offset = mirroredIndex * step;
+
+    return offset;
   }
 
-  /// 不能删！！非常重要！！
   String getTerrainTypeAtPosition(Vector2 worldPos) {
-    return _getTerrainType(worldPos.x, worldPos.y);
+    return _getTerrainAt(worldPos.x, worldPos.y).type;
   }
+}
 
-  ui.Color _getColorForTerrain(String terrain) {
-    switch (terrain) {
-      case 'shallow_ocean':
-        return const ui.Color(0xFF4FA3C7);
-      case 'beach':
-        return const ui.Color(0xFFEAD7B6);
-      case 'grass':
-        return const ui.Color(0xFF9BCB75);
-      case 'forest':
-        return const ui.Color(0xFF4E8B69);
-      case 'rock':
-        return const ui.Color(0xFF9FA9B3);
-      case 'snow':
-        return const ui.Color(0xFFEFEFEF);
-      case 'flower_field':
-        return const ui.Color(0xFFE6E6B3);
-      case 'volcanic':
-        return const ui.Color(0xFF7E3B3B);
-      default:
-        return const ui.Color(0xFF9BCB75);
-    }
-  }
+class _PendingChunk {
+  final int cx;
+  final int cy;
+  final String key;
+  _PendingChunk(this.cx, this.cy, this.key);
 }

@@ -12,7 +12,8 @@
             android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize"
-            android:hardwareAccelerated="true">
+            android:hardwareAccelerated="true"
+            android:screenOrientation="landscape">
 
             <!-- Flutter 自动使用这个主题 -->
             <meta-data

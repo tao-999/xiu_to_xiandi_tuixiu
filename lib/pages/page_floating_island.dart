@@ -106,18 +106,19 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
           // ✅ 第二行：玄历 + 礼物按钮 + 距离指示器（左上）
           if (_mapComponent != null)
             Positioned(
-              top: 60,
-              left: 20,
-              child: Row(
+              top: 30,
+              left: 5,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const XiuxianEraLabel(),
-                  const SizedBox(width: 12),
+                  const SizedBox(height: 8),
                   GiftButtonOverlay(
                     onGiftClaimed: () {
                       _resourceBarKey.currentState?.refresh();
                     },
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(height: 8),
                   PlayerDistanceIndicator(mapComponent: _mapComponent!),
                 ],
               ),

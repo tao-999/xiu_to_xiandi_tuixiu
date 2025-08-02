@@ -42,10 +42,10 @@ class FlowerFieldDecorator extends Component {
         },
         staticTileSize: 128.0,
         seed: seed,
-        minCount: 3,
-        maxCount: 9,
+        minCount: 1,
+        maxCount: 8,
         minSize: 16.0,
-        maxSize: 48.0,
+        maxSize: 32.0,
       ),
     );
 

@@ -160,7 +160,6 @@ class _BeibaoDialogState extends State<BeibaoDialog> {
           child: BeibaoGridView(
             items: items,
             onReload: _loadResources,
-            onSlotUnlocked: widget.onChanged, // 🔥 透传回调
           ),
         ),
       ),

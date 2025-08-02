@@ -101,7 +101,7 @@ class SectBuildingComponent extends PositionComponent
         text: buildingName,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 14,
+          fontSize: 12,
         ),
       ),
       textDirection: TextDirection.ltr,
