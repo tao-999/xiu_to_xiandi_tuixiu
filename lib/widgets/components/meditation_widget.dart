@@ -102,8 +102,8 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
                   position: _floatOffset,
                   child: Image.asset(
                     widget.imagePath,
-                    width: 150,
-                    height: 180,
+                    width: 60,
+                    height: 72,
                   ),
                 ),
               ),
@@ -120,12 +120,12 @@ class _MeditationWidgetState extends State<MeditationWidget> with SingleTickerPr
 
     return SizedBox(
       width: 50,
-      height: 150,
+      height: 50,
       child: Transform(
         alignment: Alignment.center,
         transform: transform,
         child: Transform.scale(
-          scale: 3,
+          scale: 1,
           child: ColorFiltered(
             colorFilter: ColorFilter.mode(
               Colors.white.withOpacity(0.9),

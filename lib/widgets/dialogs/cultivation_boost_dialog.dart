@@ -22,13 +22,13 @@ class CultivationBoostDialog extends StatefulWidget {
         );
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
         child: Text(
-          "升修为",
+          "（升修为）",
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 8,
             fontFamily: 'ZcoolCangEr',
-            color: Colors.black,
+            color: Colors.white,
           ),
         ),
       ),

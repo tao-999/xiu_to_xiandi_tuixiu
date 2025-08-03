@@ -30,15 +30,12 @@ class AptitudeUpgradeDialog extends StatefulWidget {
           ),
         );
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        child: Text(
-          "升资质",
-          style: const TextStyle(
-            fontSize: 15,
-            fontFamily: 'ZcoolCangEr',
-            color: Colors.black,
-          ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+        child: Icon(
+          Icons.add_circle_outline, // ✅ 图标替代文字
+          size: 12,
+          color: Colors.black,
         ),
       ),
     );
@@ -80,7 +77,6 @@ class _AptitudeUpgradeDialogState extends State<AptitudeUpgradeDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final remaining = fateCharmCount - tempUsed;
 
     return AlertDialog(
       backgroundColor: const Color(0xFFF9F5E3),

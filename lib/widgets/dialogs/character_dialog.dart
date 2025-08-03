@@ -31,8 +31,8 @@ class _CharacterDialogState extends State<CharacterDialog> {
       child: Container(
         width: 720,
         height: 800,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF8DC), // 米黄色
+        decoration: const BoxDecoration(
+          color: Colors.transparent,
           borderRadius: BorderRadius.zero,
         ),
         child: FutureBuilder<List<dynamic>>(
@@ -52,14 +52,6 @@ class _CharacterDialogState extends State<CharacterDialog> {
 
             return Stack(
               children: [
-                /// 背景图
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/images/bg_xiuxian_mountain.webp',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-
                 /// 主体内容
                 Align(
                   alignment: const Alignment(0, 0.4),

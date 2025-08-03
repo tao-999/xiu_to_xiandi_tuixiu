@@ -14,7 +14,7 @@
 // import 'package:xiu_to_xiandi_tuixiu/widgets/components/auto_battle_game.dart';
 // import 'package:xiu_to_xiandi_tuixiu/widgets/components/gift_button_overlay.dart';
 // import 'package:xiu_to_xiandi_tuixiu/widgets/components/xiuxian_era_label.dart';
-// import 'package:xiu_to_xiandi_tuixiu/widgets/components/root_bottom_menu.dart';
+// import 'package:xiu_to_xiandi_tuixiu/widgets/components/root_menu.dart';
 // import 'package:xiu_to_xiandi_tuixiu/widgets/components/map_switcher_overlay.dart';
 //
 // import 'package:xiu_to_xiandi_tuixiu/models/character.dart';

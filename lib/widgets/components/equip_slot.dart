@@ -7,6 +7,7 @@ class EquipSlot extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onUnequip;
   final String type; // 'weapon', 'armor', 'accessory'
+  final Color? color; // ✅ 新增：自定义颜色
 
   const EquipSlot({
     super.key,
@@ -15,6 +16,7 @@ class EquipSlot extends StatelessWidget {
     required this.onTap,
     this.onUnequip,
     required this.type,
+    this.color, // ✅ 可选参数
   });
 
   String getBoostLabel(Weapon w) {
@@ -26,6 +28,9 @@ class EquipSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = color ?? Colors.white24;
+    final textColor = color ?? Colors.white54;
+
     return SizedBox(
       width: 40,
       height: 40,
@@ -34,7 +39,7 @@ class EquipSlot extends StatelessWidget {
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.white24),
+            border: Border.all(color: borderColor),
           ),
           child: Center(
             child: Text(
@@ -45,8 +50,8 @@ class EquipSlot extends StatelessWidget {
                   : type == 'accessory'
                   ? '饰品'
                   : '装备',
-              style: const TextStyle(
-                color: Colors.white54,
+              style: TextStyle(
+                color: textColor,
                 fontSize: 13,
               ),
               textAlign: TextAlign.center,

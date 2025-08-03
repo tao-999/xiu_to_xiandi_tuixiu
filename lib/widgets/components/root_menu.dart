@@ -12,12 +12,12 @@ import '../dialogs/character_dialog.dart';
 import '../dialogs/recruit_dialog.dart';
 import 'floating_island_map_component.dart'; // 角色弹框
 
-class RootBottomMenu extends StatefulWidget {
+class RootMenu extends StatefulWidget {
   final String gender;
   final VoidCallback? onChanged;
   final FloatingIslandMapComponent mapComponent; // ✅ 新增
 
-  const RootBottomMenu({
+  const RootMenu({
     super.key,
     required this.gender,
     required this.mapComponent, // ✅ 必传
@@ -25,10 +25,10 @@ class RootBottomMenu extends StatefulWidget {
   });
 
   @override
-  State<RootBottomMenu> createState() => _RootBottomMenuState();
+  State<RootMenu> createState() => _RootMenuState();
 }
 
-class _RootBottomMenuState extends State<RootBottomMenu>
+class _RootMenuState extends State<RootMenu>
     with SingleTickerProviderStateMixin {
   bool _expanded = true;
   late final AnimationController _controller;
@@ -40,15 +40,10 @@ class _RootBottomMenuState extends State<RootBottomMenu>
     super.initState();
 
     _iconPaths = [
-      widget.gender == 'female'
-          ? 'assets/images/icon_dazuo_female.png'
-          : 'assets/images/icon_dazuo_male.png',
       'assets/images/icon_beibao.png',
       'assets/images/icon_zongmen.png',
       'assets/images/icon_zhaomu.png',
       'assets/images/youli_fanchenshiji.png',
-      'assets/images/youli_huanyueshan.png',
-      'assets/images/youli_ciyangu.png',
       'assets/images/youli_naiheqiao.png',
     ];
 
@@ -97,16 +92,6 @@ class _RootBottomMenuState extends State<RootBottomMenu>
 
     switch (index) {
       case 0:
-      // 角色弹窗
-        showDialog(
-          context: context,
-          builder: (_) => CharacterDialog(
-            onChanged: widget.onChanged, // ✅ 透传回调
-          ),
-        );
-        return;
-
-      case 1:
       // 背包弹窗，扩容回调统一透传 onChanged
         showDialog(
           context: context,
@@ -116,10 +101,10 @@ class _RootBottomMenuState extends State<RootBottomMenu>
         );
         return;
 
-      case 2:
+      case 1:
         page = const ZongmenPage();
         break;
-      case 3:
+      case 2:
         showDialog(
           context: context,
           builder: (_) => RecruitDialog(
@@ -127,16 +112,10 @@ class _RootBottomMenuState extends State<RootBottomMenu>
           ),
         );
         return;
-      case 4:
+      case 3:
         page = const XiuXianMarketPage();
         break;
-      case 5:
-        page = const HuanyueExplorePage();
-        break;
-      case 6:
-        page = const ChiyanguPage();
-        break;
-      case 7:
+      case 4:
         page = const NaiheBridgePage();
         break;
       default:
@@ -156,7 +135,7 @@ class _RootBottomMenuState extends State<RootBottomMenu>
           IconButton(
             icon: Icon(
               _expanded ? Icons.arrow_back_ios : Icons.arrow_forward_ios,
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.white.withOpacity(0.5),
               size: 20,
             ),
             onPressed: () async {

@@ -3,12 +3,14 @@ import 'package:flame/game.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_map_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/player_distance_indicator.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_map_loader.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/root_bottom_menu.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/root_menu.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/gift_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/xiuxian_era_label.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/resource_bar.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/route_observer.dart';
+
+import '../widgets/components/character_panel.dart';
 
 class FloatingIslandPage extends StatefulWidget {
   const FloatingIslandPage({super.key});
@@ -106,8 +108,8 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
           // ✅ 第二行：玄历 + 礼物按钮 + 距离指示器（左上）
           if (_mapComponent != null)
             Positioned(
-              top: 30,
-              left: 5,
+              top: 15,
+              right: 5,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -124,13 +126,21 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
               ),
             ),
 
+          // 🆕 用 Positioned 把右侧的角色面板独立放置
+          Positioned(
+            top: 15,
+            left: 40, // 调整这个值定位角色面板的位置
+            child: const CharacterPanel(),
+          ),
+
+
           // ✅ 第三行：底部菜单
           if (_mapComponent != null)
             Positioned(
-              top: 100,
+              top: 125,
               left: 20,
               right: 20,
-              child: RootBottomMenu(
+              child: RootMenu(
                 gender: _gender,
                 mapComponent: _mapComponent!,
                 onChanged: () {
@@ -142,7 +152,7 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
           // ✅ 右上角定位按钮
           if (_mapComponent != null)
             Positioned(
-              top: 40,
+              top: 80,
               right: 20,
               child: IconButton(
                 icon: const Icon(Icons.my_location, color: Colors.white),

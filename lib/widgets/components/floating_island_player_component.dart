@@ -44,13 +44,23 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     }
 
     final path = await getEquippedSpritePath(player.gender, player.id);
-    sprite = await Sprite.load(path);
+    final spriteImage = await Sprite.load(path);
+    sprite = spriteImage;
+
+    // ✅ 固定宽度32，高度自适应贴图比例
+    final originalSize = spriteImage.srcSize;
+    final fixedWidth = 32.0;
+    final scaledHeight = originalSize.y * (fixedWidth / originalSize.x);
+    size = Vector2(fixedWidth, scaledHeight);
 
     // 屏幕中心
     position = game.size / 2;
 
-    // 加碰撞盒
-    add(RectangleHitbox()..collisionType = CollisionType.active);
+    // 碰撞盒跟随设置（重新加）
+    add(RectangleHitbox()
+      ..size = size
+      ..anchor = Anchor.center
+      ..collisionType = CollisionType.active);
 
     // 初次通知
     _positionStreamController.add(logicalPosition);

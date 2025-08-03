@@ -86,7 +86,7 @@ class FlowerFieldDecorator extends Component {
             DynamicSpriteEntry('floating_island/flower_field_d_2.png', 1, priority: 9999, defaultFacingRight: false ,ignoreTerrainInMove: true),
           ],
         },
-        dynamicTileSize: 1111.0,
+        dynamicTileSize: 1232.0,
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
