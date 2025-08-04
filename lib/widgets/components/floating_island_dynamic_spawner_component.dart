@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flame/components.dart';
+import '../../services/collected_pill_storage.dart';
 import '../../services/dead_boss_storage.dart';
 import '../../utils/name_generator.dart';
 import '../../utils/terrain_utils.dart';
@@ -148,6 +149,11 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
     // ✅ Boss 已死亡跳过
     if (await DeadBossStorage.isDead(tileKey)) return;
+    // ✅ 丹药已拾取跳过（只针对丹药组件）
+    if (type.startsWith('danyao_')) {
+      final alreadyCollected = await CollectedPillStorage.isCollected(tileKey);
+      if (alreadyCollected) return;
+    }
 
     final count = rand.nextInt(maxCount - minCount + 1) + minCount;
 

@@ -3,7 +3,6 @@ import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart' hide Image;
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/player_sprite_util.dart';
 
 import '../../utils/collision_logic_handler.dart';
 import '../../utils/terrain_event_util.dart';
@@ -14,18 +13,13 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     with HasGameReference, CollisionCallbacks {
   FloatingIslandPlayerComponent({
     required this.resourceBarKey,
-  }) : super(size: Vector2.all(32), anchor: Anchor.center, priority: 1000,);
+  }) : super(size: Vector2.all(32), anchor: Anchor.center, priority: 1000);
 
-  /// 🌍 资源栏 key，用于刷新 UI
   final GlobalKey<ResourceBarState> resourceBarKey;
-
-  /// 🚀 逻辑世界坐标（用来移动、碰撞）
   Vector2 logicalPosition = Vector2.zero();
-
   Vector2? _targetPosition;
   final double moveSpeed = 120;
 
-  // ✅ 用于外部监听逻辑坐标变化
   final StreamController<Vector2> _positionStreamController = StreamController.broadcast();
   Stream<Vector2> get onPositionChangedStream => _positionStreamController.stream;
 
@@ -43,26 +37,24 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       return;
     }
 
-    final path = await getEquippedSpritePath(player.gender, player.id);
+    // ✅ 使用默认路径 icon_youli_${gender}.png
+    final path = 'icon_youli_${player.gender}.png';
     final spriteImage = await Sprite.load(path);
     sprite = spriteImage;
 
-    // ✅ 固定宽度32，高度自适应贴图比例
+    // ✅ 固定宽度32，高度按贴图比例缩放
     final originalSize = spriteImage.srcSize;
     final fixedWidth = 32.0;
     final scaledHeight = originalSize.y * (fixedWidth / originalSize.x);
     size = Vector2(fixedWidth, scaledHeight);
 
-    // 屏幕中心
     position = game.size / 2;
 
-    // 碰撞盒跟随设置（重新加）
     add(RectangleHitbox()
       ..size = size
       ..anchor = Anchor.center
       ..collisionType = CollisionType.active);
 
-    // 初次通知
     _positionStreamController.add(logicalPosition);
   }
 
@@ -70,7 +62,6 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   void update(double dt) {
     super.update(dt);
 
-    // 🚀 更新逻辑坐标
     if (_targetPosition != null) {
       final delta = _targetPosition! - logicalPosition;
       final distance = delta.length;
@@ -83,22 +74,18 @@ class FloatingIslandPlayerComponent extends SpriteComponent
         logicalPosition += delta.normalized() * moveStep;
       }
 
-      // 翻转
       if (_targetPosition != null) {
         scale = Vector2(delta.x < 0 ? -1 : 1, 1);
       }
 
-      // 通知
       _positionStreamController.add(logicalPosition);
     }
 
-    // ✅ 同步 logicalOffset
     final mapGame = game as dynamic;
     if (_targetPosition != null) {
       mapGame.logicalOffset = logicalPosition.clone();
     }
 
-    // ✅ 🆕 实时更新组件解锁状态
     final staticList = parent?.children
         .whereType<FloatingIslandStaticDecorationComponent>()
         .toList();
@@ -106,13 +93,12 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       CollisionLogicHandler.updateLockStatus(logicalPosition, staticList);
     }
 
-    // ✅ 异步触发地形事件（不阻塞主线程）
     final noiseGenerator = mapGame.noiseMapGenerator;
     final currentTerrain = noiseGenerator.getTerrainTypeAtPosition(logicalPosition);
     Future.microtask(() async {
       final triggered = await TerrainEventUtil.checkAndTrigger(currentTerrain, logicalPosition, game);
       if (triggered) {
-        _targetPosition = null; // 停止移动
+        _targetPosition = null;
       }
     });
   }
@@ -145,7 +131,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       player: this,
       logicalOffset: mapGame.logicalOffset,
       other: other,
-      resourceBarKey: resourceBarKey, // ✅ 加上传入
+      resourceBarKey: resourceBarKey,
     );
   }
 }

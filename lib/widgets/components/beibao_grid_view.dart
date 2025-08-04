@@ -125,7 +125,11 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _paddedItems(widget.items.take(_fixedSlotCount).toList(), _fixedSlotCount);
+    final int itemCount = widget.items.length;
+    final int minSlotCount = _fixedSlotCount;
+    final int totalSlots = ((itemCount > minSlotCount ? itemCount : minSlotCount) / 10).ceil() * 10;
+
+    final items = _paddedItems(widget.items, totalSlots);
 
     const Set<BeibaoItemType> _showLevelTypes = {
       BeibaoItemType.weapon,
@@ -173,10 +177,9 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
                 top: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                   child: Text(
                     '${item.level}阶',
-                    style: const TextStyle(fontSize: 8, color: Colors.white, height: 1.1),
+                    style: const TextStyle(fontSize: 7, color: Colors.red, height: 1.1),
                   ),
                 ),
               ),

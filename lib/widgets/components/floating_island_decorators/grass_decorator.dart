@@ -48,8 +48,8 @@ class GrassDecorator extends Component {
         seed: seed,
         minCount: 5,
         maxCount: 10,
-        minSize: 48.0,
-        maxSize: 64.0,
+        minSize: 20.0,
+        maxSize: 40.0,
       ),
     );
 

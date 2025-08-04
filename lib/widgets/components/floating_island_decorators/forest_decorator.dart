@@ -33,22 +33,64 @@ class ForestDecorator extends Component {
         staticSpritesMap: {
           'forest': [
             StaticSpriteEntry('floating_island/tree_1.png', 1),
-            StaticSpriteEntry('floating_island/tree_2.png', 1),
             StaticSpriteEntry('floating_island/tree_4.png', 1),
             StaticSpriteEntry('floating_island/tree_5.png', 1),
-            StaticSpriteEntry('floating_island/tree_6.png', 10),
-            StaticSpriteEntry('floating_island/tree_7.png', 10),
             StaticSpriteEntry('floating_island/tree_8.png', 1),
             StaticSpriteEntry('floating_island/tree_9.png', 1),
-            StaticSpriteEntry('floating_island/tree_10.png', 1),
+            StaticSpriteEntry('floating_island/tree_14.png', 1),
           ],
         },
         staticTileSize: 128.0,
         seed: seed,
         minCount: 1,
         maxCount: 5,
-        minSize: 64.0,
+        minSize: 50.0,
+        maxSize: 64.0,
+      ),
+    );
+
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'forest'},
+        staticSpritesMap: {
+          'forest': [
+            StaticSpriteEntry('floating_island/tree_2.png', 1),
+            StaticSpriteEntry('floating_island/tree_6.png', 10),
+            StaticSpriteEntry('floating_island/tree_7.png', 10),
+            StaticSpriteEntry('floating_island/tree_10.png', 1),
+          ],
+        },
+        staticTileSize: 227.0,
+        seed: seed,
+        minCount: 2,
+        maxCount: 8,
+        minSize: 90.0,
         maxSize: 128.0,
+      ),
+    );
+
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'forest'},
+        staticSpritesMap: {
+          'forest': [
+            StaticSpriteEntry('floating_island/tree_15.png', 1, priority: 0),
+          ],
+        },
+        staticTileSize: 187.0,
+        seed: seed,
+        minCount: 0,
+        maxCount: 1,
+        minSize: 20.0,
+        maxSize: 40.0,
       ),
     );
 
@@ -68,8 +110,8 @@ class ForestDecorator extends Component {
         seed: seed,
         minCount: 0,
         maxCount: 1,
-        minSize: 256.0,
-        maxSize: 512.0,
+        minSize: 200.0,
+        maxSize: 256.0,
       ),
     );
 
@@ -95,7 +137,6 @@ class ForestDecorator extends Component {
         maxSize: 12.0,
       ),
     );
-
 
     // 🌲动态移动的树
     add(
@@ -124,10 +165,36 @@ class ForestDecorator extends Component {
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
-        minDynamicObjectSize: 32.0,
-        maxDynamicObjectSize: 64.0,
+        minDynamicObjectSize: 20.0,
+        maxDynamicObjectSize: 32.0,
         minSpeed: 20.0,
-        maxSpeed: 100.0,
+        maxSpeed: 70.0,
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'forest'},
+        dynamicSpritesMap: {
+          'forest': [
+            DynamicSpriteEntry('danyao_gongji_1.png', 1, type: 'danyao_1', labelText: '赤焰破虚丹', labelFontSize: 10),
+            DynamicSpriteEntry('danyao_fangyu_1.png', 1, type: 'danyao_2', labelText: '玄晶护体丹', labelFontSize: 10),
+            DynamicSpriteEntry('danyao_xueliang_1.png', 1, type: 'danyao_3', labelText: '碧魂续命丹', labelFontSize: 10),
+          ],
+        },
+        dynamicTileSize: 766.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 20.0,
+        maxDynamicObjectSize: 32.0,
+        minSpeed: 20.0,
+        maxSpeed: 30.0,
       ),
     );
   }

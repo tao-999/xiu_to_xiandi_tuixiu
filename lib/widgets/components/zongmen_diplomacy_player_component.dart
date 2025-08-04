@@ -4,17 +4,18 @@ import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart' hide Image;
-import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/player_sprite_util.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_diplomacy_disciple_component.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_map_component.dart';
+
+import '../../services/player_storage.dart';
 import '../../services/role_service.dart';
 import '../../services/zongmen_disciple_service.dart';
 import '../../services/zongmen_storage.dart';
 import '../dialogs/appoint_disciple_role_dialog.dart';
+import 'zongmen_diplomacy_disciple_component.dart';
+import 'zongmen_map_component.dart';
+import '../../utils/player_sprite_util.dart'; // ✅ 保留 import
 
 class ZongmenDiplomacyPlayerComponent extends SpriteComponent
-    with HasGameReference<ZongmenMapComponent>, CollisionCallbacks{
+    with HasGameReference<ZongmenMapComponent>, CollisionCallbacks {
   ZongmenDiplomacyPlayerComponent()
       : super(size: Vector2.all(48), anchor: Anchor.center);
 
@@ -23,7 +24,7 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
   final double moveSpeed = 160;
 
   bool get isMoving => _targetPosition != null;
-  bool _collisionEnabled = false; // 🚫初始化阶段禁用碰撞逻辑
+  bool _collisionEnabled = false;
 
   void moveTo(Vector2 target) {
     _targetPosition = target;
@@ -39,11 +40,11 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
       return;
     }
 
-    final path = await getEquippedSpritePath(player.gender, player.id);
+    // ✅ 使用新版函数（只根据性别获取贴图）
+    final path = await getEquippedSpritePath(player.gender);
     sprite = await Sprite.load(path);
 
-    // ✅ 检查是否与弟子重叠，避免刚出生就弹框
-    await Future.delayed(Duration.zero); // 确保其他组件也加载完了
+    await Future.delayed(Duration.zero);
 
     final overlappingDisciple = game.children
         .whereType<ZongmenDiplomacyDiscipleComponent>()
@@ -52,12 +53,11 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
     );
 
     if (overlappingDisciple != null) {
-      logicalPosition += Vector2(0, 64); // 往下偏移避免重叠
+      logicalPosition += Vector2(0, 64);
     }
 
-    position = logicalPosition.clone(); // 同步视觉位置
+    position = logicalPosition.clone();
 
-    // ✅ 最后一帧后再添加碰撞盒，彻底防止初始化阶段触发
     Future.microtask(() {
       add(
         RectangleHitbox(
@@ -85,13 +85,12 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
         logicalPosition += delta.normalized() * moveStep;
       }
 
-      // 翻转
       if (delta.x.abs() > 1e-3) {
         scale = Vector2(delta.x < 0 ? -1 : 1, 1);
       }
     }
 
-    position = logicalPosition.clone(); // 实时同步位置
+    position = logicalPosition.clone();
   }
 
   @override
@@ -102,8 +101,7 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
     if (!_collisionEnabled || mapGame.isDragging) return;
     if (other is! ZongmenDiplomacyDiscipleComponent) return;
 
-    // 🧨 碰撞到弟子，先弹开再弹框
-    _targetPosition = null; // 💥 强制打断移动
+    _targetPosition = null;
     final offset = (logicalPosition - other.logicalPosition).normalized() * 15;
     logicalPosition += offset;
     position = logicalPosition.clone();
@@ -127,10 +125,8 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
         currentRealm: displayRealm,
         onAppointed: (newRole) async {
           resumeIfNeeded();
-
           final oldRole = d.role;
           d.role = newRole;
-
           await RoleService.updateDiscipleRoleBonus(d.id, oldRole, newRole);
           await ZongmenStorage.setDiscipleRole(d.id, newRole ?? '弟子');
         },
@@ -139,5 +135,4 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
       resumeIfNeeded();
     });
   }
-
 }

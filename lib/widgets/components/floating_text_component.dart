@@ -26,13 +26,6 @@ class FloatingTextComponent extends TextComponent with HasGameReference {
           style: TextStyle(
             fontSize: fontSize,
             color: color,
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.6),
-                blurRadius: 2,
-                offset: Offset(1, 1),
-              ),
-            ],
           ),
         ),
       );
