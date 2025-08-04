@@ -9,14 +9,14 @@ class RecruitHeaderWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               '灵缘客栈',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 18,
                 color: Colors.white,
                 fontFamily: 'ZcoolCangEr',
               ),

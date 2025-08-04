@@ -43,10 +43,9 @@ class _RecruitDialogState extends State<RecruitDialog> {
         borderRadius: BorderRadius.zero,
         side: BorderSide.none,
       ),
-      insetPadding: const EdgeInsets.all(40),
       child: Container(
-        width: 420,
-        height: 720,
+        width: 720,
+        height: 450,
         decoration: BoxDecoration(
           color: const Color(0xFFFFF8DC),
           borderRadius: BorderRadius.zero,
@@ -63,9 +62,9 @@ class _RecruitDialogState extends State<RecruitDialog> {
             // 顶部标题
             RecruitHeaderWidget(),
             // 中部按钮 + 招募券
-            Align(
-              alignment: Alignment.center,
-              child: RecruitActionPanel(
+            Padding(
+              padding: const EdgeInsets.only(top: 100),
+              child:  RecruitActionPanel(
                 onRecruitFinished: _loadTicketCount,
               ),
             ),

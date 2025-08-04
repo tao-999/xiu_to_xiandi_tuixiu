@@ -1,3 +1,4 @@
+// lib/widgets/dialogs/disciple_list_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/disciple_storage.dart';
@@ -29,7 +30,7 @@ class DiscipleListDialog extends StatefulWidget {
           '弟子列表',
           style: TextStyle(
             color: Colors.amber,
-            fontSize: 16,
+            fontSize: 14,
             fontFamily: 'ZcoolCangEr',
             shadows: [
               Shadow(color: Colors.black87, offset: Offset(0.5, 0.5), blurRadius: 2),
@@ -90,9 +91,8 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
         height: 620,
         padding: const EdgeInsets.all(16),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            // 标题及排序
+            // 标题 + 排序选项
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -117,9 +117,9 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
               ],
             ),
             const Divider(),
-            // 列表区域
-            SizedBox(
-              height: 470,
+
+            // ✅ 可扩展滚动区域
+            Expanded(
               child: sortedDisciples.isEmpty
                   ? const Center(child: Text('暂无记录，快去招募吧～'))
                   : ListView.builder(
@@ -180,11 +180,8 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
 
                               final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
                               final updated = d.copyWith(joinedAt: now);
-
                               await DiscipleStorage.save(updated);
-
                               widget.disciples.removeWhere((e) => e.id == d.id);
-
                               if (mounted) setState(() {});
                               ToastTip.show(context, '${d.name} 已加入宗门！');
                             },
@@ -203,7 +200,6 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                               await ResourcesStorage.add('spiritStoneLow', gained);
                               await DiscipleStorage.delete(d.id);
                               widget.disciples.removeWhere((e) => e.id == d.id);
-
                               if (mounted) setState(() {});
                               ToastTip.show(context, '${d.name} 被分解，获得下品灵石 +$gained');
                             },
@@ -223,7 +219,10 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
                 },
               ),
             ),
+
             const SizedBox(height: 8),
+
+            // ✅ 底部操作按钮
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -234,22 +233,18 @@ class _DiscipleListDialogState extends State<DiscipleListDialog> {
 
                       if (toDisintegrate.isEmpty) return;
 
-                      // 一次性计算总奖励
                       BigInt totalStones = toDisintegrate.fold(
                         BigInt.zero,
                             (sum, d) => sum + BigInt.from(d.aptitude * 10),
                       );
 
-                      // 一次性加资源
                       await ResourcesStorage.add('spiritStoneLow', totalStones);
 
-                      // 并行删除
                       await Future.wait([
                         for (final d in toDisintegrate) DiscipleStorage.delete(d.id),
                       ]);
 
                       widget.disciples.removeWhere((d) => d.aptitude <= 30);
-
                       if (mounted) setState(() {});
                       ToastTip.show(context, '已分解${toDisintegrate.length}名弟子，获得下品灵石 +$totalStones');
                     },

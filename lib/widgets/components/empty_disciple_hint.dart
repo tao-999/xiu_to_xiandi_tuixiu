@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_zhaomu.dart';
 
 class EmptyDiscipleHint extends StatelessWidget {
   final VoidCallback onRecruitSuccess;

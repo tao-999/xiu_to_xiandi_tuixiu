@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_disciples.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_danfang.dart';
 import 'package:xiu_to_xiandi_tuixiu/pages/page_lianqi.dart';
-import '../../pages/page_zongmen_diplomacy.dart';
 import '../../pages/page_zongmen_roles.dart';
 
 class ZongmenQuickMenu extends StatelessWidget {
@@ -15,7 +14,6 @@ class ZongmenQuickMenu extends StatelessWidget {
       ["弟子闺房", "dizi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiscipleListPage()))],
       ["炼丹房", "liandan", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DanfangPage()))],
       ["炼器房", "lianqi", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LianqiPage()))],
-      ["宗门外交", "waijiao", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenDiplomacyPage()))],
       ["宗门广场", "zhiwei", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ZongmenRolesPage()))],
     ];
 

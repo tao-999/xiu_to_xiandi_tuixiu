@@ -110,8 +110,8 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
         return SlideTransition(
           position: _animations[index],
           child: Container(
-            width: 60,
-            height: 350,
+            width: 100,
+            height: 150,
             margin: const EdgeInsets.symmetric(horizontal: 6),
             decoration: AptitudeColorUtil.getBackgroundDecoration(d.aptitude),
             child: Stack(
@@ -124,12 +124,12 @@ class _RecruitCardWidgetState extends State<RecruitCardWidget>
                       ? Image.asset(
                     d.imagePath,
                     fit: BoxFit.cover,
-                    width: 60,
-                    height: 350,
+                    width: 100,
+                    height: 150,
                   )
                       : Container(
-                    width: 60,
-                    height: 350,
+                    width: 100,
+                    height: 150,
                     color: Colors.grey.shade200,
                     child: const Icon(Icons.person, size: 36, color: Colors.grey),
                   ),

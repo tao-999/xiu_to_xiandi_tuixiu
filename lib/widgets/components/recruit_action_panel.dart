@@ -115,105 +115,103 @@ class _RecruitActionPanelState extends State<RecruitActionPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 100, 24, 140),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              InkWell(
-                onTap: () => _doRecruit(1),
-                borderRadius: BorderRadius.zero,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.star, color: Colors.orange),
-                      SizedBox(width: 6),
-                      Text(
-                        '招募一次',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontFamily: 'ZcoolCangEr',
-                          color: Colors.orange,
-                        ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            InkWell(
+              onTap: () => _doRecruit(1),
+              borderRadius: BorderRadius.zero,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.star, color: Colors.orange),
+                    SizedBox(width: 6),
+                    Text(
+                      '招募一次',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontFamily: 'ZcoolCangEr',
+                        color: Colors.orange,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 16),
-              InkWell(
-                onTap: () => _doRecruit(10),
-                borderRadius: BorderRadius.zero,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(Icons.auto_awesome, color: Colors.deepOrange),
-                      SizedBox(width: 6),
-                      Text(
-                        '招募十次',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontFamily: 'ZcoolCangEr',
-                          color: Colors.deepOrange,
-                        ),
+            ),
+            const SizedBox(width: 16),
+            InkWell(
+              onTap: () => _doRecruit(10),
+              borderRadius: BorderRadius.zero,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.auto_awesome, color: Colors.deepOrange),
+                    SizedBox(width: 6),
+                    Text(
+                      '招募十次',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontFamily: 'ZcoolCangEr',
+                        color: Colors.deepOrange,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '招募券：$ticketCount',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Colors.white70,
-                  fontFamily: 'ZcoolCangEr',
-                ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '招募券：$ticketCount',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.white70,
+                fontFamily: 'ZcoolCangEr',
               ),
-              IconButton(
-                icon: const Icon(Icons.visibility, color: Colors.white70, size: 20),
-                onPressed: () => showDisciplePreviewDialog(context),
-                tooltip: '预览资质角色',
+            ),
+            IconButton(
+              icon: const Icon(Icons.visibility, color: Colors.white70, size: 20),
+              onPressed: () => showDisciplePreviewDialog(context),
+              tooltip: '预览资质角色',
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '抽卡次数：$totalDraws',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white70,
+                fontFamily: 'ZcoolCangEr',
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            ),
+            const SizedBox(width: 16),
+            if (!poolEmpty)
               Text(
-                '抽卡次数：$totalDraws',
+                '$drawsUntilSSR 抽必出美少女立绘',
                 style: const TextStyle(
                   fontSize: 12,
                   color: Colors.white70,
                   fontFamily: 'ZcoolCangEr',
                 ),
               ),
-              const SizedBox(width: 16),
-              if (!poolEmpty)
-                Text(
-                  '$drawsUntilSSR 抽必出美少女立绘',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
-                    fontFamily: 'ZcoolCangEr',
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -43,33 +43,14 @@ class _RecruitIllustrationWidgetState extends State<RecruitIllustrationWidget>
   @override
   Widget build(BuildContext context) {
     return Transform.translate(
-      offset: const Offset(0, -60),
+      offset: const Offset(0, 0),
       child: Align(
         alignment: Alignment.bottomCenter,
         child: Container(
-          height: 200,
-          margin: const EdgeInsets.only(bottom: 20),
+          height: 180,
           child: Stack(
             alignment: Alignment.bottomCenter,
             children: [
-              Positioned(
-                bottom: 0,
-                child: Container(
-                  width: 260,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(100),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 24,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
               // 固定淡入淡出效果
               ...List.generate(_imagePaths.length, (index) {
                 return AnimatedOpacity(
