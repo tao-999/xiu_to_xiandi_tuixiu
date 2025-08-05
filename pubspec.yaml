@@ -26,10 +26,11 @@ dependencies:
   newton_particles: 0.2.2
   lottie: 3.3.1
   flame: 1.29.0
-  flame_forge2d: 0.18.3+1    # 2D物理（撞飞修士用）
   flame_audio: 2.11.6
   collection: ^1.18.0
   window_size: ^0.1.0
+  window_manager: ^0.5.1
+  screen_retriever: ^0.2.0
 
 dev_dependencies:
   flutter_test:

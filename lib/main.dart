@@ -1,35 +1,36 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io'; // ✅ 新增：平台判断
-import 'package:flutter/services.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:window_size/window_size.dart'; // ✅ 新增：窗口控制
-import 'package:xiu_to_xiandi_tuixiu/pages/page_floating_island.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/route_observer.dart';
+import 'package:window_manager/window_manager.dart';
 
-import 'models/disciple.dart';
-import 'models/weapon.dart';
-import 'models/pill.dart';
 import 'models/character.dart';
+import 'models/disciple.dart';
+import 'models/pill.dart';
+import 'models/weapon.dart';
 import 'pages/page_create_role.dart';
-import 'widgets/effects/touch_effect_overlay.dart';
+import 'pages/page_floating_island.dart';
+import 'services/setting_service.dart';
 import 'utils/app_lifecycle_manager.dart';
+import 'utils/route_observer.dart';
+import 'utils/window_display_mode_manager.dart'; // ✅ 直接引入封装的骚组件
+import 'widgets/effects/touch_effect_overlay.dart';
 
 void main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    await windowManager.ensureInitialized();
 
-    // ✅ 桌面端设置窗口标题和最小尺寸
-    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-      setWindowTitle('修到仙帝退休 · 桌面版');
-      setWindowMinSize(const Size(1280, 720));
-    }
+    // ✅ 就这一行：骚组件帮你全搞定全屏、窗口、无边框
+    await WindowDisplayModeManager.applyDisplayMode();
 
-    // ✅ 沉浸式 + 白色图标
+    // ✅ 沉浸式 UI 设置
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -40,17 +41,16 @@ void main() async {
       ),
     );
 
-    debugPrint('✅ 准备初始化 Hive...');
-    // ✅ 获取安全的应用目录（不要用 getApplicationDocumentsDirectory，会踩坑）
+    debugPrint('✅ 正在初始化 Hive...');
     final Directory dir = await getApplicationSupportDirectory();
-    Hive.init(dir.path); // ✅ 手动指定路径，避免“拒绝访问”错误
+    Hive.init(dir.path);
 
-    // ✅ 注册所有模型
+    // ✅ 注册模型
     Hive.registerAdapter(DiscipleAdapter());
     Hive.registerAdapter(WeaponAdapter());
     Hive.registerAdapter(PillAdapter());
     Hive.registerAdapter(PillTypeAdapter());
-    debugPrint('✅ Hive 注册完成');
+    debugPrint('✅ Hive 模型注册完成');
 
     bool hasCreatedRole = false;
     Character? player;
@@ -58,7 +58,7 @@ void main() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final playerStr = prefs.getString('playerData');
-      debugPrint('✅ 读取 SharedPreferences 成功');
+      debugPrint('✅ SharedPreferences 读取成功');
 
       if (playerStr != null && playerStr.isNotEmpty) {
         final playerJson = jsonDecode(playerStr);
@@ -68,13 +68,13 @@ void main() async {
         if (playerId != null && playerId.toString().isNotEmpty) {
           hasCreatedRole = true;
           player = Character.fromJson(playerJson);
-          debugPrint('✅ 角色对象初始化成功：${player.name}');
+          debugPrint('✅ 玩家对象创建成功：${player.name}');
         }
       } else {
-        debugPrint('⚠️ 未找到 playerData，进入创建角色页');
+        debugPrint('⚠️ 未检测到玩家数据，准备跳转创建角色页');
       }
     } catch (e, stack) {
-      debugPrint('❌ 初始化过程异常：$e');
+      debugPrint('❌ 初始化错误：$e');
       debugPrintStack(stackTrace: stack);
     }
 
@@ -84,7 +84,7 @@ void main() async {
       ),
     );
   }, (error, stack) {
-    debugPrint('❌ 捕获到未处理异常：$error');
+    debugPrint('❌ 全局异常：$error');
     debugPrintStack(stackTrace: stack);
   });
 }
@@ -96,7 +96,7 @@ class XiudiApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '修到仙帝退休',
+      title: '宗主请留步',
       navigatorObservers: [routeObserver],
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -108,7 +108,9 @@ class XiudiApp extends StatelessWidget {
       home: Scaffold(
         body: Stack(
           children: [
-            hasCreatedRole ? const FloatingIslandPage() : const CreateRolePage(),
+            hasCreatedRole
+                ? const FloatingIslandPage()
+                : const CreateRolePage(),
             const TouchEffectOverlay(),
             const Positioned(
               top: 0,

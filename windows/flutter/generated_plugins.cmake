@@ -5,6 +5,8 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   rive_common
+  screen_retriever_windows
+  window_manager
   window_size
 )
 

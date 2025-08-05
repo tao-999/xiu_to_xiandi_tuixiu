@@ -66,6 +66,9 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
   void didPopNext() {
     debugPrint('👋 FloatingIslandPage popped');
     _resourceBarKey.currentState?.refresh();
+
+    // ✅ 刷新地图缩放
+    _mapComponent?.onSettingPageReturned();
   }
 
   @override
