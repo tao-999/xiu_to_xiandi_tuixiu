@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import '../logic/collision/baoxiang1_collision_handler.dart';
 import '../logic/collision/boss1_collision_handler.dart';
 import '../logic/collision/boss2_collision_handler.dart';
+import '../logic/collision/boss3_collision_handler.dart';
 import '../logic/collision/danyao1_collision_handler.dart';
 import '../logic/collision/npc1_collision_handler.dart';
 import '../widgets/components/floating_island_dynamic_mover_component.dart';
@@ -53,6 +54,14 @@ class CollisionLogicHandler {
           Danyao1CollisionHandler.handle(
             player: player,
             danyao: other,
+            resourceBarKey: resourceBarKey,
+          );
+          break;
+        case 'boss_3':
+          Boss3CollisionHandler.handle(
+            player: player,
+            boss: other,
+            logicalOffset: logicalOffset,
             resourceBarKey: resourceBarKey,
           );
           break;

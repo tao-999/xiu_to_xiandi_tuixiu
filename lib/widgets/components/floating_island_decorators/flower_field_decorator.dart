@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 
 import '../dynamic_sprite_entry.dart';
@@ -94,6 +96,30 @@ class FlowerFieldDecorator extends Component {
         maxDynamicObjectSize: 300.0,
         minSpeed: 10.0,
         maxSpeed: 15.0,
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'flower_field'},
+        dynamicSpritesMap: {
+          'flower_field': [
+            DynamicSpriteEntry('floating_island/zhuque.png', 1, priority: 9999, type: 'boss_3', labelText: '上古朱雀', labelColor:  Color(0xFFFF3B00), hp: 10000, atk: 2000, def: 1000),
+          ],
+        },
+        dynamicTileSize: 1234.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 100.0,
+        maxDynamicObjectSize: 150.0,
+        minSpeed: 50.0,
+        maxSpeed: 75.0,
       ),
     );
   }

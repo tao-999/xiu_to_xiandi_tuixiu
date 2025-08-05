@@ -18,7 +18,6 @@ import 'resource_bar.dart';
 
 class FloatingIslandMapComponent extends FlameGame
     with HasCollisionDetection, WidgetsBindingObserver {
-  static FloatingIslandMapComponent? instance;
   late final DragMap _dragMap;
   InfiniteGridPainterComponent? _grid;
   NoiseTileMapGenerator? _noiseMapGenerator;
@@ -43,7 +42,6 @@ class FloatingIslandMapComponent extends FlameGame
 
   @override
   Future<void> onLoad() async {
-    FloatingIslandMapComponent.instance = this;
     await super.onLoad();
 
     add(
