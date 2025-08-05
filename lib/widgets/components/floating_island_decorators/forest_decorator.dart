@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 import '../floating_island_static_spawner_component.dart';
 import '../floating_island_dynamic_spawner_component.dart';
@@ -195,6 +197,30 @@ class ForestDecorator extends Component {
         maxDynamicObjectSize: 32.0,
         minSpeed: 20.0,
         maxSpeed: 30.0,
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'forest'},
+        dynamicSpritesMap: {
+          'forest': [
+            DynamicSpriteEntry('floating_island/baihu.png', 1, priority: 0, type: 'boss_3', labelText: '上古白虎', labelColor:  Color(0xFFFFFAFA), hp: 10000, atk: 2000, def: 1000),
+          ],
+        },
+        dynamicTileSize: 1236.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 100.0,
+        maxDynamicObjectSize: 150.0,
+        minSpeed: 50.0,
+        maxSpeed: 75.0,
       ),
     );
   }

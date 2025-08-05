@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flame/components.dart';
 import '../floating_island_static_spawner_component.dart';
 import '../floating_island_dynamic_spawner_component.dart';
@@ -105,6 +107,38 @@ class GrassDecorator extends Component {
         maxDynamicObjectSize: 356.0,
         minSpeed: 10.0,
         maxSpeed: 20.0,
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'grass'},
+        dynamicSpritesMap: {
+          'grass': [
+            DynamicSpriteEntry('floating_island/qinglong.png', 1,
+              atk: 2000,
+              def: 1000,
+              hp: 10000,
+              labelText: '上古青龙',
+              labelColor: Color(0xFF00CED1),
+              priority: 9999,
+              type: 'boss_3'
+            ),
+          ],
+        },
+        dynamicTileSize: 1235.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 100.0,
+        maxDynamicObjectSize: 150.0,
+        minSpeed: 50.0,
+        maxSpeed: 75.0,
       ),
     );
   }

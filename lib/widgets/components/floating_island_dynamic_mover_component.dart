@@ -161,12 +161,19 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
       final currentTerrain = spawner.getTerrainType(logicalPosition);
       if (!spawner.allowedTerrains.contains(currentTerrain)) {
-        final newPos = spawner.findRandomValidTile();
+        final newPos = spawner.findNearbyValidTile(
+          center: logicalPosition,
+          minRadius: 100.0,
+          maxRadius: 500.0,
+        );
+
         if (newPos != null) {
           print('⚠️ [Mover] 当前地形不合法，瞬移到合法位置: $newPos');
           logicalPosition = newPos.clone();
           pickNewTarget();
           return;
+        } else {
+          print('❌ [Mover] 附近找不到合法地形，无法瞬移');
         }
       }
     }
