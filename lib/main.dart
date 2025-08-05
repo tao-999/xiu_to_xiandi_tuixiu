@@ -9,6 +9,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/treasure_chest_storage.dart';
 
 import 'models/character.dart';
 import 'models/disciple.dart';
@@ -16,19 +17,14 @@ import 'models/pill.dart';
 import 'models/weapon.dart';
 import 'pages/page_create_role.dart';
 import 'pages/page_floating_island.dart';
-import 'services/setting_service.dart';
 import 'utils/app_lifecycle_manager.dart';
 import 'utils/route_observer.dart';
-import 'utils/window_display_mode_manager.dart'; // ✅ 直接引入封装的骚组件
 import 'widgets/effects/touch_effect_overlay.dart';
 
 void main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
-
-    // ✅ 就这一行：骚组件帮你全搞定全屏、窗口、无边框
-    await WindowDisplayModeManager.applyDisplayMode();
 
     // ✅ 沉浸式 UI 设置
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -51,6 +47,8 @@ void main() async {
     Hive.registerAdapter(PillAdapter());
     Hive.registerAdapter(PillTypeAdapter());
     debugPrint('✅ Hive 模型注册完成');
+
+    await TreasureChestStorage.preloadAllOpenedStates();
 
     bool hasCreatedRole = false;
     Character? player;

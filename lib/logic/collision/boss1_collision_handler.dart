@@ -184,7 +184,7 @@ class Boss1CollisionHandler {
         boss.parent?.add(FloatingTextComponent(
           text: taunt,
           logicalPosition: tauntPos,
-          color: isPlayerWeaker ? Colors.deepOrangeAccent : Colors.redAccent,
+          color: Colors.black,
         ));
 
         Future.delayed(const Duration(seconds: 5), () {

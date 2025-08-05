@@ -7,7 +7,6 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/infinite_grid_painter_co
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_player_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 
-import '../../services/setting_service.dart';
 import '../../utils/floating_island_cleanup_manager.dart';
 import 'dead_boss_decoration_component.dart';
 import 'floating_island_decorators.dart';
@@ -46,12 +45,6 @@ class FloatingIslandMapComponent extends FlameGame
   Future<void> onLoad() async {
     FloatingIslandMapComponent.instance = this;
     await super.onLoad();
-
-// ✅ 应用渲染缩放
-    final resolution = await SettingService.getResolution();
-    final zoom = SettingService.getZoomForResolution(resolution);
-    debugPrint('🧪 读取到设置分辨率: $resolution → 应用缩放: $zoom');
-    applyRenderScale(zoom);
 
     add(
       FpsTextComponent(
@@ -224,20 +217,6 @@ class FloatingIslandMapComponent extends FlameGame
         mover.updateVisualPosition(logicalOffset);
       }
     }
-  }
-
-  Future<void> onSettingPageReturned() async {
-    final resolution = await SettingService.getResolution();
-    final zoom = SettingService.getZoomForResolution(resolution);
-    debugPrint('🔁 onSettingPageReturned: 读取到分辨率=$resolution, 缩放=$zoom');
-    applyRenderScale(zoom);
-    onGameResize(size);
-  }
-
-  void applyRenderScale(double scale) {
-    renderScale = scale;
-    camera.viewfinder.zoom = scale;
-    debugPrint('📐 渲染缩放已应用: $scale');
   }
 
   Future<void> saveState() async {

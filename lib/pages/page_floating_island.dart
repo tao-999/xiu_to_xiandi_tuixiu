@@ -66,9 +66,6 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
   void didPopNext() {
     debugPrint('👋 FloatingIslandPage popped');
     _resourceBarKey.currentState?.refresh();
-
-    // ✅ 刷新地图缩放
-    _mapComponent?.onSettingPageReturned();
   }
 
   @override
@@ -111,8 +108,8 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
           // ✅ 第二行：玄历 + 礼物按钮 + 距离指示器（左上）
           if (_mapComponent != null)
             Positioned(
-              top: 15,
-              right: 5,
+              top: 25,
+              left: 15,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -131,8 +128,8 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
 
           // 🆕 用 Positioned 把右侧的角色面板独立放置
           Positioned(
-            top: 15,
-            left: 40, // 调整这个值定位角色面板的位置
+            top: 10,
+            right: 50, // 调整这个值定位角色面板的位置
             child: const CharacterPanel(),
           ),
 
@@ -140,9 +137,9 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
           // ✅ 第三行：底部菜单
           if (_mapComponent != null)
             Positioned(
-              top: 125,
-              left: 20,
-              right: 20,
+              top: 85,
+              left: 15,
+              right: 15,
               child: RootMenu(
                 gender: _gender,
                 mapComponent: _mapComponent!,
