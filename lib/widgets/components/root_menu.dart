@@ -4,7 +4,6 @@ import 'package:xiu_to_xiandi_tuixiu/pages/page_market.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/menu_state_service.dart';
 
 import '../../pages/page_naihe_bridge.dart';
-import '../../pages/page_setting.dart';
 import '../dialogs/beibao_dialog.dart';
 import '../dialogs/recruit_dialog.dart';
 import 'floating_island_map_component.dart'; // 角色弹框
@@ -42,7 +41,6 @@ class _RootMenuState extends State<RootMenu>
       'assets/images/icon_zhaomu.png',
       'assets/images/youli_fanchenshiji.png',
       'assets/images/youli_naiheqiao.png',
-      'assets/images/setting.png',
     ];
 
     _controller = AnimationController(
@@ -115,9 +113,6 @@ class _RootMenuState extends State<RootMenu>
         break;
       case 4:
         page = const NaiheBridgePage();
-        break;
-      case 5:
-        page = const SettingPage();
         break;
       default:
         return;
