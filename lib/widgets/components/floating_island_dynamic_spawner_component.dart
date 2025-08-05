@@ -90,6 +90,42 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     }
   }
 
+  /// 🔍 从地图中随机挑选一个允许地形的 tile，返回其中心坐标
+  Vector2? findRandomValidTile() {
+    final rand = Random(seed); // 保持随机一致性
+    final checked = <String>{};
+    final resultTiles = <Vector2>[];
+
+    // 粗略从已加载过的 tile 中找一块合法的
+    for (final tileKey in _loadedDynamicTiles) {
+      final parts = tileKey.split('_');
+      if (parts.length < 2) continue;
+
+      final tx = int.tryParse(parts[0]);
+      final ty = int.tryParse(parts[1]);
+      if (tx == null || ty == null) continue;
+
+      final center = Vector2(
+        tx * dynamicTileSize + dynamicTileSize / 2,
+        ty * dynamicTileSize + dynamicTileSize / 2,
+      );
+
+      final terrain = getTerrainType(center);
+      if (allowedTerrains.contains(terrain)) {
+        resultTiles.add(center);
+      }
+    }
+
+    // 如果找到了合法地形块，就随机挑一个返回
+    if (resultTiles.isNotEmpty) {
+      return resultTiles[rand.nextInt(resultTiles.length)].clone();
+    }
+
+    // 如果 _loadedDynamicTiles 为空，也可以 fallback 返回中央区域
+    print('⚠️ [Spawner] 没有找到合法的动态 tile，默认返回地图中央');
+    return Vector2(0, 0); // 可替换为地图中心或初始点
+  }
+
   void _collectPendingTiles(Vector2 topLeft, Vector2 bottomRight) {
     final dStartX = (topLeft.x / dynamicTileSize).floor();
     final dStartY = (topLeft.y / dynamicTileSize).floor();

@@ -157,7 +157,21 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       if (tauntCooldown < 0) tauntCooldown = 0;
     }
 
-    // ✅ 自动追击玩家
+    // ✅ 【1】当前位置非法，瞬移回合法地形
+    if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
+      final currentTerrain = spawner.getTerrainType(logicalPosition);
+      if (!spawner.allowedTerrains.contains(currentTerrain)) {
+        final newPos = spawner.findRandomValidTile();
+        if (newPos != null) {
+          print('⚠️ [Mover] 当前地形不合法，瞬移到合法位置: $newPos');
+          logicalPosition = newPos.clone();
+          pickNewTarget();
+          return;
+        }
+      }
+    }
+
+    // ✅ 【2】自动追击玩家逻辑
     if (enableAutoChase && autoChaseRange != null) {
       final player = game.descendants().whereType<FloatingIslandPlayerComponent>().firstOrNull;
       if (player != null) {
@@ -177,7 +191,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
           }
 
           logicalPosition = nextPos;
-
           if (enableMirror) {
             scale.x = delta.x < 0 ? -1 : 1;
           }
@@ -186,7 +199,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       }
     }
 
-    // ✅ 外部移动逻辑
+    // ✅ 【3】外部控制移动
     if (_externalTarget != null) {
       final delta = _externalTarget! - logicalPosition;
       final distance = delta.length;
@@ -218,29 +231,25 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (isMoveLocked) return;
 
-    // ✅ 普通游走逻辑
+    // ✅ 【4】普通游走逻辑
     final dir = targetPosition - logicalPosition;
     final distance = dir.length;
 
-// 🎯 太近或完全重合，直接换目标（防止 NaN 和卡死）
     if (distance < 1e-3) {
       print('📌 [Mover] 距离目标过近（$distance），换目标');
       pickNewTarget();
       return;
     }
 
-// 🧮 每帧的移动向量
     final moveVec = dir.normalized() * speed * dt;
     final nextPos = logicalPosition + moveVec;
 
-// 🎯 如果这步会超过目标，直接拉到目标点
     if (moveVec.length >= distance) {
       logicalPosition = targetPosition.clone();
       pickNewTarget();
       return;
     }
 
-// 🚧 地形判断
     if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
       final nextTerrain = spawner.getTerrainType(nextPos);
       if (!spawner.allowedTerrains.contains(nextTerrain)) {
@@ -250,14 +259,12 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       }
     }
 
-// 🐢 实际速度小于阈值，卡住了！
     final actualSpeed = dt > 0 ? moveVec.length / dt : 0;
     if (actualSpeed < 5) {
       pickNewTarget();
       return;
     }
 
-// 🚶‍♂️ 一切正常，执行移动
     logicalPosition = nextPos;
 
     final minX = movementBounds.left + size.x / 2;
@@ -271,7 +278,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (minY <= maxY) {
       logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
     }
-
   }
 
   void updateVisualPosition(Vector2 logicalOffset) {
