@@ -49,10 +49,8 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     size = Vector2(fixedWidth, scaledHeight);
 
     position = game.size / 2;
-
     add(RectangleHitbox()
       ..size = size
-      ..anchor = Anchor.center
       ..collisionType = CollisionType.active);
 
     _positionStreamController.add(logicalPosition);

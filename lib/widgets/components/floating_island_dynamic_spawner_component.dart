@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import '../../services/collected_pill_storage.dart';
 import '../../services/dead_boss_storage.dart';
+import '../../services/gongfa_collected_storage.dart';
 import '../../utils/name_generator.dart';
 import '../../utils/terrain_utils.dart';
 import 'dynamic_sprite_entry.dart';
@@ -184,6 +185,12 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     // ✅ 丹药已拾取跳过（只针对丹药组件）
     if (type.startsWith('danyao_')) {
       final alreadyCollected = await CollectedPillStorage.isCollected(tileKey);
+      if (alreadyCollected) return;
+    }
+
+    // ✅ 功法已拾取跳过（只针对功法组件）
+    if (type == 'gongfa_1') {
+      final alreadyCollected = await GongfaCollectedStorage.isCollected(tileKey);
       if (alreadyCollected) return;
     }
 

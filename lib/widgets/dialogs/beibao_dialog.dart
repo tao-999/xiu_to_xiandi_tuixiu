@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_grid_view.dart';
+import '../../services/gongfa_collected_storage.dart';
 import '../../services/resources_storage.dart';
 import '../../data/beibao_resource_config.dart';
 import '../../models/beibao_item_type.dart';
@@ -140,6 +141,21 @@ class _BeibaoDialogState extends State<BeibaoDialog> {
         ));
       }
     });
+
+    final gongfaList = await GongfaCollectedStorage.getAllGongfa();
+    for (final g in gongfaList) {
+      newItems.add(BeibaoItem(
+        name: g.name,
+        imagePath: g.iconPath.startsWith('assets/')
+            ? g.iconPath
+            : 'assets/images/${g.iconPath}', // 保底兜个路径
+        level: g.level,
+        quantity: BigInt.from(g.count),
+        description: '品阶：${g.level}，描述：${g.description}',
+        type: BeibaoItemType.gongfa, // 你要在 enum 里加这个类型哦！
+        hiveKey: '${g.id}_${g.level}', // 可选，给未来操作用
+      ));
+    }
 
     setState(() {
       items = newItems;

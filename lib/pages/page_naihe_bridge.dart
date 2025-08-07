@@ -5,13 +5,14 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/pages/page_create_role.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/chiyangu_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_floating_island.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/typewriter_poem_section.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/mengpo_soup_dialog.dart';
 
 import '../models/dead_boss_entry.dart';
 import '../models/disciple.dart';
+import '../models/gongfa.dart';
 import '../models/pill.dart';
 import '../models/weapon.dart';
 import '../widgets/components/naihe_info_icon.dart';
@@ -50,7 +51,6 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
     await Hive.close();
     await Hive.deleteFromDisk();
     await nukeHiveStorage();
-    ChiyanguStorage.resetPickaxeData();
 
     await Future.delayed(const Duration(milliseconds: 1000));
 
@@ -66,22 +66,25 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
 
   Future<void> nukeHiveStorage() async {
     await Hive.close();
-    final dir = await getApplicationSupportDirectory();
-    final files = Directory(dir.path).listSync(recursive: true);
 
-    for (final file in files) {
-      final name = file.path;
-      if (name.endsWith('.hive') || name.endsWith('.lock') || name.contains('hive')) {
+    final dir = await getApplicationSupportDirectory();
+    debugPrint('📂 Hive 存储目录: ${dir.path}');
+
+    final folder = Directory(dir.path);
+    final files = folder.listSync(recursive: false); // 只删根目录文件
+
+    for (final entity in files) {
+      if (entity is File) {
         try {
-          await File(name).delete();
-          debugPrint('🔥 删除文件: $name');
+          await entity.delete();
+          debugPrint('🔥 删除文件: ${entity.path}');
         } catch (e) {
-          debugPrint('⚠️ 删除失败: $name');
+          debugPrint('⚠️ 删除失败: ${entity.path}，原因：$e');
         }
       }
     }
 
-    debugPrint('✅ Hive 文件全干掉了');
+    debugPrint('✅ Hive 存储目录下所有文件已清空');
   }
 
   Future<void> closeAllBoxes() async {
@@ -125,6 +128,20 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
       await Hive.box<DeadBossEntry>('dead_boss_box').close();
       print('[Hive] Closed box: dead_boss_box');
     }
+    if (Hive.isBoxOpen('collected_gongfa_box')) {
+      await Hive.box<bool>('collected_gongfa_box').close();
+      print('[Hive] Closed box: collected_gongfa_box');
+    }
+
+    if (Hive.isBoxOpen('collected_gongfa_data_box')) {
+      await Hive.box<Gongfa>('collected_gongfa_data_box').close();
+      print('[Hive] Closed box: collected_gongfa_data_box');
+    }
+    if (Hive.isBoxOpen('collected_pills_box')) {
+      await Hive.box<bool>('collected_pills_box').close();
+      print('[Hive] Closed box: collected_pills_box');
+    }
+
   }
 
   @override
@@ -146,7 +163,7 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
                     ),
                   ),
                   const Center(child: TypewriterPoemSection()),
-                  const BackButtonOverlay(),
+                  BackButtonOverlay(targetPage: const FloatingIslandPage()),
                   Positioned(
                     top: 30,
                     right: 20,

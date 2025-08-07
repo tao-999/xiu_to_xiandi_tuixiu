@@ -13,6 +13,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/treasure_chest_storage.dart';
 
 import 'models/character.dart';
 import 'models/disciple.dart';
+import 'models/gongfa.dart';
 import 'models/pill.dart';
 import 'models/weapon.dart';
 import 'pages/page_create_role.dart';
@@ -46,9 +47,9 @@ void main() async {
     Hive.registerAdapter(WeaponAdapter());
     Hive.registerAdapter(PillAdapter());
     Hive.registerAdapter(PillTypeAdapter());
+    Hive.registerAdapter(GongfaAdapter());
+    Hive.registerAdapter(GongfaTypeAdapter());
     debugPrint('✅ Hive 模型注册完成');
-
-    await TreasureChestStorage.preloadAllOpenedStates();
 
     bool hasCreatedRole = false;
     Character? player;

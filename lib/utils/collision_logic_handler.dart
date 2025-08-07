@@ -5,6 +5,7 @@ import '../logic/collision/boss1_collision_handler.dart';
 import '../logic/collision/boss2_collision_handler.dart';
 import '../logic/collision/boss3_collision_handler.dart';
 import '../logic/collision/danyao1_collision_handler.dart';
+import '../logic/collision/gongfa1_collision_handler.dart';
 import '../logic/collision/npc1_collision_handler.dart';
 import '../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../widgets/components/floating_island_player_component.dart';
@@ -30,6 +31,7 @@ class CollisionLogicHandler {
             playerLogicalPosition: player.logicalPosition,
             npc: other,
             logicalOffset: logicalOffset,
+            resourceBarKey: resourceBarKey,
           );
           break;
         case 'boss_1':
@@ -45,6 +47,13 @@ class CollisionLogicHandler {
             player: player,
             boss: other,
             logicalOffset: logicalOffset,
+            resourceBarKey: resourceBarKey,
+          );
+          break;
+        case 'gongfa_1':
+          Gongfa1CollisionHandler.handle(
+            player: player,
+            gongfaBook: other,
             resourceBarKey: resourceBarKey,
           );
           break;
@@ -83,6 +92,7 @@ class CollisionLogicHandler {
             playerLogicalPosition: player.logicalPosition,
             chest: other,
             logicalOffset: logicalOffset,
+            resourceBarKey: resourceBarKey,
           );
           break;
         default:

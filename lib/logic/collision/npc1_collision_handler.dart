@@ -8,6 +8,7 @@ import '../../utils/lingshi_util.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_lingshi_popup_component.dart';
 import '../../widgets/components/floating_text_component.dart';
+import '../../widgets/components/resource_bar.dart';
 import '../../widgets/effects/logical_move_effect.dart';
 
 class Npc1CollisionHandler {
@@ -28,6 +29,7 @@ class Npc1CollisionHandler {
     required Vector2 playerLogicalPosition,
     required FloatingIslandDynamicMoverComponent npc,
     required Vector2 logicalOffset,
+    required GlobalKey<ResourceBarState> resourceBarKey, // ✅ 新增
   }) {
     final rand = Random();
 
@@ -98,6 +100,9 @@ class Npc1CollisionHandler {
 
         final field = lingShiFieldMap[lingShiType]!;
         ResourcesStorage.add(field, BigInt.from(count));
+
+        // ✅ 资源栏刷新
+        resourceBarKey.currentState?.refresh();
       } else {
         // 😡 嘴臭弹幕
         final taunt = taunts[rand.nextInt(taunts.length)];

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_floating_island.dart';
 import '../widgets/components/back_button_overlay.dart';
 import '../widgets/components/duihuan_lingshi.dart';
 import '../widgets/components/forge_blueprint_shop.dart';
@@ -42,7 +43,7 @@ class XiuXianMarketPage extends StatelessWidget {
             )
           ),
 
-          const BackButtonOverlay(),
+          BackButtonOverlay(targetPage: const FloatingIslandPage()),
         ],
       ),
     );

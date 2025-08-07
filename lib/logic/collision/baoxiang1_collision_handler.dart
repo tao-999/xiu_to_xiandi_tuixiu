@@ -1,24 +1,25 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+
 import '../../services/resources_storage.dart';
 import '../../services/treasure_chest_storage.dart';
 import '../../utils/lingshi_util.dart';
 import '../../widgets/components/floating_island_static_decoration_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_text_component.dart';
+import '../../widgets/components/resource_bar.dart';
 
 class Baoxiang1CollisionHandler {
   static void handle({
     required Vector2 playerLogicalPosition,
     required FloatingIslandStaticDecorationComponent chest,
     required Vector2 logicalOffset,
+    required GlobalKey<ResourceBarState> resourceBarKey, // ✅ 新增参数
   }) {
-    // ✅ 同步判断是否已打开
+    // ✅ 判断是否已开启宝箱
     final isAlreadyOpened = TreasureChestStorage.isOpenedSync(chest.worldPosition);
-    if (isAlreadyOpened) {
-      return;
-    }
+    if (isAlreadyOpened) return;
 
     final game = chest.findGame();
     if (game == null) {
@@ -35,21 +36,21 @@ class Baoxiang1CollisionHandler {
     player.stopMoving();
     print('🛑 [Baoxiang1] 玩家停止移动');
 
-    // ✅ 距离计算（决定奖励）
+    // ✅ 距离决定奖励
     final distance = chest.worldPosition.length;
     final rand = Random();
 
     final count = distance > 10_000_000
-        ? rand.nextInt(91) + 10   // 10 ~ 100
-        : rand.nextInt(46) + 5;   // 5 ~ 50
+        ? rand.nextInt(91) + 10    // 10 ~ 100
+        : rand.nextInt(46) + 5;    // 5 ~ 50
 
-    final lingShiTypes = LingShiType.values.toList(); // [lower, middle, upper, supreme]
+    final lingShiTypes = LingShiType.values.toList();
     final lingShiType = lingShiTypes[rand.nextInt(lingShiTypes.length)];
 
     final field = lingShiFieldMap[lingShiType]!;
     ResourcesStorage.add(field, BigInt.from(count));
 
-    // ✅ 同步记录已开启状态（自动缓存）
+    // ✅ 标记宝箱已开启
     TreasureChestStorage.markAsOpened(chest.worldPosition);
 
     // ✅ 飘字提示
@@ -65,7 +66,7 @@ class Baoxiang1CollisionHandler {
 
     print('🎁 [Baoxiang1] 奖励：$rewardText（距离=${distance.toStringAsFixed(0)}）');
 
-    // ✅ 异步切换贴图（不阻塞主流程）
+    // ✅ 异步切换贴图
     Future.microtask(() async {
       try {
         final openedSprite = await Sprite.load('floating_island/beach_2_open.png');
@@ -75,5 +76,8 @@ class Baoxiang1CollisionHandler {
         print('❌ [Baoxiang1] 切图失败：$e');
       }
     });
+
+    // ✅ 资源栏刷新（关键！）
+    resourceBarKey.currentState?.refresh();
   }
 }

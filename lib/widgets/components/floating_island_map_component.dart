@@ -7,6 +7,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/infinite_grid_painter_co
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_player_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 
+import '../../services/treasure_chest_storage.dart';
 import '../../utils/floating_island_cleanup_manager.dart';
 import 'dead_boss_decoration_component.dart';
 import 'floating_island_decorators.dart';
@@ -155,6 +156,8 @@ class FloatingIslandMapComponent extends FlameGame
         excludeComponents: {player!},
       ));
     });
+
+    await TreasureChestStorage.preloadAllOpenedStates();
   }
 
   @override

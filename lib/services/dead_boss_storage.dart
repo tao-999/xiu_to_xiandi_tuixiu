@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flame/components.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/dead_boss_entry.dart';
 
 class DeadBossStorage {
@@ -87,12 +91,22 @@ class DeadBossStorage {
 
   /// 📋 获取所有死亡 Boss 信息（tileKey → 坐标）
   static Future<Map<String, Vector2>> getAllDeathEntries() async {
+    final dir = await getApplicationSupportDirectory();
+    final file = File('${dir.path}/dead_boss_box.hive');
+
+    // ✅ 文件不存在就直接返回空 map
+    if (!file.existsSync()) {
+      debugPrint('[DeadBossStorage] ⚠️ dead_boss_box.hive 不存在，跳过加载');
+      return {};
+    }
+
     final box = await _getBox();
     return {
       for (final entry in box.values)
         entry.tileKey: Vector2(entry.x, entry.y),
     };
   }
+
 
   /// 🧹 清空所有记录（开发调试用）
   static Future<void> clear() async {

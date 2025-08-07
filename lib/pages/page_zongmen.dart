@@ -3,6 +3,7 @@ import 'package:flame/game.dart';
 
 import 'package:xiu_to_xiandi_tuixiu/models/zongmen.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/disciple.dart';
+import 'package:xiu_to_xiandi_tuixiu/pages/page_floating_island.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/zongmen_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/resources_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart';
@@ -118,7 +119,7 @@ class _ZongmenPageState extends State<ZongmenPage> {
               ),
             ),
 
-          const BackButtonOverlay(),
+          BackButtonOverlay(targetPage: const FloatingIslandPage()),
         ],
       ),
     );

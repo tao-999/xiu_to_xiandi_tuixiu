@@ -92,7 +92,7 @@ class _RootMenuState extends State<RootMenu>
         showDialog(
           context: context,
           builder: (_) => BeibaoDialog(
-            onChanged: widget.onChanged, // ✅ 直接透传
+            onChanged: widget.onChanged,
           ),
         );
         return;
@@ -100,6 +100,7 @@ class _RootMenuState extends State<RootMenu>
       case 1:
         page = const ZongmenPage();
         break;
+
       case 2:
         showDialog(
           context: context,
@@ -108,17 +109,24 @@ class _RootMenuState extends State<RootMenu>
           ),
         );
         return;
+
       case 3:
         page = const XiuXianMarketPage();
         break;
+
       case 4:
         page = const NaiheBridgePage();
         break;
+
       default:
         return;
     }
 
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+    // ✅ 替换当前页面，销毁 FloatingIslandPage，彻底 stop FlameGame
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+    );
   }
 
   @override

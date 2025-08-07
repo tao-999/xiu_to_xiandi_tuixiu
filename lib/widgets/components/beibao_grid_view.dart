@@ -136,6 +136,7 @@ class _BeibaoGridViewState extends State<BeibaoGridView> {
       BeibaoItemType.pill,
       BeibaoItemType.herb,
       BeibaoItemType.refineMaterial,
+      BeibaoItemType.gongfa,
     };
 
     return Padding(

@@ -122,5 +122,29 @@ class FlowerFieldDecorator extends Component {
         maxSpeed: 75.0,
       ),
     );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'flower_field'},
+        dynamicSpritesMap: {
+          'flower_field': [
+            DynamicSpriteEntry('gongfa/gongfa.png', 1, type: 'gongfa_1', labelText: '神秘功法', labelColor:  Color(0xFF000000)),
+          ],
+        },
+        dynamicTileSize: 640.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 16.0,
+        maxDynamicObjectSize: 25.0,
+        minSpeed: 10.0,
+        maxSpeed: 25.0,
+      ),
+    );
   }
 }

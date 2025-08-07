@@ -22,6 +22,22 @@ class DeadBossDecorationComponent extends Component with HasGameReference {
   });
 
   @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    try {
+      final allDead = await DeadBossStorage.getAllDeathEntries();
+
+      debugPrint('☠️ [DeadBoss] 初始化打印 ${allDead.length} 条死亡记录：');
+      for (final entry in allDead.entries) {
+        debugPrint('  👉 tileKey=${entry.key}, pos=(${entry.value.x}, ${entry.value.y})');
+      }
+    } catch (e, stack) {
+      debugPrint('❌ [DeadBoss] 初始化读取失败：$e');
+    }
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
 

@@ -172,8 +172,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
           logicalPosition = newPos.clone();
           pickNewTarget();
           return;
-        } else {
-          print('❌ [Mover] 附近找不到合法地形，无法瞬移');
         }
       }
     }

@@ -56,10 +56,19 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
 
   @override
   void dispose() {
+    debugPrint('🚨 FloatingIslandPage dispose triggered');
     routeObserver.unsubscribe(this);
     _mapComponent?.saveState();
-    _mapComponent?.onRemove();
+    _destroyMapComponent(); // ✅ 用这个更稳
     super.dispose();
+  }
+
+  void _destroyMapComponent() {
+    if (_mapComponent != null) {
+      _mapComponent!.pauseEngine();
+      _mapComponent!.onRemove(); // 你可以 override onRemove 做清理
+      _mapComponent = null;
+    }
   }
 
   @override

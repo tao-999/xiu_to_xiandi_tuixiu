@@ -210,7 +210,7 @@ class ForestDecorator extends Component {
         allowedTerrains: {'forest'},
         dynamicSpritesMap: {
           'forest': [
-            DynamicSpriteEntry('floating_island/baihu.png', 1, priority: 0, type: 'boss_3', labelText: '上古白虎', labelColor:  Color(0xFFFFFAFA), hp: 10000, atk: 2000, def: 1000),
+            DynamicSpriteEntry('floating_island/baihu.png', 1, priority: 0, type: 'boss_3', labelText: '上古白虎', labelColor:  Color(0xFFFFFAFA), hp: 10000, atk: 2000, def: 1000, defaultFacingRight: false),
           ],
         },
         dynamicTileSize: 1236.0,

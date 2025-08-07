@@ -6,5 +6,6 @@ enum BeibaoItemType {
   pill, // 丹药
   herb, // 草药
   refineMaterial,
-  favorabilityMaterial
+  favorabilityMaterial,
+  gongfa,
 }
