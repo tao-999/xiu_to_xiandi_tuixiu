@@ -22,30 +22,16 @@ class Danyao1CollisionHandler {
     if (danyao.isDead || danyao.collisionCooldown > 0) return;
     danyao.collisionCooldown = double.infinity;
 
-    final type = danyao.type;
-    late PillType pillType;
-    late String iconPath;
-
-    switch (type) {
-      case 'danyao_1':
-        pillType = PillType.attack;
-        iconPath = 'danyao_gongji_1.png';
-        break;
-      case 'danyao_2':
-        pillType = PillType.defense;
-        iconPath = 'danyao_fangyu_1.png';
-        break;
-      case 'danyao_3':
-        pillType = PillType.health;
-        iconPath = 'danyao_xueliang_1.png';
-        break;
-      default:
-        print('⚠️ 未知丹药类型: $type');
-        return;
-    }
-
-    final imagePath = iconPath;
-    final label = danyao.label?.text ?? '未知丹药';
+    // 🎲 随机选择丹药（name, type, iconPath）
+    final pillOptions = [
+      ('赤焰破虚丹', PillType.attack, 'danyao_gongji_1.png'),
+      ('玄晶护体丹', PillType.defense, 'danyao_fangyu_1.png'),
+      ('碧魂续命丹', PillType.health, 'danyao_xueliang_1.png'),
+    ];
+    final selected = pillOptions[rand.nextInt(pillOptions.length)];
+    final name = selected.$1;
+    final pillType = selected.$2;
+    final iconPath = selected.$3;
 
     // 📏 计算距离 → 等级
     final distance = danyao.logicalPosition.length;
@@ -71,25 +57,26 @@ class Danyao1CollisionHandler {
         break;
     }
 
+    // 💊 创建丹药对象
     final newPill = Pill(
-      name: label,
+      name: name,
       level: level,
       type: pillType,
       count: 1,
       bonusAmount: bonus,
       createdAt: DateTime.now(),
-      iconPath: imagePath,
+      iconPath: iconPath,
     );
 
     PillStorageService.addPill(newPill);
     CollectedPillStorage.markCollected(danyao.spawnedTileKey);
 
-    final rewardText = '获得 $label ×1';
+    final rewardText = '获得 $name ×1';
     final centerPos = danyao.findGame()!.size / 2;
 
     danyao.findGame()!.camera.viewport.add(FloatingLingShiPopupComponent(
       text: rewardText,
-      imagePath: imagePath,
+      imagePath: iconPath,
       position: centerPos,
     ));
 

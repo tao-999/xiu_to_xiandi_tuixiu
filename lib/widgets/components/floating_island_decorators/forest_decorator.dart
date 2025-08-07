@@ -184,19 +184,17 @@ class ForestDecorator extends Component {
         allowedTerrains: {'forest'},
         dynamicSpritesMap: {
           'forest': [
-            DynamicSpriteEntry('danyao_gongji_1.png', 1, type: 'danyao_1', labelText: '赤焰破虚丹', labelFontSize: 10),
-            DynamicSpriteEntry('danyao_fangyu_1.png', 1, type: 'danyao_2', labelText: '玄晶护体丹', labelFontSize: 10),
-            DynamicSpriteEntry('danyao_xueliang_1.png', 1, type: 'danyao_3', labelText: '碧魂续命丹', labelFontSize: 10),
+            DynamicSpriteEntry('danyao.png', 1, type: 'danyao', enableMirror: false),
           ],
         },
-        dynamicTileSize: 766.0,
+        dynamicTileSize: 333.0,
         seed: seed,
         minDynamicObjectsPerTile: 0,
         maxDynamicObjectsPerTile: 1,
         minDynamicObjectSize: 20.0,
-        maxDynamicObjectSize: 32.0,
-        minSpeed: 20.0,
-        maxSpeed: 30.0,
+        maxDynamicObjectSize: 25.0,
+        minSpeed: 30.0,
+        maxSpeed: 40.0,
       ),
     );
 
@@ -221,6 +219,30 @@ class ForestDecorator extends Component {
         maxDynamicObjectSize: 150.0,
         minSpeed: 50.0,
         maxSpeed: 75.0,
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'forest'},
+        dynamicSpritesMap: {
+          'forest': [
+            DynamicSpriteEntry('xiancao.png', 1, type: 'xiancao', labelText: '神秘仙草', labelColor:  Color(0xFFFFFAFA)),
+          ],
+        },
+        dynamicTileSize: 473.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 20.0,
+        maxDynamicObjectSize: 25.0,
+        minSpeed: 20.0,
+        maxSpeed: 35.0,
       ),
     );
   }

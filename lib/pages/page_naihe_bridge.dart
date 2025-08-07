@@ -149,6 +149,11 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
       await Hive.box<bool>('collected_recruit_ticket_box').close();
       print('[Hive] Closed box: collected_recruit_ticket_box');
     }
+    if (Hive.isBoxOpen('collected_xiancao_box')) {
+      await Hive.box<bool>('collected_xiancao_box').close();
+      print('[Hive] Closed box: collected_xiancao_box');
+    }
+
   }
 
   @override
