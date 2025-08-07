@@ -90,10 +90,17 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    add(RectangleHitbox()..collisionType = CollisionType.active);
 
     currentHp = hp ?? 100;
 
+    // ✅ 延迟300ms添加碰撞盒子，避免出生瞬间碰撞
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!isDead && !isRemoving) {
+        add(RectangleHitbox()..collisionType = CollisionType.active);
+      }
+    });
+
+    // ✅ 显示名字标签
     if (labelText != null && labelText!.isNotEmpty) {
       label = TextComponent(
         text: labelText!,
@@ -110,6 +117,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       parent?.add(label!);
     }
 
+    // ✅ 显示血条
     if (hp != null && atk != null && def != null) {
       hpBar = HpBarWrapper()
         ..anchor = Anchor.bottomCenter
@@ -127,9 +135,10 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       });
     }
 
+    // ✅ 初始化移动目标
     pickNewTarget();
 
-    // ✅ 每1分钟执行一次换目标
+    // ✅ 每1分钟换目标
     _targetTimer = dart_async.Timer.periodic(
       const Duration(minutes: 1),
           (_) {

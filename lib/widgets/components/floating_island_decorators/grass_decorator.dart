@@ -96,6 +96,7 @@ class GrassDecorator extends Component {
             DynamicSpriteEntry('floating_island/grass_d_3.png', 1,
               defaultFacingRight: false,
               ignoreTerrainInMove: true,
+              priority: 99999,
             ),
           ],
         },
@@ -139,6 +140,60 @@ class GrassDecorator extends Component {
         maxDynamicObjectSize: 150.0,
         minSpeed: 50.0,
         maxSpeed: 75.0,
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'grass'},
+        dynamicSpritesMap: {
+          'grass': [
+            DynamicSpriteEntry('fate_recruit_charm.png', 1,
+                priority: 9999,
+                type: 'charm_1'
+            ),
+          ],
+        },
+        dynamicTileSize: 535.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 1,
+        maxDynamicObjectsPerTile: 4,
+        minDynamicObjectSize: 20.0,
+        maxDynamicObjectSize: 25.0,
+        minSpeed: 20.0,
+        maxSpeed: 35.0,
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'grass'},
+        dynamicSpritesMap: {
+          'grass': [
+            DynamicSpriteEntry('recruit_ticket.png', 1,
+                priority: 9999,
+                type: 'recruit_ticket'
+            ),
+          ],
+        },
+        dynamicTileSize: 655.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 20.0,
+        maxDynamicObjectSize: 25.0,
+        minSpeed: 20.0,
+        maxSpeed: 35.0,
       ),
     );
   }

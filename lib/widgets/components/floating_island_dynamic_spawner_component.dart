@@ -3,7 +3,9 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import '../../services/collected_pill_storage.dart';
 import '../../services/dead_boss_storage.dart';
+import '../../services/fate_recruit_charm_storage.dart';
 import '../../services/gongfa_collected_storage.dart';
+import '../../services/recruit_ticket_storage.dart';
 import '../../utils/name_generator.dart';
 import '../../utils/terrain_utils.dart';
 import 'dynamic_sprite_entry.dart';
@@ -187,10 +189,19 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       final alreadyCollected = await CollectedPillStorage.isCollected(tileKey);
       if (alreadyCollected) return;
     }
-
     // ✅ 功法已拾取跳过（只针对功法组件）
     if (type == 'gongfa_1') {
       final alreadyCollected = await GongfaCollectedStorage.isCollected(tileKey);
+      if (alreadyCollected) return;
+    }
+    // ✅ 资质券已拾取跳过（只针对资质券组件）
+    if (type == 'charm_1') {
+      final alreadyCollected = await FateRecruitCharmStorage.isCollected(tileKey);
+      if (alreadyCollected) return;
+    }
+    // ✅ 招募券已拾取跳过（只针对招募券组件）
+    if (type == 'recruit_ticket') {
+      final alreadyCollected = await RecruitTicketStorage.isCollected(tileKey);
       if (alreadyCollected) return;
     }
 

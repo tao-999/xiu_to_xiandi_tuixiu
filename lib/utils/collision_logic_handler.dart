@@ -5,8 +5,10 @@ import '../logic/collision/boss1_collision_handler.dart';
 import '../logic/collision/boss2_collision_handler.dart';
 import '../logic/collision/boss3_collision_handler.dart';
 import '../logic/collision/danyao1_collision_handler.dart';
+import '../logic/collision/fate_recruit_charm1_collision_handler.dart';
 import '../logic/collision/gongfa1_collision_handler.dart';
 import '../logic/collision/npc1_collision_handler.dart';
+import '../logic/collision/recruit_ticket_collision_handler.dart';
 import '../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../widgets/components/floating_island_player_component.dart';
 import '../widgets/components/floating_island_static_decoration_component.dart';
@@ -71,6 +73,20 @@ class CollisionLogicHandler {
             player: player,
             boss: other,
             logicalOffset: logicalOffset,
+            resourceBarKey: resourceBarKey,
+          );
+          break;
+        case 'charm_1':
+          FateRecruitCharm1CollisionHandler.handle(
+            player: player,
+            charm: other,
+            resourceBarKey: resourceBarKey,
+          );
+          break;
+        case 'recruit_ticket':
+          RecruitTicketCollisionHandler.handle(
+            player: player,
+            charm: other,
             resourceBarKey: resourceBarKey,
           );
           break;

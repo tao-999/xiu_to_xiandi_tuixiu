@@ -141,7 +141,14 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
       await Hive.box<bool>('collected_pills_box').close();
       print('[Hive] Closed box: collected_pills_box');
     }
-
+    if (Hive.isBoxOpen('collected_fate_recruit_charm_box')) {
+      await Hive.box<bool>('collected_fate_recruit_charm_box').close();
+      print('[Hive] Closed box: collected_fate_recruit_charm_box');
+    }
+    if (Hive.isBoxOpen('collected_recruit_ticket_box')) {
+      await Hive.box<bool>('collected_recruit_ticket_box').close();
+      print('[Hive] Closed box: collected_recruit_ticket_box');
+    }
   }
 
   @override

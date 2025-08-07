@@ -77,13 +77,6 @@ class RockDecorator extends Component {
         maxDynamicObjectSize: 32,
         minSpeed: 50,
         maxSpeed: 120,
-        onDynamicComponentCreated: (mover, terrain) {
-          mover.onCustomCollision = (points, other) {
-            if (other is FloatingIslandPlayerComponent) {
-              debugPrint('✨ 动态漂浮物被角色撞: ${mover.spritePath}');
-            }
-          };
-        },
       ),
     );
 
@@ -125,13 +118,6 @@ class RockDecorator extends Component {
         maxDynamicObjectSize: 64,
         minSpeed: 35,
         maxSpeed: 75,
-        onDynamicComponentCreated: (mover, terrain) {
-          mover.onCustomCollision = (points, other) {
-            if (other is FloatingIslandPlayerComponent) {
-              debugPrint('✨ 动态漂浮物被角色撞: ${mover.spritePath}');
-            }
-          };
-        },
       ),
     );
   }

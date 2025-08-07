@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/gongfa_data.dart';
@@ -8,7 +7,6 @@ import '../../services/gongfa_collected_storage.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_lingshi_popup_component.dart';
-import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/components/resource_bar.dart';
 
 class Gongfa1CollisionHandler {

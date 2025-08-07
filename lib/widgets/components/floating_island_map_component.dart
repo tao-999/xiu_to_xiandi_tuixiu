@@ -47,11 +47,9 @@ class FloatingIslandMapComponent extends FlameGame
 
     add(
       FpsTextComponent(
-          textRenderer: TextPaint(
-            style: TextStyle(
-              fontSize: 16,
-            ),
-          )
+        textRenderer: TextPaint(
+          style: const TextStyle(fontSize: 16),
+        ),
       )
         ..anchor = Anchor.topLeft
         ..position = Vector2(5, 5),
@@ -91,73 +89,76 @@ class FloatingIslandMapComponent extends FlameGame
     add(_dragMap);
     debugPrint('[FloatingIslandMap] DragMap added.');
 
-    Future.microtask(() async {
-      final pos = await FloatingIslandStorage.getPlayerPosition();
-      final cam = await FloatingIslandStorage.getCameraOffset();
-
-      logicalOffset = cam != null
-          ? Vector2(cam['x']!, cam['y']!)
-          : Vector2.zero();
-
-      debugPrint('[FloatingIslandMap] Loaded logicalOffset: $logicalOffset');
-
-      _grid?.position = size / 2;
-
-      player = FloatingIslandPlayerComponent(
-        resourceBarKey: resourceBarKey, // ✅ 传入
-      )..anchor = Anchor.bottomCenter;
-      _grid?.add(player!);
-      debugPrint('[FloatingIslandMap] Player added.');
-
-      if (pos != null) {
-        player!.logicalPosition = Vector2(pos['x']!, pos['y']!);
-        debugPrint('[FloatingIslandMap] Loaded player logicalPosition: ${player!.logicalPosition}');
-        player!.notifyPositionChanged();
-        logicalOffset = player!.logicalPosition.clone();
-        isCameraFollowing = true;
-        player!.syncVisualPosition(logicalOffset);
-      } else {
-        player!.logicalPosition = Vector2.zero();
-        debugPrint('[FloatingIslandMap] Default player logicalPosition: ${player!.logicalPosition}');
-        logicalOffset = Vector2.zero();
-        isCameraFollowing = true;
-      }
-
-      _noiseMapGenerator?.ensureChunksForView(
-        center: logicalOffset,
-        extra: size * 1.2,
-        forceImmediate: false,
-      );
-
-      _noiseMapGenerator?.ensureChunksForView(
-        center: logicalOffset,
-        extra: size * 2,
-        forceImmediate: false,
-      );
-
-      add(FloatingIslandDecorators(
-        grid: _grid!,
-        getLogicalOffset: () => logicalOffset,
-        getViewSize: () => size,
-        noiseMapGenerator: _noiseMapGenerator!,
-        seed: seed,
-      ));
-
-      add(DeadBossDecorationComponent(
-        parentLayer: _grid!,
-        getViewCenter: () => logicalOffset + size / 2,
-        getViewSize: () => size,
-      ));
-
-      add(FloatingIslandCleanupManager(
-        grid: _grid!,
-        getLogicalOffset: () => logicalOffset,
-        getViewSize: () => size,
-        excludeComponents: {player!},
-      ));
-    });
+    await _initGameWorld(); // ✅ 核心异步初始化
 
     await TreasureChestStorage.preloadAllOpenedStates();
+  }
+
+  Future<void> _initGameWorld() async {
+    final pos = await FloatingIslandStorage.getPlayerPosition();
+    final cam = await FloatingIslandStorage.getCameraOffset();
+
+    logicalOffset = cam != null
+        ? Vector2(cam['x']!, cam['y']!)
+        : Vector2.zero();
+
+    debugPrint('[FloatingIslandMap] Loaded logicalOffset: $logicalOffset');
+
+    _grid?.position = size / 2;
+
+    player = FloatingIslandPlayerComponent(
+      resourceBarKey: resourceBarKey,
+    )..anchor = Anchor.bottomCenter;
+
+    _grid?.add(player!);
+    debugPrint('[FloatingIslandMap] Player added.');
+
+    if (pos != null) {
+      player!.logicalPosition = Vector2(pos['x']!, pos['y']!);
+      debugPrint('[FloatingIslandMap] Loaded player logicalPosition: ${player!.logicalPosition}');
+      player!.notifyPositionChanged();
+      logicalOffset = player!.logicalPosition.clone();
+      isCameraFollowing = true;
+      player!.syncVisualPosition(logicalOffset);
+    } else {
+      player!.logicalPosition = Vector2.zero();
+      debugPrint('[FloatingIslandMap] Default player logicalPosition: ${player!.logicalPosition}');
+      logicalOffset = Vector2.zero();
+      isCameraFollowing = true;
+    }
+
+    _noiseMapGenerator?.ensureChunksForView(
+      center: logicalOffset,
+      extra: size * 1.2,
+      forceImmediate: true,
+    );
+
+    _noiseMapGenerator?.ensureChunksForView(
+      center: logicalOffset,
+      extra: size * 2,
+      forceImmediate: true,
+    );
+
+    add(FloatingIslandDecorators(
+      grid: _grid!,
+      getLogicalOffset: () => logicalOffset,
+      getViewSize: () => size,
+      noiseMapGenerator: _noiseMapGenerator!,
+      seed: seed,
+    ));
+
+    add(DeadBossDecorationComponent(
+      parentLayer: _grid!,
+      getViewCenter: () => logicalOffset + size / 2,
+      getViewSize: () => size,
+    ));
+
+    add(FloatingIslandCleanupManager(
+      grid: _grid!,
+      getLogicalOffset: () => logicalOffset,
+      getViewSize: () => size,
+      excludeComponents: {player!},
+    ));
   }
 
   @override

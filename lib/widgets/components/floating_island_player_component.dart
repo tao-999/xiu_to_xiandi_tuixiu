@@ -6,6 +6,7 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 import '../../utils/collision_logic_handler.dart';
 import '../../utils/terrain_event_util.dart';
+import 'floating_island_dynamic_mover_component.dart';
 import 'floating_island_static_decoration_component.dart';
 import 'resource_bar.dart';
 
@@ -49,9 +50,19 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     size = Vector2(fixedWidth, scaledHeight);
 
     position = game.size / 2;
-    add(RectangleHitbox()
+
+    // ✅ 初始碰撞类型设为 passive，避免初始化瞬间误碰
+    final hitbox = RectangleHitbox()
       ..size = size
-      ..collisionType = CollisionType.active);
+      ..collisionType = CollisionType.passive;
+
+    add(hitbox);
+
+    // ✅ 延迟100ms后启用碰撞（active）
+    Future.delayed(const Duration(milliseconds: 100), () {
+      hitbox.collisionType = CollisionType.active;
+      debugPrint('✅ 玩家碰撞激活完毕');
+    });
 
     _positionStreamController.add(logicalPosition);
   }
@@ -125,6 +136,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
     final mapGame = game as dynamic;
+
     CollisionLogicHandler.handleCollision(
       player: this,
       logicalOffset: mapGame.logicalOffset,
