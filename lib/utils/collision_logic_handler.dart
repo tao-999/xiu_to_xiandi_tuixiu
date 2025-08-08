@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:xiu_to_xiandi_tuixiu/logic/collision/favorability_collision_handler.dart';
+import 'package:xiu_to_xiandi_tuixiu/logic/collision/ling_shi_collision_handler.dart';
 import '../logic/collision/baoxiang1_collision_handler.dart';
 import '../logic/collision/boss1_collision_handler.dart';
 import '../logic/collision/boss2_collision_handler.dart';
@@ -101,6 +102,13 @@ class CollisionLogicHandler {
           FavorabilityCollisionHandler.handle(
             player: player,
             favorItem: other,
+            resourceBarKey: resourceBarKey,
+          );
+          break;
+        case 'lingshi':
+          LingShiCollisionHandler.handle(
+            player: player,
+            lingShi: other,
             resourceBarKey: resourceBarKey,
           );
           break;

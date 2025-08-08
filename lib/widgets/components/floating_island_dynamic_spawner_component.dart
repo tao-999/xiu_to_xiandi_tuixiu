@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/collected_favorability_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/collected_lingshi_storage.dart';
 import '../../services/collected_pill_storage.dart';
 import '../../services/collected_xiancao_storage.dart';
 import '../../services/dead_boss_storage.dart';
@@ -212,6 +213,10 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     }
     if (type == 'favorability') {
       final alreadyCollected = await CollectedFavorabilityStorage.isCollected(tileKey);
+      if (alreadyCollected) return;
+    }
+    if (type == 'lingshi') {
+      final alreadyCollected = await CollectedLingShiStorage.isCollected(tileKey);
       if (alreadyCollected) return;
     }
 

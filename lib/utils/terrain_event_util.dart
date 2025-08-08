@@ -1,7 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import '../services/terrain_event_storage_service.dart';
-import '../widgets/components/rock_terrain_event.dart';
 import '../widgets/components/volcanic_terrain_event.dart';
 import '../widgets/components/shallow_ocean_terrain_event.dart';
 
@@ -21,9 +20,6 @@ class TerrainEventUtil {
     bool hasEvent = false;
 
     switch (terrain) {
-      case 'rock':
-        hasEvent = await RockTerrainEvent.trigger(pos, game);
-        break;
       case 'volcanic':
         hasEvent = await VolcanicTerrainEvent.trigger(pos, game);
         break;

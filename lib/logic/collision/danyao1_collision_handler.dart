@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/pill.dart';
@@ -8,7 +7,6 @@ import '../../services/pill_storage_service.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_lingshi_popup_component.dart';
-import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/components/resource_bar.dart';
 
 class Danyao1CollisionHandler {
@@ -78,12 +76,6 @@ class Danyao1CollisionHandler {
       text: rewardText,
       imagePath: iconPath,
       position: centerPos,
-    ));
-
-    danyao.parent?.add(FloatingTextComponent(
-      text: rewardText,
-      logicalPosition: danyao.logicalPosition - Vector2(0, danyao.size.y / 2 + 8),
-      color: Colors.deepOrange,
     ));
 
     danyao.removeFromParent();

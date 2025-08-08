@@ -76,7 +76,7 @@ class RockDecorator extends Component {
         minDynamicObjectSize: 16,
         maxDynamicObjectSize: 32,
         minSpeed: 50,
-        maxSpeed: 120,
+        maxSpeed: 80,
       ),
     );
 
@@ -118,6 +118,30 @@ class RockDecorator extends Component {
         maxDynamicObjectSize: 64,
         minSpeed: 35,
         maxSpeed: 75,
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'rock'},
+        dynamicSpritesMap: {
+          'rock': [
+            DynamicSpriteEntry('lingshi.png', 1, type: 'lingshi'),
+          ],
+        },
+        dynamicTileSize: 288,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 20,
+        maxDynamicObjectSize: 25,
+        minSpeed: 35,
+        maxSpeed: 55,
       ),
     );
   }

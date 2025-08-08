@@ -88,77 +88,39 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
   }
 
   Future<void> closeAllBoxes() async {
-    if (Hive.isBoxOpen('disciples')) {
-      await Hive.box<Disciple>('disciples').close();
-      print('[Hive] Closed box: disciples');
-    }
-    if (Hive.isBoxOpen('weapons')) {
-      await Hive.box<Weapon>('weapons').close();
-      print('[Hive] Closed box: weapons');
-    }
-    if (Hive.isBoxOpen('pills')) {
-      await Hive.box<Pill>('pills').close();
-      print('[Hive] Closed box: pills');
-    }
-    if (Hive.isBoxOpen('role_regions')) {
-      await Hive.box('role_regions').close();
-      print('[Hive] Closed box: role_regions');
-    }
-    if (Hive.isBoxOpen('floating_island')) {
-      await Hive.box('floating_island').close();
-      print('[Hive] Closed box: floating_island');
-    }
-    if (Hive.isBoxOpen('noise_cache')) {
-      await Hive.box<double>('noise_cache').close();
-      print('[Hive] Closed box: noise_cache');
-    }
-    if (Hive.isBoxOpen('terrain_events')) {
-      await Hive.box('terrain_events').close();
-      print('[Hive] Closed box: terrain_events');
-    }
-    if (Hive.isBoxOpen('zongmen_diplomacy')) {
-      await Hive.box('zongmen_diplomacy').close();
-      print('[Hive] Closed box: zongmen_diplomacy');
-    }
-    if (Hive.isBoxOpen('opened_chests')) {
-      await Hive.box('opened_chests').close();
-      print('[Hive] Closed box: opened_chests');
-    }
-    if (Hive.isBoxOpen('dead_boss_box')) {
-      await Hive.box<DeadBossEntry>('dead_boss_box').close();
-      print('[Hive] Closed box: dead_boss_box');
-    }
-    if (Hive.isBoxOpen('collected_gongfa_box')) {
-      await Hive.box<bool>('collected_gongfa_box').close();
-      print('[Hive] Closed box: collected_gongfa_box');
-    }
+    final List<_BoxEntry> boxes = [
+      _BoxEntry('disciples', type: Disciple),
+      _BoxEntry('weapons', type: Weapon),
+      _BoxEntry('pills', type: Pill),
+      _BoxEntry('role_regions'),
+      _BoxEntry('floating_island'),
+      _BoxEntry('noise_cache', type: double),
+      _BoxEntry('terrain_events'),
+      _BoxEntry('zongmen_diplomacy'),
+      _BoxEntry('opened_chests'),
+      _BoxEntry('dead_boss_box', type: DeadBossEntry),
+      _BoxEntry('collected_gongfa_box', type: bool),
+      _BoxEntry('collected_gongfa_data_box', type: Gongfa),
+      _BoxEntry('collected_pills_box', type: bool),
+      _BoxEntry('collected_fate_recruit_charm_box', type: bool),
+      _BoxEntry('collected_recruit_ticket_box', type: bool),
+      _BoxEntry('collected_xiancao_box', type: bool),
+      _BoxEntry('collected_favorability_box', type: bool),
+      _BoxEntry('collected_lingshi_box', type: bool),
+    ];
 
-    if (Hive.isBoxOpen('collected_gongfa_data_box')) {
-      await Hive.box<Gongfa>('collected_gongfa_data_box').close();
-      print('[Hive] Closed box: collected_gongfa_data_box');
+    for (final box in boxes) {
+      if (Hive.isBoxOpen(box.name)) {
+        if (box.type != null) {
+          await Hive.box(box.name).close(); // ignore type
+        } else {
+          await Hive.box(box.name).close();
+        }
+        print('[Hive] Closed box: ${box.name}');
+      }
     }
-    if (Hive.isBoxOpen('collected_pills_box')) {
-      await Hive.box<bool>('collected_pills_box').close();
-      print('[Hive] Closed box: collected_pills_box');
-    }
-    if (Hive.isBoxOpen('collected_fate_recruit_charm_box')) {
-      await Hive.box<bool>('collected_fate_recruit_charm_box').close();
-      print('[Hive] Closed box: collected_fate_recruit_charm_box');
-    }
-    if (Hive.isBoxOpen('collected_recruit_ticket_box')) {
-      await Hive.box<bool>('collected_recruit_ticket_box').close();
-      print('[Hive] Closed box: collected_recruit_ticket_box');
-    }
-    if (Hive.isBoxOpen('collected_xiancao_box')) {
-      await Hive.box<bool>('collected_xiancao_box').close();
-      print('[Hive] Closed box: collected_xiancao_box');
-    }
-    if (Hive.isBoxOpen('collected_favorability_box')) {
-      await Hive.box<bool>('collected_favorability_box').close();
-      print('[Hive] Closed box: collected_favorability_box');
-    }
-
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -206,4 +168,11 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
       ),
     );
   }
+}
+
+class _BoxEntry {
+  final String name;
+  final Type? type;
+
+  const _BoxEntry(this.name, {this.type});
 }
