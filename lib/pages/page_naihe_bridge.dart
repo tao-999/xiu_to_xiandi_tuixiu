@@ -107,6 +107,7 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
       _BoxEntry('collected_xiancao_box', type: bool),
       _BoxEntry('collected_favorability_box', type: bool),
       _BoxEntry('collected_lingshi_box', type: bool),
+      _BoxEntry('collected_jinkuang_box', type: bool),
     ];
 
     for (final box in boxes) {

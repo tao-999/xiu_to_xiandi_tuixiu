@@ -33,24 +33,35 @@ class XiancaoCollisionHandler {
   /// ✅ 权重生成（指数衰减，保证最后一阶 ≥ 2%）
   static List<double> _generateNormalizedWeights({
     required int maxLevel,
-    double decayPower = 1.5,
-    double minLastPercent = 0.02,
   }) {
-    final weights = List<double>.generate(
-      maxLevel,
-          (i) => 1.0 / pow(i + 1, decayPower),
-    );
+    final base = 1.0 / maxLevel;
+    final weights = List<double>.filled(maxLevel, base);
 
-    final rawTotal = weights.reduce((a, b) => a + b);
-    final lastRatio = weights.last / rawTotal;
+    if (maxLevel <= 1) return weights;
 
-    if (lastRatio < minLastPercent) {
-      final boost = minLastPercent * rawTotal - weights.last;
-      weights[weights.length - 1] += boost;
+    final half = maxLevel ~/ 2;
+    final isOdd = maxLevel % 2 == 1;
+
+    // 低阶：吃补
+    final lowIndices = List.generate(half, (i) => i);
+
+    // 高阶：出血（奇数中间阶保留）
+    final highStart = isOdd ? half + 1 : half;
+    final highIndices = List.generate(maxLevel - highStart, (i) => highStart + i);
+
+    // 高阶每阶让出 50%
+    final bleedPer = base * 0.5;
+    final totalBleed = bleedPer * highIndices.length;
+    final addPer = totalBleed / lowIndices.length;
+
+    for (final hi in highIndices) {
+      weights[hi] -= bleedPer;
+    }
+    for (final li in lowIndices) {
+      weights[li] += addPer;
     }
 
-    final total = weights.reduce((a, b) => a + b);
-    return weights.map((w) => w / total).toList();
+    return weights;
   }
 
   /// ✅ 权重抽阶（返回 1-based 阶数）

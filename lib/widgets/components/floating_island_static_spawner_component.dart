@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/static_sprite_entry.dart';
+import '../../services/treasure_chest_storage.dart';
 import '../../utils/floating_static_event_state_util.dart';
 import 'floating_island_static_decoration_component.dart';
 
@@ -14,12 +15,10 @@ class FloatingIslandStaticSpawnerComponent extends Component {
   final Map<String, List<StaticSpriteEntry>> staticSpritesMap;
   final double staticTileSize;
   final int seed;
-
   final int minCount;
   final int maxCount;
   final double minSize;
   final double maxSize;
-
   final void Function(FloatingIslandStaticDecorationComponent deco, String terrainType)?
   onStaticComponentCreated;
 
@@ -34,10 +33,10 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     required this.getTerrainType,
     required Set<String> allowedTerrains,
     required Map<String, List<StaticSpriteEntry>> staticSpritesMap,
-    this.staticTileSize = 128.0,
+    this.staticTileSize = 64.0,
     this.seed = 8888,
-    this.minCount = 1,
-    this.maxCount = 2,
+    this.minCount = 0,
+    this.maxCount = 1,
     this.minSize = 16.0,
     this.maxSize = 48.0,
     this.onStaticComponentCreated,
@@ -60,7 +59,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     if (_lastLogicalOffset != null && (_lastLogicalOffset! - offset).length < 1) return;
     _lastLogicalOffset = offset.clone();
     updateTileRendering(offset, viewSize);
-    _updateDecorationPriorities(); // ✅ 动态更新层级
+    _updateDecorationPriorities(); // ✅ 自动调整层级
   }
 
   static Map<String, List<StaticSpriteEntry>> _normalizeSpriteMap(
@@ -196,6 +195,14 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     if (entries.isEmpty) return;
 
     final selected = _pickStaticByWeight(entries, rand);
+
+    // ✅ 宝箱生成判断（按 tileKey）→ await！
+    if (selected.type == 'treasure_chest' &&
+        await TreasureChestStorage.isOpenedTile(tileKey)) {
+      print('🚫 [Spawner] 已开启宝箱，跳过生成 tileKey=$tileKey');
+      return;
+    }
+
     final count = (selected.minCount != null && selected.maxCount != null)
         ? rand.nextInt(selected.maxCount! - selected.minCount! + 1) + selected.minCount!
         : rand.nextInt(maxCount - minCount + 1) + minCount;
@@ -212,10 +219,12 @@ class FloatingIslandStaticSpawnerComponent extends Component {
 
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
-      final spritePath = FloatingStaticEventStateUtil.getEffectiveSpritePath(
+      // ✅ 异步判断贴图（比如宝箱开没开）
+      final spritePath = await FloatingStaticEventStateUtil.getEffectiveSpritePath(
         originalPath: selected.path,
         worldPosition: worldPos,
         type: selected.type,
+        tileKey: tileKey,
       );
 
       final flameGame = grid.findGame();
@@ -223,8 +232,8 @@ class FloatingIslandStaticSpawnerComponent extends Component {
 
       final sprite = await Sprite.load(spritePath);
       final imageSize = sprite.srcSize;
-      final double scale = sizeValue / imageSize.x; // 👈 用宽度算缩放比
-      final Vector2 fixedSize = imageSize * scale; // 👈 高度 = 原高 * scale，自动适配
+      final double scale = sizeValue / imageSize.x;
+      final Vector2 fixedSize = imageSize * scale;
 
       final deco = FloatingIslandStaticDecorationComponent(
         sprite: sprite,
@@ -232,14 +241,15 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         worldPosition: worldPos,
         logicalOffset: currentOffset,
         spritePath: selected.path,
+        type: selected.type,
+        tileKey: tileKey, // ✅ tileKey 保留
         anchor: Anchor.bottomCenter,
       )
-        ..type = selected.type
         ..add(RectangleHitbox()..collisionType = CollisionType.passive);
 
       if (selected.priority != null) {
         deco.priority = selected.priority!;
-        deco.ignoreAutoPriority = true; // ✅ 标记为不参与排序
+        deco.ignoreAutoPriority = true;
       }
 
       components.add(deco);
@@ -254,7 +264,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
   void _updateDecorationPriorities() {
     final decorations = grid.children
         .whereType<FloatingIslandStaticDecorationComponent>()
-        .where((c) => !c.ignoreAutoPriority) // ✅ 只动态排序未标记的
+        .where((c) => !c.ignoreAutoPriority)
         .toList();
 
     decorations.sort((a, b) => a.worldPosition.y.compareTo(b.worldPosition.y));

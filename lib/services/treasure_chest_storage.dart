@@ -1,46 +1,27 @@
 import 'package:hive/hive.dart';
-import 'package:flame/components.dart';
 
 class TreasureChestStorage {
   static const _boxName = 'opened_chests';
 
-  static final Map<String, bool> _cachedStates = {};
-
-  /// ✅ 内部统一 key 生成
-  static String _keyFor(Vector2 pos) => '${pos.x.toInt()},${pos.y.toInt()}';
-
-  /// ✅ 标记某个宝箱为已开启（写入 Hive + 缓存）
-  static Future<void> markAsOpened(Vector2 pos) async {
-    final box = await Hive.openBox(_boxName);
-    final key = _keyFor(pos);
-    await box.put(key, true);
-    _cachedStates[key] = true;
+  /// ✅ 标记宝箱为已开启
+  static Future<void> markAsOpenedTile(String tileKey) async {
+    final box = await Hive.openBox(_boxName); // 每次 open，自动复用
+    await box.put(tileKey, true);
   }
 
-  /// ✅ 同步判断是否开启（从缓存中查）
-  static bool isOpenedSync(Vector2 pos) {
-    final key = _keyFor(pos);
-    return _cachedStates[key] ?? false;
+  /// ✅ 判断宝箱是否已开启（同步版建议不要，改异步更靠谱）
+  static Future<bool> isOpenedTile(String tileKey) async {
+    final box = await Hive.openBox(_boxName); // 不用 preload，不用缓存
+    return box.get(tileKey, defaultValue: false) ?? false;
   }
 
-  /// ✅ 加载所有已开启宝箱（初始化时调用）
-  static Future<void> preloadAllOpenedStates() async {
-    final box = await Hive.openBox(_boxName);
-    _cachedStates
-      ..clear()
-      ..addAll(Map<String, bool>.fromEntries(
-        box.keys.map((k) => MapEntry(k.toString(), true)),
-      ));
-  }
-
-  /// 🧪 调试用：清空所有记录（Hive + 缓存）
+  /// ✅ 清空全部宝箱记录（调试用）
   static Future<void> clearAll() async {
     final box = await Hive.openBox(_boxName);
     await box.clear();
-    _cachedStates.clear();
   }
 
-  /// ✅ 获取所有已打开坐标（调试用）
+  /// ✅ 获取所有已开启的 tileKey（调试用）
   static Future<List<String>> getAllOpenedKeys() async {
     final box = await Hive.openBox(_boxName);
     return box.keys.cast<String>().toList();

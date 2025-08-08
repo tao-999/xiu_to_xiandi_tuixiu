@@ -11,14 +11,20 @@ import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/components/resource_bar.dart';
 
 class Baoxiang1CollisionHandler {
-  static void handle({
+  static Future<void> handle({
     required Vector2 playerLogicalPosition,
     required FloatingIslandStaticDecorationComponent chest,
     required Vector2 logicalOffset,
-    required GlobalKey<ResourceBarState> resourceBarKey, // ✅ 新增参数
-  }) {
-    // ✅ 判断是否已开启宝箱
-    final isAlreadyOpened = TreasureChestStorage.isOpenedSync(chest.worldPosition);
+    required GlobalKey<ResourceBarState> resourceBarKey,
+  }) async {
+    // ✅ 改用 tileKey 持久化判断
+    final tileKey = chest.tileKey;
+    if (tileKey == null) {
+      print('❌ [Baoxiang1] 缺少 tileKey，跳过处理');
+      return;
+    }
+
+    final isAlreadyOpened = await TreasureChestStorage.isOpenedTile(tileKey);
     if (isAlreadyOpened) return;
 
     final game = chest.findGame();
@@ -50,8 +56,8 @@ class Baoxiang1CollisionHandler {
     final field = lingShiFieldMap[lingShiType]!;
     ResourcesStorage.add(field, BigInt.from(count));
 
-    // ✅ 标记宝箱已开启
-    TreasureChestStorage.markAsOpened(chest.worldPosition);
+    // ✅ 标记为已开启（用 tileKey）
+    TreasureChestStorage.markAsOpenedTile(tileKey);
 
     // ✅ 飘字提示
     final rewardText = '获得${lingShiNames[lingShiType]} ×$count 💰';
@@ -77,7 +83,7 @@ class Baoxiang1CollisionHandler {
       }
     });
 
-    // ✅ 资源栏刷新（关键！）
+    // ✅ 刷新资源栏
     resourceBarKey.currentState?.refresh();
   }
 }

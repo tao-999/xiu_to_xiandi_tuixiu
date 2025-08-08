@@ -75,8 +75,6 @@ class SnowDecorator extends Component {
         },
         dynamicTileSize: 128.0,
         seed: seed,
-        minDynamicObjectsPerTile: 0,
-        maxDynamicObjectsPerTile: 1,
         minDynamicObjectSize: 32.0,
         maxDynamicObjectSize: 64.0,
         minSpeed: 10.0,

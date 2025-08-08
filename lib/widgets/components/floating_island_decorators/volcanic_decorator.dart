@@ -38,14 +38,12 @@ class VolcanicDecorator extends Component {
           'volcanic': [
             StaticSpriteEntry('floating_island/volcanic_1.png', 1),
             StaticSpriteEntry('floating_island/volcanic_2.png', 3),
-            StaticSpriteEntry('floating_island/volcanic_3.png', 1),
+            StaticSpriteEntry('floating_island/volcanic_3.png', 1, priority: 0),
             StaticSpriteEntry('floating_island/volcanic_4.png', 1),
           ],
         },
-        staticTileSize: 128.0,
+        staticTileSize: 64.0,
         seed: seed,
-        minCount: 5,
-        maxCount: 10,
         minSize: 32.0,
         maxSize: 64.0,
       ),
@@ -75,6 +73,31 @@ class VolcanicDecorator extends Component {
         minDynamicObjectSize: 16.0,
         maxDynamicObjectSize: 32.0,
         minSpeed: 10.0,
+        maxSpeed: 30.0,
+      ),
+    );
+
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) =>
+            noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'volcanic'},
+        dynamicSpritesMap: {
+          'volcanic': [
+            DynamicSpriteEntry('jinkuang.png', 1, type: 'jinkuang'),
+          ],
+        },
+        dynamicTileSize: 142.0,
+        seed: seed,
+        minDynamicObjectsPerTile: 0,
+        maxDynamicObjectsPerTile: 1,
+        minDynamicObjectSize: 20.0,
+        maxDynamicObjectSize: 25.0,
+        minSpeed: 15.0,
         maxSpeed: 30.0,
       ),
     );

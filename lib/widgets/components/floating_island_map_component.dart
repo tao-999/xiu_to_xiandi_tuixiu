@@ -7,8 +7,6 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/infinite_grid_painter_co
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_player_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 
-import '../../services/treasure_chest_storage.dart';
-import '../../utils/floating_island_cleanup_manager.dart';
 import 'dead_boss_decoration_component.dart';
 import 'floating_island_decorators.dart';
 import 'floating_island_dynamic_mover_component.dart';
@@ -90,8 +88,6 @@ class FloatingIslandMapComponent extends FlameGame
     debugPrint('[FloatingIslandMap] DragMap added.');
 
     await _initGameWorld(); // ✅ 核心异步初始化
-
-    await TreasureChestStorage.preloadAllOpenedStates();
   }
 
   Future<void> _initGameWorld() async {
@@ -153,12 +149,6 @@ class FloatingIslandMapComponent extends FlameGame
       getViewSize: () => size,
     ));
 
-    add(FloatingIslandCleanupManager(
-      grid: _grid!,
-      getLogicalOffset: () => logicalOffset,
-      getViewSize: () => size,
-      excludeComponents: {player!},
-    ));
   }
 
   @override

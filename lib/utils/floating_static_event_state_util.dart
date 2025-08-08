@@ -2,20 +2,21 @@
 import 'package:flame/components.dart';
 import '../services/treasure_chest_storage.dart';
 
-/// 🌟 通用静态事件状态判断工具类（同步版）
+/// 🌟 通用静态事件状态判断工具类（异步版）
 class FloatingStaticEventStateUtil {
-  /// ✅ 贴图路径判断（同步，依赖缓存）
-  static String getEffectiveSpritePath({
+  /// ✅ 贴图路径判断（异步，无缓存，实时查询 Hive）
+  static Future<String> getEffectiveSpritePath({
     required String originalPath,
     required Vector2 worldPosition,
     required String? type,
-  }) {
+    String? tileKey, // ✅ 新增
+  }) async {
     switch (type) {
       case 'baoxiang_1':
-        final isOpen = TreasureChestStorage.isOpenedSync(worldPosition);
+        final isOpen = tileKey != null &&
+            await TreasureChestStorage.isOpenedTile(tileKey); // ✅ 改为 await
 
-        // 🧾 打印调试信息
-        print('🔍 [贴图判断] 宝箱类型 → pos=($worldPosition), opened=$isOpen, result=${isOpen ? 'floating_island/beach_2_open.png' : originalPath}');
+        print('🔍 [贴图判断] 宝箱类型 → tileKey=($tileKey), pos=($worldPosition), opened=$isOpen');
 
         return isOpen
             ? 'floating_island/beach_2_open.png'

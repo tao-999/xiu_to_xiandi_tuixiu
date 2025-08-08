@@ -1,37 +1,36 @@
-// 📂 lib/widgets/components/handlers/favorability_collision_handler.dart
-
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-import '../../data/favorability_data.dart';
-import '../../services/collected_favorability_storage.dart';
-import '../../services/favorability_material_service.dart';
+import '../../data/all_refine_blueprints.dart'; // 提供 levelForgeMaterials
+import '../../services/collected_jinkuang_storage.dart';
+import '../../services/refine_material_service.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/components/resource_bar.dart';
 import '../../widgets/components/floating_lingshi_popup_component.dart';
 
-class FavorabilityCollisionHandler {
+class JinkuangCollisionHandler {
   static final Random _rand = Random();
 
-  /// ✅ 阶数边界（与 FavorabilityData.items 长度对齐）
+  /// ✅ 阶数边界
   static final List<int> _levelBounds = _generateLevelBounds();
 
   static List<int> _generateLevelBounds({
-    int start = 10_000,
+    int start = 15_000,
     int multiplier = 10,
   }) {
     final List<int> bounds = [];
     int value = start;
-    for (int i = 0; i < FavorabilityData.items.length; i++) {
+    for (int i = 0; i < levelForgeMaterials.length; i++) {
       bounds.add(value);
       value *= multiplier;
     }
     return bounds;
   }
 
+  /// ✅ 权重生成
   static List<double> _generateNormalizedWeights({
     required int maxLevel,
   }) {
@@ -43,18 +42,22 @@ class FavorabilityCollisionHandler {
     final half = maxLevel ~/ 2;
     final isOdd = maxLevel % 2 == 1;
 
-    final lowIndices = List.generate(half, (i) => i); // 低阶索引
+    final lowIndices = List.generate(half, (i) => i); // 低位索引 0 ~ half-1
     final highStart = isOdd ? half + 1 : half;
-    final highIndices = List.generate(maxLevel - highStart, (i) => highStart + i); // 高阶索引
+    final highIndices = List.generate(maxLevel - highStart, (i) => highStart + i); // 高位索引
 
-    // 高阶每阶让出 base * 0.5
+    // 总出血量
     final bleedPer = base * 0.5;
     final totalBleed = bleedPer * highIndices.length;
+
     final addPer = totalBleed / lowIndices.length;
 
+    // 出血
     for (final hi in highIndices) {
       weights[hi] -= bleedPer;
     }
+
+    // 补偿
     for (final li in lowIndices) {
       weights[li] += addPer;
     }
@@ -62,6 +65,7 @@ class FavorabilityCollisionHandler {
     return weights;
   }
 
+  /// ✅ 权重抽阶（1-based）
   static int _pickLevelByProbabilities(List<double> probabilities) {
     final roll = _rand.nextDouble();
     double sum = 0;
@@ -74,64 +78,64 @@ class FavorabilityCollisionHandler {
 
   static void handle({
     required FloatingIslandPlayerComponent player,
-    required FloatingIslandDynamicMoverComponent favorItem,
+    required FloatingIslandDynamicMoverComponent jinkuang,
     required GlobalKey<ResourceBarState> resourceBarKey,
   }) {
-    if (favorItem.isDead || favorItem.collisionCooldown > 0) return;
-    favorItem.collisionCooldown = double.infinity;
+    if (jinkuang.isDead || jinkuang.collisionCooldown > 0) return;
+    jinkuang.collisionCooldown = double.infinity;
 
-    final distance = favorItem.logicalPosition.length;
+    final distance = jinkuang.logicalPosition.length;
 
-    // ✅ 获取最大阶（根据距离）
+    // ✅ 最大阶（根据距离）
     int maxLevel = _levelBounds.indexWhere((b) => distance < b);
     if (maxLevel == -1) {
-      maxLevel = FavorabilityData.items.length;
+      maxLevel = levelForgeMaterials.length;
     } else {
       maxLevel += 1;
     }
 
-    // ✅ 生成概率列表 & 抽取阶数
+    // ✅ 抽阶
     final probs = _generateNormalizedWeights(maxLevel: maxLevel);
     final selectedLevel = _pickLevelByProbabilities(probs);
 
-    // ✅ 获取材料索引（1-based）
-    final materialIndex = selectedLevel;
+    // ✅ 从对应阶中抽材料
+    final materials = levelForgeMaterials[selectedLevel - 1];
+    final name = materials[_rand.nextInt(materials.length)];
 
-    // ✅ 保存材料
-    FavorabilityMaterialService.addMaterial(materialIndex, 1);
+    // ✅ 存储材料
+    RefineMaterialService.add(name, 1);
 
     // ✅ 弹窗提示
-    final game = favorItem.findGame();
+    final game = jinkuang.findGame();
     if (game != null) {
-      final favorItemData = FavorabilityData.getByIndex(materialIndex);
-      final rewardText = '获得【${favorItemData.name}】×1';
+      final rewardText = '开采到【$name】×1';
       final centerPos = game.size / 2;
 
       game.camera.viewport.add(FloatingTextComponent(
         text: rewardText,
-        logicalPosition: favorItem.logicalPosition - Vector2(0, favorItem.size.y / 2 + 8),
-        color: Colors.pinkAccent,
+        logicalPosition: jinkuang.logicalPosition - Vector2(0, jinkuang.size.y / 2 + 8),
+        color: Colors.amberAccent,
       ));
 
       game.camera.viewport.add(FloatingLingShiPopupComponent(
         text: rewardText,
-        imagePath: favorItemData.assetPath,
+        imagePath: 'assets/images/materials/$name.png',
         position: centerPos,
       ));
     }
 
     // ✅ 标记已采集
-    CollectedFavorabilityStorage.markCollected(favorItem.spawnedTileKey);
+    CollectedJinkuangStorage.markCollected(jinkuang.spawnedTileKey);
 
-    // ✅ 清理组件 & 刷新
-    favorItem.removeFromParent();
-    favorItem.isDead = true;
-    favorItem.label?.removeFromParent();
-    favorItem.label = null;
+    // ✅ 清理 & 刷新
+    jinkuang.removeFromParent();
+    jinkuang.isDead = true;
+    jinkuang.label?.removeFromParent();
+    jinkuang.label = null;
     resourceBarKey.currentState?.refresh();
 
     Future.delayed(const Duration(seconds: 2), () {
-      favorItem.collisionCooldown = 0;
+      jinkuang.collisionCooldown = 0;
     });
   }
 }
