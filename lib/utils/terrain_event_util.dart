@@ -1,7 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import '../services/terrain_event_storage_service.dart';
-import '../widgets/components/flower_field_terrain_event.dart';
 import '../widgets/components/rock_terrain_event.dart';
 import '../widgets/components/volcanic_terrain_event.dart';
 import '../widgets/components/shallow_ocean_terrain_event.dart';
@@ -27,9 +26,6 @@ class TerrainEventUtil {
         break;
       case 'volcanic':
         hasEvent = await VolcanicTerrainEvent.trigger(pos, game);
-        break;
-      case 'flower_field':
-        hasEvent = await FlowerFieldTerrainEvent.trigger(pos, game);
         break;
       case 'shallow_ocean':
         hasEvent = await ShallowOceanTerrainEvent.trigger(pos, game);

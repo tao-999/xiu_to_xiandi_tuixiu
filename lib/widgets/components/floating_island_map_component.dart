@@ -63,7 +63,7 @@ class FloatingIslandMapComponent extends FlameGame
       smallTileSize: 4,
       chunkPixelSize: 512,
       seed: seed,
-      frequency: 0.00003,
+      frequency: 0.00005,
       octaves: 10,
       persistence: 0.7,
     );
