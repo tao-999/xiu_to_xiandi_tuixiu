@@ -363,7 +363,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
   /// ✅ 资源判重封装（更清晰）
   Future<bool> _shouldSkipByCollection(String type, String tileKey) async {
-    if (type.startsWith('danyao_')) return await CollectedPillStorage.isCollected(tileKey);
+    if (type == 'danyao') return await CollectedPillStorage.isCollected(tileKey);
     if (type == 'gongfa_1') return await GongfaCollectedStorage.isCollected(tileKey);
     if (type == 'charm_1') return await FateRecruitCharmStorage.isCollected(tileKey);
     if (type == 'recruit_ticket') return await RecruitTicketStorage.isCollected(tileKey);

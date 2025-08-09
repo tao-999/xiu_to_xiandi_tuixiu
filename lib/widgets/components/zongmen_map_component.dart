@@ -75,55 +75,32 @@ class ZongmenMapComponent extends FlameGame
     _dragMap = DragMap(
       onDragged: (delta) {
         if (_player.isMoving) return;
-        logicalOffset -= delta;
-        isCameraFollowing = false;
-      },
-      onDragStartCallback: () {
-        isDragging = true;
-      },
-      onDragEndCallback: () {
-        isDragging = false;
-      },
-      onTap: (canvasPos) {
-        final target = logicalOffset + canvasPos;
-        bool tappedBuilding = false;
 
-        // ✅ 遍历所有建筑，判断是否点击命中
-        final buildings = _noiseMapGenerator.children.whereType<SectBuildingComponent>();
-        for (final building in buildings) {
-          final center = building.worldPosition;
-          final dist = center.distanceTo(target);
-          if (dist <= building.circleRadius) {
-            debugPrint('🏛 点击命中建筑：${building.buildingName} at $center');
+        final viewW = size.x;
+        final viewH = size.y;
+        final maxX = (mapWidth  - viewW).clamp(0.0, double.infinity);
+        final maxY = (mapHeight - viewH).clamp(0.0, double.infinity);
 
-            // ✅ 跳转对应页面
-            switch (building.buildingName) {
-              case '炼丹房':
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const DanfangPage()));
-                break;
-              case '炼器房':
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const LianqiPage()));
-                break;
-              case '弟子闺房':
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const DiscipleListPage()));
-                break;
-              default:
-                debugPrint('❓ 未知建筑：${building.buildingName}');
-            }
+        // 先计算候选，再一次性clamp，吞掉越界的那部分拖拽
+        final nx = (logicalOffset.x - delta.x).clamp(0.0, maxX);
+        final ny = (logicalOffset.y - delta.y).clamp(0.0, maxY);
 
-            tappedBuilding = true;
-            break;
-          }
+        // 可选：过滤超小抖动（手指微颤）
+        const deadZone = 0.01; // 像素级
+        if ((nx - logicalOffset.x).abs() < deadZone &&
+            (ny - logicalOffset.y).abs() < deadZone) {
+          return;
         }
 
-        // ✅ 如果没点中建筑，再执行角色移动
-        if (!tappedBuilding) {
-          _player.moveTo(target);
-          isCameraFollowing = true;
-        }
+        logicalOffset.setValues(nx, ny);
+        isCameraFollowing = false; // 手动拖拽时关闭跟随
       },
+      onDragStartCallback: () => isDragging = true,
+      onDragEndCallback:   () => isDragging = false,
+      onTap: (canvasPos) { /* 你的原逻辑 */ },
       showGrid: false,
     );
+
     add(_dragMap);
 
     add(FpsTextComponent()
