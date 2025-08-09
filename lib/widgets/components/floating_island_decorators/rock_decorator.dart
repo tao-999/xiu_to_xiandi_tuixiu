@@ -65,8 +65,8 @@ class RockDecorator extends Component {
         allowedTerrains: {'rock'},
         dynamicSpritesMap: {
           'rock': [
-            DynamicSpriteEntry('floating_island/rock_d_1.png', 1, defaultFacingRight: false),
-            DynamicSpriteEntry('floating_island/rock_d_2.png', 1),
+            DynamicSpriteEntry('floating_island/rock_d_1.png', 1, defaultFacingRight: false, priority: 9909),
+            DynamicSpriteEntry('floating_island/rock_d_2.png', 1, priority: 9999),
           ],
         },
         dynamicTileSize: 128,

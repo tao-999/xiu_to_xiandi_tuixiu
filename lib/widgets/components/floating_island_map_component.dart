@@ -7,6 +7,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/infinite_grid_painter_co
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_player_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 
+import '../effects/vfx_world_mist_layer.dart';
 import 'dead_boss_decoration_component.dart';
 import 'floating_island_decorators.dart';
 import 'floating_island_dynamic_mover_component.dart';
@@ -88,6 +89,37 @@ class FloatingIslandMapComponent extends FlameGame
     debugPrint('[FloatingIslandMap] DragMap added.');
 
     await _initGameWorld(); // ✅ 核心异步初始化
+
+    if (_grid != null && _noiseMapGenerator != null) {
+      final mist = WorldMistLayer(
+        grid: _grid!,
+        getLogicalOffset: () => logicalOffset,
+        getViewSize: () => size,
+        getTerrainType: (p) => _noiseMapGenerator!.getTerrainTypeAtPosition(p),
+        noiseMapGenerator: _noiseMapGenerator!,
+        allowedTerrains: {
+          'forest','grass','rock','shallow_ocean','snow'
+        },
+        tileSize: 300.0,
+        tilesFps: 10.0,        // ✅ 保留
+        seed: seed,
+        spawnProbability: 0.858,   // ✅ 面积补偿后的等效概率
+        minPuffsPerTile: 15,       // ✅ 6×2.441 ≈ 14.6 → 15
+        maxPuffsPerTile: 30,       // ✅ 12×2.441 ≈ 29.3 → 30
+        density: 0.65,
+        globalWind: Vector2(10, -3),
+        gustStrength: 0.7,
+        gustSpeed: 0.4,
+        // （可选提速）
+        budgetEnabled: true,
+        puffsPer100kpx: 35,
+        hardPuffCap: 2000,
+        updateSlices: 2,
+        // useAtlas: true, atlasSize: 64,
+      );
+      _grid!.add(mist);
+
+    }
   }
 
   Future<void> _initGameWorld() async {
