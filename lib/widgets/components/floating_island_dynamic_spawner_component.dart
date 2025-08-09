@@ -97,24 +97,111 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     }
   }
 
-  /// 🌍 查找附近合法地形坐标
+  /// 🌍 查找附近合法地形坐标（口径统一 + 边界可选约束 + 均匀采样）
+  /// - 若提供 within，则候选点会被限制在该矩形内
+  /// 🌍 查找附近合法地形坐标（多点采样+安全边距+可选边界）
+  /// - preferredWithin: 限定必须落在这个矩形里（传 mover 的 movementBounds）
+  /// - safeMargin: 采样半径，保证不是贴边（越大越稳）
   Vector2? findNearbyValidTile({
     required Vector2 center,
     double minRadius = 100,
     double maxRadius = 500,
     int maxAttempts = 30,
+    Rect? preferredWithin,
+    double safeMargin = 16.0, // ✅ 安全边距（像素）
   }) {
+    // 统一地形判定口径（使用噪声生成器优先）
+    String classify(Vector2 p) {
+      if (noiseMapGenerator != null) {
+        return noiseMapGenerator!.getTerrainTypeAtPosition(p);
+      }
+      return getTerrainType(p);
+    }
+
+    bool isRobustAllowed(Vector2 p) {
+      // 十字+对角 9 点采样，确保不是贴边
+      const offsets = [
+        Offset(0, 0),
+        Offset(1, 0),
+        Offset(-1, 0),
+        Offset(0, 1),
+        Offset(0, -1),
+        Offset(1, 1),
+        Offset(1, -1),
+        Offset(-1, 1),
+        Offset(-1, -1),
+      ];
+      int ok = 0;
+      for (final o in offsets) {
+        final q = Vector2(p.x + o.dx * safeMargin, p.y + o.dy * safeMargin);
+        if (allowedTerrains.contains(classify(q))) ok++;
+      }
+      // 9 点里至少 7 点合法，才算“稳固”
+      return ok >= 7;
+    }
+
+    Vector2 clampWithin(Vector2 p) {
+      if (preferredWithin == null) return p;
+
+      final rect = preferredWithin!;
+      final w = rect.width;
+      final h = rect.height;
+
+      // 如果活动框尺寸异常，直接返回原点，避免 clamp 异常
+      if (w <= 0 || h <= 0) return p;
+
+      // 边距不能超过一半尺寸，动态收敛
+      double mx = min(safeMargin, w / 2 - 0.5);
+      double my = min(safeMargin, h / 2 - 0.5);
+      if (mx < 0) mx = 0;
+      if (my < 0) my = 0;
+
+      // 计算上下界；若反转，则收敛到中心，确保 clamp 合法
+      double left = rect.left + mx;
+      double right = rect.right - mx;
+      if (left > right) {
+        final mid = (rect.left + rect.right) / 2;
+        left = right = mid;
+      }
+
+      double top = rect.top + my;
+      double bottom = rect.bottom - my;
+      if (top > bottom) {
+        final mid = (rect.top + rect.bottom) / 2;
+        top = bottom = mid;
+      }
+
+      final x = p.x.clamp(left, right);
+      final y = p.y.clamp(top, bottom);
+      return Vector2(x.toDouble(), y.toDouble());
+    }
+
     final rand = Random();
-    for (int i = 0; i < maxAttempts; i++) {
-      final angle = rand.nextDouble() * pi * 2;
-      final radius = minRadius + rand.nextDouble() * (maxRadius - minRadius);
-      final offset = Vector2(cos(angle) * radius, sin(angle) * radius);
-      final candidate = center + offset;
-      if (allowedTerrains.contains(getTerrainType(candidate))) {
-        return candidate;
+    // 黄金角+扩展环均匀撒点
+    const golden = 2.39996322972865332;
+    final rings = max(4, (maxAttempts / 8).floor());
+    final basePerRing = max(8, (maxAttempts / rings).ceil());
+
+    for (int r = 0; r < rings; r++) {
+      final t = rings == 1 ? 1.0 : r / (rings - 1);
+      final radius = lerpDouble(minRadius, maxRadius, t)!;
+
+      final samples = basePerRing + r * 2;
+      for (int i = 0; i < samples; i++) {
+        final angle = i * golden + r * 0.31 + rand.nextDouble() * 0.05; // 微扰
+        final candidate = Vector2(
+          center.x + cos(angle) * radius,
+          center.y + sin(angle) * radius,
+        );
+        final q = clampWithin(candidate);
+
+        if (isRobustAllowed(q)) {
+          return q;
+        }
       }
     }
-    print('❌ [Spawner] 附近找不到合法地形（min=$minRadius, max=$maxRadius）');
+
+    print('❌ [Spawner] 附近找不到“稳固”的合法地形（min=$minRadius, max=$maxRadius, margin=$safeMargin）');
     return null;
   }
 

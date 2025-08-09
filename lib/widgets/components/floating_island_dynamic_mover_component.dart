@@ -50,8 +50,18 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   final String spawnedTileKey;
   final int? customPriority;
 
-  final bool ignoreTerrainInMove; // ✅ 新增参数
-  late dart_async.Timer _targetTimer;
+  final bool ignoreTerrainInMove; // 是否忽略地形限制移动
+  dart_async.Timer? _targetTimer;
+
+  // === 保留占位（当前策略不再搬家）===
+  int _relocateFailCount = 0;
+  int _relocateGraceFrames = 0;
+
+  // === 停机/恢复 控制 ===
+  bool _stoppedByIllegal = false;    // 由非法地形停机
+  double _resumeCooldown = 0.0;      // 手动恢复防抖（保留）
+  double _autoResumeCooldown = 0.0;  // 自动检测冷却
+  static const double _autoResumeCheckInterval = 0.5; // 每0.5s检测一次
 
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
@@ -77,7 +87,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     this.autoChaseRange,
     this.enableMirror = true,
     this.customPriority,
-    this.ignoreTerrainInMove = false, // ✅ 默认关闭
+    this.ignoreTerrainInMove = false,
   })  : logicalPosition = position.clone(),
         targetPosition = position.clone(),
         super(
@@ -93,14 +103,14 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     currentHp = hp ?? 100;
 
-    // ✅ 延迟300ms添加碰撞盒子，避免出生瞬间碰撞
+    // 延迟添加碰撞盒，避免出生即碰撞
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!isDead && !isRemoving) {
         add(RectangleHitbox()..collisionType = CollisionType.active);
       }
     });
 
-    // ✅ 显示名字标签
+    // 名字标签
     if (labelText != null && labelText!.isNotEmpty) {
       label = TextComponent(
         text: labelText!,
@@ -117,7 +127,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       parent?.add(label!);
     }
 
-    // ✅ 显示血条
+    // 血条
     if (hp != null && atk != null && def != null) {
       hpBar = HpBarWrapper()
         ..anchor = Anchor.bottomCenter
@@ -135,10 +145,21 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       });
     }
 
-    // ✅ 初始化移动目标
+    // 初始化移动目标 + 开计时器
     pickNewTarget();
+    _startTargetTimer();
+  }
 
-    // ✅ 每1分钟换目标
+  @override
+  void onRemove() {
+    onRemoveCallback?.call();
+    _cancelTargetTimer();
+    super.onRemove();
+  }
+
+  // ========== 计时器 ==========
+  void _startTargetTimer() {
+    _cancelTargetTimer();
     _targetTimer = dart_async.Timer.periodic(
       const Duration(minutes: 1),
           (_) {
@@ -149,11 +170,58 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     );
   }
 
-  @override
-  void onRemove() {
-    onRemoveCallback?.call();
-    _targetTimer.cancel();
-    super.onRemove();
+  void _cancelTargetTimer() {
+    if (_targetTimer != null && _targetTimer!.isActive) {
+      _targetTimer!.cancel();
+    }
+    _targetTimer = null;
+  }
+
+  // ========== 停机 / 恢复 ==========
+  void _stopMovement() {
+    if (_stoppedByIllegal) return; // 已停过就别重复
+    isMoveLocked = true;
+    _stoppedByIllegal = true;      // 标记非法停机
+    _externalTarget = null;
+    targetPosition = logicalPosition.clone();
+    _cancelTargetTimer();
+    print('🛑 [Mover] 非法/未知地形 → 停止运动（tile=$spawnedTileKey）');
+  }
+
+  // 自动恢复：当前地形合法就恢复（不依赖玩家碰撞）
+  void _autoResumeIfLegal() {
+    if (ignoreTerrainInMove) return;
+    if (spawner is! FloatingIslandDynamicSpawnerComponent) return;
+    if (!_stoppedByIllegal) return;        // 不是非法停机，无需自检
+    if (!isMoveLocked) return;             // 没锁也不需要
+
+    final currentTerrain = spawner.getTerrainType(logicalPosition);
+    final isLegal = currentTerrain != 'unknown' &&
+        spawner.allowedTerrains.contains(currentTerrain);
+
+    if (isLegal) {
+      _resumeFromIllegal();
+    }
+  }
+
+  // 实际恢复动作
+  void _resumeFromIllegal() {
+    _relocateFailCount = 0;
+    _relocateGraceFrames = 0;
+    _stoppedByIllegal = false;
+    isMoveLocked = false;
+    pickNewTarget();
+    _startTargetTimer();
+    print('▶️ [Mover] 地形已合法，自动恢复（tile=$spawnedTileKey）');
+  }
+
+  /// 若你仍然需要外部手动触发（保留接口）
+  void resumeMovement() {
+    if (isDead) return;
+    if (!_stoppedByIllegal) return;
+    if (_resumeCooldown > 0) return; // 防抖
+    _resumeFromIllegal();
+    _resumeCooldown = 0.25;
   }
 
   @override
@@ -161,31 +229,44 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     super.update(dt);
     if (isDead) return;
 
+    // 冷却
+    if (_resumeCooldown > 0) {
+      _resumeCooldown -= dt;
+      if (_resumeCooldown < 0) _resumeCooldown = 0;
+    }
+    if (_autoResumeCooldown > 0) {
+      _autoResumeCooldown -= dt;
+      if (_autoResumeCooldown < 0) _autoResumeCooldown = 0;
+    }
+
     if (tauntCooldown > 0) {
       tauntCooldown -= dt;
       if (tauntCooldown < 0) tauntCooldown = 0;
     }
 
-    // ✅ 【1】当前位置非法，瞬移回合法地形
+    // 🚫 非法/未知地形 → 立停（只停一次）
     if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
-      final currentTerrain = spawner.getTerrainType(logicalPosition);
-      if (!spawner.allowedTerrains.contains(currentTerrain)) {
-        final newPos = spawner.findNearbyValidTile(
-          center: logicalPosition,
-          minRadius: 100.0,
-          maxRadius: 500.0,
-        );
-
-        if (newPos != null) {
-          print('⚠️ [Mover] 当前地形不合法，瞬移到合法位置: $newPos');
-          logicalPosition = newPos.clone();
-          pickNewTarget();
+      if (!_stoppedByIllegal) {
+        final currentTerrain = spawner.getTerrainType(logicalPosition);
+        final isIllegal = (currentTerrain == 'unknown') ||
+            !spawner.allowedTerrains.contains(currentTerrain);
+        if (isIllegal) {
+          _stopMovement();
           return;
+        }
+      } else {
+        // 已停机 → 周期性自检，合法则自动恢复
+        if (_autoResumeCooldown <= 0) {
+          _autoResumeCooldown = _autoResumeCheckInterval;
+          _autoResumeIfLegal();
         }
       }
     }
 
-    // ✅ 【2】自动追击玩家逻辑
+    // 若已停机，不再执行后续移动
+    if (isMoveLocked) return;
+
+    // ====== 自动追击 ======
     if (enableAutoChase && autoChaseRange != null) {
       final player = game.descendants().whereType<FloatingIslandPlayerComponent>().firstOrNull;
       if (player != null) {
@@ -213,7 +294,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       }
     }
 
-    // ✅ 【3】外部控制移动
+    // ====== 外部控制移动 ======
     if (_externalTarget != null) {
       final delta = _externalTarget! - logicalPosition;
       final distance = delta.length;
@@ -243,14 +324,11 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       return;
     }
 
-    if (isMoveLocked) return;
-
-    // ✅ 【4】普通游走逻辑
+    // ====== 普通游走 ======
     final dir = targetPosition - logicalPosition;
     final distance = dir.length;
 
     if (distance < 1e-3) {
-      print('📌 [Mover] 距离目标过近（$distance），换目标');
       pickNewTarget();
       return;
     }
@@ -305,11 +383,9 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     Vector2 dir;
     do {
       dir = Vector2(rand.nextDouble() * 2 - 1, rand.nextDouble() * 2 - 1);
-
-      // ✅ 控制朝向（镜像闪烁的问题源头）
       if (preferRight != null) {
-        if (preferRight && dir.x < 0) dir.x = dir.x.abs(); // 朝右
-        if (!preferRight && dir.x > 0) dir.x = -dir.x.abs(); // 朝左
+        if (preferRight && dir.x < 0) dir.x = dir.x.abs();
+        if (!preferRight && dir.x > 0) dir.x = -dir.x.abs();
       }
     } while (dir.length < 0.1);
 
@@ -322,10 +398,24 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     }
   }
 
+  /// 外部设置强制目标点（打断游走）
   void moveToTarget(Vector2 target) {
     _externalTarget = target.clone();
     isMoveLocked = false;
     print('🎯 [Mover] 设置追击目标 = $_externalTarget');
+  }
+
+  // 不再依赖玩家碰撞恢复
+  @override
+  void onCollisionStart(Set<Vector2> points, PositionComponent other) {
+    if (isDead) return;
+
+    if (onCustomCollision != null) {
+      onCustomCollision!(points, other);
+      return;
+    }
+
+    super.onCollisionStart(points, other);
   }
 
   @override
