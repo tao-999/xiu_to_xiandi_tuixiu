@@ -99,11 +99,11 @@ class ShallowOceanDecorator extends Component {
         allowedTerrains: {'shallow_ocean'},
         dynamicSpritesMap: {
           'shallow_ocean': [
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_3.png', 5),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_5.png', 10, defaultFacingRight: false, priority: 12),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_6.png', 2, defaultFacingRight: false, priority: 12),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_7.png', 5, priority: 12),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_8.png', 5, priority: 12),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_3.png', 5, priority: 8888),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_5.png', 10, defaultFacingRight: false, priority: 8888),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_6.png', 2, defaultFacingRight: false, priority: 8888),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_7.png', 5, priority: 8888),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_8.png', 5, priority: 8888),
           ],
         },
         dynamicTileSize: 355,
@@ -124,8 +124,8 @@ class ShallowOceanDecorator extends Component {
         allowedTerrains: {'shallow_ocean'},
         dynamicSpritesMap: {
           'shallow_ocean': [
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_9.png', 1, enableMirror: false, priority: 13),
-            DynamicSpriteEntry('floating_island/shallow_ocean_d_10.png', 1, enableMirror: false, priority: 13),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_9.png', 1, enableMirror: false, priority: 9999),
+            DynamicSpriteEntry('floating_island/shallow_ocean_d_10.png', 1, enableMirror: false, priority: 9999),
           ],
         },
         dynamicTileSize: 799,

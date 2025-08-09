@@ -74,11 +74,11 @@ class BeachDecorator extends Component {
       allowedTerrains: {'beach'},
       staticSpritesMap: {
         'beach': [
-          StaticSpriteEntry('floating_island/beach_3.png', 1, type: 'beach_diaosu'),
-          StaticSpriteEntry('floating_island/beach_4.png', 1, type: 'beach_diaosu'),
-          StaticSpriteEntry('floating_island/beach_5.png', 1, type: 'beach_diaosu'),
-          StaticSpriteEntry('floating_island/beach_6.png', 1, type: 'beach_diaosu'),
-          StaticSpriteEntry('floating_island/beach_7.png', 1, type: 'beach_diaosu'),
+          StaticSpriteEntry('floating_island/beach_3.png', 1, type: 'beach_diaosu', priority: 0),
+          StaticSpriteEntry('floating_island/beach_4.png', 1, type: 'beach_diaosu', priority: 0),
+          StaticSpriteEntry('floating_island/beach_5.png', 1, type: 'beach_diaosu', priority: 0),
+          StaticSpriteEntry('floating_island/beach_6.png', 1, type: 'beach_diaosu', priority: 0),
+          StaticSpriteEntry('floating_island/beach_7.png', 1, type: 'beach_diaosu', priority: 0),
         ],
       },
       staticTileSize: 600.0,
