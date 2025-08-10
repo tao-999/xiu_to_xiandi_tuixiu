@@ -35,23 +35,47 @@ class WorldVfxBundle extends Component with HasGameReference<FlameGame> {
       getTerrainType: getTerrain,
       noiseMapGenerator: noise,
       allowedTerrains: const {'forest','grass','rock','shallow_ocean','snow'},
-      tileSize: 500.0,
-      tilesFps: 20.0,
-      seed: seed,
-      spawnProbability: 0.858,
-      minPuffsPerTile: 55,
-      maxPuffsPerTile: 150,
-      density: 0.65,
-      globalWind: Vector2(10, -3),
-      gustStrength: 0.7,
-      gustSpeed: 0.4,
-      // 可选提速
-      budgetEnabled: true,
-      puffsPer100kpx: 35,
-      hardPuffCap: 2000,
+
+      // 必开：atlas + 丝状雾
+      useAtlas: true, atlasSize: 64, atlasVariants: 4, atlasOrganic: true,
+      wispyMode: true,
+
+      // ✨ 抗“长方形”关键：适度拉伸 + 足够重叠 + 轻抖动
+      wispyAnisoMin: 1.5, wispyAnisoMax: 2.2,
+      strandLenMin: 3, strandLenMax: 6,
+      strandStepMin: 16, strandStepMax: 64, // 实际会被直径×(0.45~0.65)夹住
+      strandJitter: 10,
+
+      // 生成/回收/更新（稳帧）
+      tileSize: 480.0,
+      tilesFps: 24.0,
+      tilesSlices: 3,
+      spawnRectScale: 1.35,
+      cleanupRectScale: 1.18,
+      updateRectScale: 1.10,
+      updatePatchSlices: 4,
       updateSlices: 2,
-      // useAtlas: true, atlasSize: 64,
+
+      // 数量交给预算控制
+      budgetEnabled: true,
+      puffsPer100kpx: 18,
+      hardPuffCap: 1400,
+
+      // 每 tile 产量适中（避免爆量）
+      spawnProbability: 0.48,
+      minPuffsPerTile: 10,
+      maxPuffsPerTile: 26,
+      density: 0.58,
+
+      // 动态感
+      globalWind: Vector2(10, -3),
+      gustStrength: 0.50,
+      gustSpeed: 0.32,
+
+      mixMode: MistMixMode.hsv,
+      seed: seed,
     )..priority = 9300;
+
     grid.add(mist);
 
     // ===== 闪电（只在你给的地形）=====
