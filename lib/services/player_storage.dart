@@ -170,6 +170,11 @@ class PlayerStorage {
     );
   }
 
+  /// 获取真实移动速度（基础值 + 百分比加成）
+  static double getMoveSpeed(Character player) {
+    return player.moveSpeed * (1 + player.moveSpeedBoost);
+  }
+
   static Future<void> addLayerGrowth(Character player, int oldLayer, int newLayer) async {
     int hpGain = 0;
     int atkGain = 0;
