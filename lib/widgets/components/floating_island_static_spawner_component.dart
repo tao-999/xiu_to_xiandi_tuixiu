@@ -244,8 +244,10 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         type: selected.type,
         tileKey: tileKey, // ✅ tileKey 保留
         anchor: Anchor.bottomCenter,
-      )
-        ..add(RectangleHitbox()..collisionType = CollisionType.passive);
+      );
+      if (selected.type != null) {
+        deco.add(RectangleHitbox()..collisionType = CollisionType.passive);
+      }
 
       if (selected.priority != null) {
         deco.priority = selected.priority!;

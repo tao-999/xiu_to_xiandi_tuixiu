@@ -109,7 +109,7 @@ class WorldVfxBundle extends Component with HasGameReference<FlameGame> {
     grid.add(lightning);
 
     final snow = WorldSnowLayer(
-      intensity: 0.1,
+      intensity: 0.2,
       wind: Vector2(0, 0),
       keepFactor: 1.0,
     )..priority = 11500;
