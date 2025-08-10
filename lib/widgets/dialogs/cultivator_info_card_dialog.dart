@@ -47,15 +47,15 @@ class CultivatorInfoCardDialog {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         SizedBox(
-                          width: 48,
+                          width: 60,
                           child: Text(
                             '$label：',
-                            style: const TextStyle(color: Colors.black, fontSize: 12, height: 1.3),
+                            style: const TextStyle(color: Colors.black, fontSize: 10, height: 1.3),
                           ),
                         ),
                         Text(
                           value,
-                          style: const TextStyle(color: Colors.black, fontSize: 12, height: 1.3),
+                          style: const TextStyle(color: Colors.black, fontSize: 11, height: 1.3),
                         ),
                         if (extra != null) ...[
                           const SizedBox(width: 6),
@@ -94,7 +94,7 @@ class CultivatorInfoCardDialog {
                                     children: [
                                       Text(
                                         '${player.name} · ${player.career}',
-                                        style: const TextStyle(color: Colors.black, fontSize: 12, height: 1.3),
+                                        style: const TextStyle(color: Colors.black, fontSize: 11, height: 1.3),
                                       ),
                                       PillConsumer(onConsumed: () {
                                         setState(() {});
@@ -106,8 +106,8 @@ class CultivatorInfoCardDialog {
                                   Row(
                                     children: [
                                       const SizedBox(
-                                        width: 48,
-                                        child: Text('资质：', style: TextStyle(color: Colors.black, fontSize: 12)),
+                                        width: 60,
+                                        child: Text('资质：', style: TextStyle(color: Colors.black, fontSize: 10)),
                                       ),
                                       Text('${player.aptitude}', style: const TextStyle(color: Colors.black, fontSize: 12)),
                                       const SizedBox(width: 4),
@@ -126,6 +126,12 @@ class CultivatorInfoCardDialog {
                                   _buildLabeledRow('气血', formatAnyNumber(hp), extra: formatPercent(player.extraHp)),
                                   _buildLabeledRow('攻击', formatAnyNumber(atk), extra: formatPercent(player.extraAtk)),
                                   _buildLabeledRow('防御', formatAnyNumber(def), extra: formatPercent(player.extraDef)),
+                                  _buildLabeledRow(
+                                    '移动速度',
+                                    (player.moveSpeed * (1 + player.moveSpeedBoost)).toStringAsFixed(2),
+                                    extra: '${(player.moveSpeedBoost * 100).toStringAsFixed(2)}%',
+                                  ),
+
                                 ],
                               ),
                             ),

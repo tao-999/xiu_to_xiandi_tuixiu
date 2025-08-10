@@ -42,7 +42,7 @@ class Gongfa {
   int count; // 拥有数量（默认为1）
 
   @HiveField(12)
-  final double speedBoost; // 🆕 移动速度平铺加成（可正可负）
+  final double moveSpeedBoost; // 🆕 移动速度平铺加成（可正可负）
 
   Gongfa({
     required this.id,
@@ -57,7 +57,7 @@ class Gongfa {
     this.isLearned = false,
     DateTime? acquiredAt,
     this.count = 1,
-    this.speedBoost = 0.0, // 🆕 默认0
+    this.moveSpeedBoost = 0.0, // 🆕 默认0
   }) : acquiredAt = acquiredAt ?? DateTime.now();
 
   /// ✅ 拷贝方法（用于更新数量、学习状态、速度加成等）
@@ -79,7 +79,7 @@ class Gongfa {
       isLearned: isLearned ?? this.isLearned,
       acquiredAt: acquiredAt,
       count: count ?? this.count,
-      speedBoost: speedBoost ?? this.speedBoost, // 🆕
+      moveSpeedBoost: speedBoost ?? this.moveSpeedBoost, // 🆕
     );
   }
 }

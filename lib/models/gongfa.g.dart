@@ -29,7 +29,7 @@ class GongfaAdapter extends TypeAdapter<Gongfa> {
       isLearned: fields[9] as bool,
       acquiredAt: fields[10] as DateTime?,
       count: fields[11] as int,
-      speedBoost: fields[12] as double,
+      moveSpeedBoost: fields[12] as double,
     );
   }
 
@@ -62,7 +62,7 @@ class GongfaAdapter extends TypeAdapter<Gongfa> {
       ..writeByte(11)
       ..write(obj.count)
       ..writeByte(12)
-      ..write(obj.speedBoost);
+      ..write(obj.moveSpeedBoost);
   }
 
   @override
