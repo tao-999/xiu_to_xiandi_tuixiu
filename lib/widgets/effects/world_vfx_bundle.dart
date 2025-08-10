@@ -2,6 +2,7 @@
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:xiu_to_xiandi_tuixiu/widgets/effects/vfx_world_snow_layer.dart';
 
 import '../components/infinite_grid_painter_component.dart';
 import '../components/noise_tile_map_generator.dart';
@@ -82,5 +83,12 @@ class WorldVfxBundle extends Component with HasGameReference<FlameGame> {
       glowAlpha: 0.45,
     )..priority = 1200; // 闪电压雾层
     grid.add(lightning);
+
+    final snow = WorldSnowLayer(
+      intensity: 0.1,
+      wind: Vector2(0, 0),
+      keepFactor: 1.0,
+    )..priority = 11500;
+    grid.add(snow);
   }
 }
