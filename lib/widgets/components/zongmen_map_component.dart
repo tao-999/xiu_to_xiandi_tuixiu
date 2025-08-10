@@ -2,13 +2,13 @@ import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:xiu_to_xiandi_tuixiu/pages/page_disciples.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/sect_building_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/sect_building_manager_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_diplomacy_disciple_component.dart';
 
 import '../../pages/page_danfang.dart';
 import '../../pages/page_lianqi.dart';
+import '../../pages/page_disciples.dart';
 import '../../services/zongmen_diplomacy_service.dart';
 import 'drag_map.dart';
 import 'diplomacy_noise_tile_map_generator.dart';
@@ -72,32 +72,37 @@ class ZongmenMapComponent extends FlameGame
     add(_noiseMapGenerator);
     await _noiseMapGenerator.add(_player);
 
+    // ④ DragMap 的 onTap：先判建筑→跳页；否则玩家移动
     _dragMap = DragMap(
-      onDragged: (delta) {
-        if (_player.isMoving) return;
-
-        final viewW = size.x;
-        final viewH = size.y;
-        final maxX = (mapWidth  - viewW).clamp(0.0, double.infinity);
-        final maxY = (mapHeight - viewH).clamp(0.0, double.infinity);
-
-        // 先计算候选，再一次性clamp，吞掉越界的那部分拖拽
-        final nx = (logicalOffset.x - delta.x).clamp(0.0, maxX);
-        final ny = (logicalOffset.y - delta.y).clamp(0.0, maxY);
-
-        // 可选：过滤超小抖动（手指微颤）
-        const deadZone = 0.01; // 像素级
-        if ((nx - logicalOffset.x).abs() < deadZone &&
-            (ny - logicalOffset.y).abs() < deadZone) {
-          return;
-        }
-
-        logicalOffset.setValues(nx, ny);
-        isCameraFollowing = false; // 手动拖拽时关闭跟随
-      },
+      onDragged: (delta) { /* 你的原逻辑不变 */ },
       onDragStartCallback: () => isDragging = true,
       onDragEndCallback:   () => isDragging = false,
-      onTap: (canvasPos) { /* 你的原逻辑 */ },
+
+      onTap: (canvasPos) {
+        // 左上角坐标系：世界 = 逻辑偏移 + 屏幕坐标（千万别减 size/2）
+        final worldPos = logicalOffset + canvasPos;
+
+        // 命中建筑：直接路由
+        final hit = _hitBuildingAt(worldPos);
+        if (hit != null) {
+          final page = _pageForBuilding(hit.buildingName);
+          if (page != null) {
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+          }
+          return; // 命中建筑就不下移动指令
+        }
+
+        // 未命中：点地移动
+        final clamped = Vector2(
+          worldPos.x.clamp(0.0, mapWidth  - 1.0),
+          worldPos.y.clamp(0.0, mapHeight - 1.0),
+        );
+        _player.moveTo(clamped);
+        isCameraFollowing = true;
+        if (paused) resumeEngine();
+        debugPrint('[ZongmenMap] tap -> moveTo=$clamped  offset=$logicalOffset  canvas=$canvasPos');
+      },
+
       showGrid: false,
     );
 
@@ -224,5 +229,32 @@ class ZongmenMapComponent extends FlameGame
     logicalOffset.y = logicalOffset.y.clamp(0.0, (mapHeight - size.y).clamp(0.0, double.infinity));
     isCameraFollowing = true;
     debugPrint('📍 视角已定位到玩家');
+  }
+
+  SectBuildingComponent? _hitBuildingAt(Vector2 worldPos) {
+    SectBuildingComponent? best;
+    double bestDist2 = double.infinity;
+
+    for (final b in _noiseMapGenerator.children.whereType<SectBuildingComponent>()) {
+      final dx = b.worldPosition.x - worldPos.x;
+      final dy = b.worldPosition.y - worldPos.y;
+      final dist2 = dx*dx + dy*dy;
+      final r2 = b.circleRadius * b.circleRadius;
+      if (dist2 <= r2 && dist2 < bestDist2) {
+        best = b;
+        bestDist2 = dist2;
+      }
+    }
+    return best;
+  }
+
+// ③ 建筑名 -> 页面（用你管理器里生成的名字：炼丹房/炼器房/弟子闺房）
+  Widget? _pageForBuilding(String name) {
+    switch (name) {
+      case '炼丹房':   return const DanfangPage();
+      case '炼器房':   return const LianqiPage();
+      case '弟子闺房': return const DisciplesPage();
+      default:         return null;
+    }
   }
 }

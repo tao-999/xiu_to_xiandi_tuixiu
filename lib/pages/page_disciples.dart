@@ -11,14 +11,14 @@ import '../services/zongmen_disciple_service.dart';
 import '../utils/route_observer.dart';
 import '../widgets/components/empty_disciple_hint.dart';
 
-class DiscipleListPage extends StatefulWidget {
-  const DiscipleListPage({super.key});
+class DisciplesPage extends StatefulWidget {
+  const DisciplesPage({super.key});
 
   @override
-  State<DiscipleListPage> createState() => _DiscipleListPageState();
+  State<DisciplesPage> createState() => _DisciplesPageState();
 }
 
-class _DiscipleListPageState extends State<DiscipleListPage> with RouteAware {
+class _DisciplesPageState extends State<DisciplesPage> with RouteAware {
   List<Disciple> disciples = [];
   int maxDiscipleCount = 0;
   String _sortOption = 'apt_desc';

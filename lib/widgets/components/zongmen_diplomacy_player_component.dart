@@ -28,6 +28,7 @@ class ZongmenDiplomacyPlayerComponent extends SpriteComponent
 
   void moveTo(Vector2 target) {
     _targetPosition = target;
+    debugPrint('[DiplomacyPlayer] moveTo $target');
   }
 
   @override
