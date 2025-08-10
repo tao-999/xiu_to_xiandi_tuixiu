@@ -13,6 +13,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/fancy_name_input.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/five_element_slider_group.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/resources.dart';
 
+import '../models/gongfa.dart';
 import '../services/resources_storage.dart';
 import '../widgets/common/toast_tip.dart';
 
@@ -81,6 +82,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
       weakAura: 0.0,
       corrosionAura: 0.0,
       cultivationEfficiency: 1.0,
+      moveSpeed: 100,
       elements: {
         'gold': gold,
         'wood': wood,
@@ -88,7 +90,7 @@ class _CreateRolePageState extends State<CreateRolePage> {
         'fire': fire,
         'earth': earth,
       },
-      technique: '无',
+      techniques: <Gongfa>[],
       createdAt: now,
     );
 

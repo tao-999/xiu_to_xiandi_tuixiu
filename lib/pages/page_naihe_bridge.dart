@@ -10,11 +10,6 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/back_button_overlay.dart
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/typewriter_poem_section.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/mengpo_soup_dialog.dart';
 
-import '../models/dead_boss_entry.dart';
-import '../models/disciple.dart';
-import '../models/gongfa.dart';
-import '../models/pill.dart';
-import '../models/weapon.dart';
 import '../widgets/components/naihe_info_icon.dart';
 
 class NaiheBridgePage extends StatefulWidget {
@@ -47,8 +42,7 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
 
-    await closeAllBoxes();
-    await Hive.close();
+    await Hive.close();             // ✅ 这句会关掉所有已开的 box
     await Hive.deleteFromDisk();
     await nukeHiveStorage();
 
@@ -86,42 +80,6 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
 
     debugPrint('✅ Hive 存储目录下所有文件已清空');
   }
-
-  Future<void> closeAllBoxes() async {
-    final List<_BoxEntry> boxes = [
-      _BoxEntry('disciples', type: Disciple),
-      _BoxEntry('weapons', type: Weapon),
-      _BoxEntry('pills', type: Pill),
-      _BoxEntry('role_regions'),
-      _BoxEntry('floating_island'),
-      _BoxEntry('noise_cache', type: double),
-      _BoxEntry('terrain_events'),
-      _BoxEntry('zongmen_diplomacy'),
-      _BoxEntry('opened_chests'),
-      _BoxEntry('dead_boss_box', type: DeadBossEntry),
-      _BoxEntry('collected_gongfa_box', type: bool),
-      _BoxEntry('collected_gongfa_data_box', type: Gongfa),
-      _BoxEntry('collected_pills_box', type: bool),
-      _BoxEntry('collected_fate_recruit_charm_box', type: bool),
-      _BoxEntry('collected_recruit_ticket_box', type: bool),
-      _BoxEntry('collected_xiancao_box', type: bool),
-      _BoxEntry('collected_favorability_box', type: bool),
-      _BoxEntry('collected_lingshi_box', type: bool),
-      _BoxEntry('collected_jinkuang_box', type: bool),
-    ];
-
-    for (final box in boxes) {
-      if (Hive.isBoxOpen(box.name)) {
-        if (box.type != null) {
-          await Hive.box(box.name).close(); // ignore type
-        } else {
-          await Hive.box(box.name).close();
-        }
-        print('[Hive] Closed box: ${box.name}');
-      }
-    }
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -169,11 +127,4 @@ class _NaiheBridgePageState extends State<NaiheBridgePage> {
       ),
     );
   }
-}
-
-class _BoxEntry {
-  final String name;
-  final Type? type;
-
-  const _BoxEntry(this.name, {this.type});
 }

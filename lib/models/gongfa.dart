@@ -1,5 +1,4 @@
 // 📂 lib/models/gongfa.dart
-
 import 'package:hive/hive.dart';
 
 part 'gongfa.g.dart';
@@ -40,7 +39,10 @@ class Gongfa {
   final DateTime acquiredAt;
 
   @HiveField(11)
-  int count; // ✅ 新增：拥有数量（默认为1）
+  int count; // 拥有数量（默认为1）
+
+  @HiveField(12)
+  final double speedBoost; // 🆕 移动速度平铺加成（可正可负）
 
   Gongfa({
     required this.id,
@@ -55,12 +57,14 @@ class Gongfa {
     this.isLearned = false,
     DateTime? acquiredAt,
     this.count = 1,
+    this.speedBoost = 0.0, // 🆕 默认0
   }) : acquiredAt = acquiredAt ?? DateTime.now();
 
-  /// ✅ 拷贝方法（用于更新数量、学习状态等）
+  /// ✅ 拷贝方法（用于更新数量、学习状态、速度加成等）
   Gongfa copyWith({
     int? count,
     bool? isLearned,
+    double? speedBoost, // 🆕
   }) {
     return Gongfa(
       id: id,
@@ -75,6 +79,7 @@ class Gongfa {
       isLearned: isLearned ?? this.isLearned,
       acquiredAt: acquiredAt,
       count: count ?? this.count,
+      speedBoost: speedBoost ?? this.speedBoost, // 🆕
     );
   }
 }
@@ -83,19 +88,14 @@ class Gongfa {
 enum GongfaType {
   @HiveField(0)
   attack,
-
   @HiveField(1)
   defense,
-
   @HiveField(2)
   movement,
-
   @HiveField(3)
   support,
-
   @HiveField(4)
   special,
-
   @HiveField(5)
   passive,
 }
