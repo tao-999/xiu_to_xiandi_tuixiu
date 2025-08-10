@@ -6,7 +6,7 @@ import '../../services/collected_pill_storage.dart';
 import '../../services/pill_storage_service.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 import '../../widgets/components/resource_bar.dart';
 
 class Danyao1CollisionHandler {
@@ -72,7 +72,7 @@ class Danyao1CollisionHandler {
     final rewardText = '获得 $name ×1';
     final centerPos = danyao.findGame()!.size / 2;
 
-    danyao.findGame()!.camera.viewport.add(FloatingLingShiPopupComponent(
+    danyao.findGame()!.camera.viewport.add(FloatingIconTextPopupComponent(
       text: rewardText,
       imagePath: iconPath,
       position: centerPos,

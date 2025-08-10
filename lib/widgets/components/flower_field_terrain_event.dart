@@ -4,7 +4,7 @@ import 'package:flame/game.dart';
 
 import '../../services/favorability_material_service.dart';
 import '../../services/terrain_event_storage_service.dart';
-import '../components/floating_lingshi_popup_component.dart';
+import '../components/floating_icon_text_popup_component.dart';
 import '../../data/favorability_data.dart'; // 🌟导入数据模型
 
 class FlowerFieldTerrainEvent {
@@ -29,7 +29,7 @@ class FlowerFieldTerrainEvent {
     await FavorabilityMaterialService.addMaterial(materialIndex, 1);
 
     // ✅ 弹窗提示
-    final popup = FloatingLingShiPopupComponent(
+    final popup = FloatingIconTextPopupComponent(
       text: '获得1个 ${item.name}',
       imagePath: item.assetPath,
       position: game.size / 2,

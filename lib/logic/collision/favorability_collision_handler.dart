@@ -11,7 +11,7 @@ import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/components/resource_bar.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 
 class FavorabilityCollisionHandler {
   static final Random _rand = Random();
@@ -113,7 +113,7 @@ class FavorabilityCollisionHandler {
         color: Colors.pinkAccent,
       ));
 
-      game.camera.viewport.add(FloatingLingShiPopupComponent(
+      game.camera.viewport.add(FloatingIconTextPopupComponent(
         text: rewardText,
         imagePath: favorItemData.assetPath,
         position: centerPos,

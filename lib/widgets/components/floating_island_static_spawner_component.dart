@@ -19,12 +19,29 @@ class FloatingIslandStaticSpawnerComponent extends Component {
   final int maxCount;
   final double minSize;
   final double maxSize;
+
+  /// 生成后回调（保持你原逻辑）
   final void Function(FloatingIslandStaticDecorationComponent deco, String terrainType)?
   onStaticComponentCreated;
 
+  // —— 你的原有状态 —— //
   final List<_PendingTile> _pendingTiles = [];
   final Set<String> _activeTiles = {};
   Vector2? _lastLogicalOffset;
+
+  // ===== 新增：优先级重排“脏标记 + 低频移动重排” =====
+  /// 地图移动时是否也按低频重排（默认开）
+  final bool updatePriorityOnMove;
+
+  /// 重排频率（Hz），<=0 表示每次检测到移动就重排一次（不建议太大）
+  final double priorityFps;
+
+  /// 相机位移达到多少像素才认为“需要移动重排”
+  final double priorityMoveThreshold;
+
+  bool _zOrderDirty = true;     // 有增删时置脏，立刻重排一次
+  double _prioAcc = 0;          // 低频累计器
+  Vector2? _prioLastOffset;     // 上次用于重排的相机位置
 
   FloatingIslandStaticSpawnerComponent({
     required this.grid,
@@ -40,6 +57,11 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     this.minSize = 16.0,
     this.maxSize = 48.0,
     this.onStaticComponentCreated,
+
+    // ✅ 新增三个可调参数（给了合理默认值）
+    this.updatePriorityOnMove = true,
+    this.priorityFps = 15.0,
+    this.priorityMoveThreshold = 6.0,
   })  : allowedTerrains = allowedTerrains,
         staticSpritesMap = _normalizeSpriteMap(staticSpritesMap);
 
@@ -49,6 +71,10 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     final offset = getLogicalOffset();
     final viewSize = getViewSize();
     updateTileRendering(offset, viewSize);
+
+    // 初次进场做一次重排
+    _zOrderDirty = true;
+    _updatePrioritiesTick(0, offset);
   }
 
   @override
@@ -56,10 +82,18 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     super.update(dt);
     final offset = getLogicalOffset();
     final viewSize = getViewSize();
-    if (_lastLogicalOffset != null && (_lastLogicalOffset! - offset).length < 1) return;
+
+    // 你原先的小位移早退逻辑：但在早退前也跑一次“低频/按需重排”tick
+    if (_lastLogicalOffset != null && (_lastLogicalOffset! - offset).length < 1) {
+      _updatePrioritiesTick(dt, offset);
+      return;
+    }
+
     _lastLogicalOffset = offset.clone();
     updateTileRendering(offset, viewSize);
-    _updateDecorationPriorities(); // ✅ 自动调整层级
+
+    // 重排 tick（可能是脏标记触发，或低频移动触发）
+    _updatePrioritiesTick(dt, offset);
   }
 
   static Map<String, List<StaticSpriteEntry>> _normalizeSpriteMap(
@@ -81,6 +115,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     final viewSize = getViewSize();
     _lastLogicalOffset = null;
     updateTileRendering(offset, viewSize);
+    _zOrderDirty = true; // 强刷后重排一次
   }
 
   void syncLogicalOffset(Vector2 offset) {
@@ -117,6 +152,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         final ty = (pos.y / staticTileSize).floor();
         _activeTiles.remove('${tx}_${ty}');
         deco.removeFromParent();
+        _zOrderDirty = true; // ✅ 有移除 → 置脏
       } else {
         deco.updateVisualPosition(offset);
       }
@@ -199,7 +235,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     // ✅ 宝箱生成判断（按 tileKey）→ await！
     if (selected.type == 'treasure_chest' &&
         await TreasureChestStorage.isOpenedTile(tileKey)) {
-      print('🚫 [Spawner] 已开启宝箱，跳过生成 tileKey=$tileKey');
+      // print('🚫 [Spawner] 已开启宝箱，跳过生成 tileKey=$tileKey');
       return;
     }
 
@@ -245,6 +281,8 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         tileKey: tileKey, // ✅ tileKey 保留
         anchor: Anchor.bottomCenter,
       );
+
+      // 🔧 仅当 type 非 null 时才添加碰撞盒（你指定的规则）
       if (selected.type != null) {
         deco.add(RectangleHitbox()..collisionType = CollisionType.passive);
       }
@@ -260,6 +298,43 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     for (final deco in components) {
       onStaticComponentCreated?.call(deco, terrain);
       grid.add(deco);
+    }
+
+    if (components.isNotEmpty) {
+      _zOrderDirty = true; // ✅ 有新增 → 置脏
+    }
+  }
+
+  // ===== 优先级：只在必要时重排（脏标记 / 低频移动） =====
+  void _updatePrioritiesTick(double dt, Vector2 currentOffset) {
+    final movedEnough = _prioLastOffset != null
+        ? (_prioLastOffset! - currentOffset).length >= priorityMoveThreshold
+        : true;
+
+    if (_zOrderDirty) {
+      _updateDecorationPriorities();
+      _zOrderDirty = false;
+      _prioLastOffset = currentOffset.clone();
+      _prioAcc = 0;
+      return;
+    }
+
+    if (!updatePriorityOnMove) return;
+    if (!movedEnough) return;
+
+    if (priorityFps <= 0) {
+      _updateDecorationPriorities();
+      _prioLastOffset = currentOffset.clone();
+      _prioAcc = 0;
+      return;
+    }
+
+    _prioAcc += dt;
+    final step = 1.0 / priorityFps;
+    if (_prioAcc >= step) {
+      _prioAcc = 0;
+      _updateDecorationPriorities();
+      _prioLastOffset = currentOffset.clone();
     }
   }
 

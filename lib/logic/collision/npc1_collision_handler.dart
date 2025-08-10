@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import '../../services/resources_storage.dart';
 import '../../utils/lingshi_util.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/components/resource_bar.dart';
 import '../../widgets/effects/logical_move_effect.dart';
@@ -92,7 +92,7 @@ class Npc1CollisionHandler {
         final game = npc.findGame()!;
         final centerPos = game.size / 2;
 
-        game.camera.viewport.add(FloatingLingShiPopupComponent(
+        game.camera.viewport.add(FloatingIconTextPopupComponent(
           text: rewardText,
           imagePath: getLingShiImagePath(lingShiType),
           position: centerPos.clone(),

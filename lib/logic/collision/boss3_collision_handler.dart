@@ -11,7 +11,7 @@ import '../../services/resources_storage.dart';
 import '../../utils/lingshi_util.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/effects/logical_move_effect.dart';
 import '../../widgets/components/resource_bar.dart';
@@ -117,7 +117,7 @@ class Boss3CollisionHandler {
           final rewardText = '+$count ${lingShiNames[type] ?? "灵石"}';
           final centerPos = boss.findGame()!.size / 2;
 
-          boss.findGame()!.camera.viewport.add(FloatingLingShiPopupComponent(
+          boss.findGame()!.camera.viewport.add(FloatingIconTextPopupComponent(
             text: rewardText,
             imagePath: getLingShiImagePath(type),
             position: centerPos,

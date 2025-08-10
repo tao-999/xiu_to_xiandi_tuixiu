@@ -6,7 +6,7 @@ import '../../models/gongfa.dart';
 import '../../services/gongfa_collected_storage.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 import '../../widgets/components/resource_bar.dart';
 
 class Gongfa1CollisionHandler {
@@ -53,7 +53,7 @@ class Gongfa1CollisionHandler {
     final game = gongfaBook.findGame()!;
     final centerPos = game.size / 2;
 
-    game.add(FloatingLingShiPopupComponent(
+    game.add(FloatingIconTextPopupComponent(
       text: rewardText,
       imagePath: base.iconPath,
       position: centerPos,

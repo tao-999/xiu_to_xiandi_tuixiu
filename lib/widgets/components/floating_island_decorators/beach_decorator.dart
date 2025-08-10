@@ -43,8 +43,27 @@ class BeachDecorator extends Component {
       seed: seed,
       minCount: 2,
       maxCount: 6,
-      minSize: 48.0,
-      maxSize: 128.0,
+      minSize: 60.0,
+      maxSize: 100.0,
+    ));
+
+    add(FloatingIslandStaticSpawnerComponent(
+      grid: grid,
+      getLogicalOffset: getLogicalOffset,
+      getViewSize: getViewSize,
+      getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+      allowedTerrains: {'beach'},
+      staticSpritesMap: {
+        'beach': [
+          StaticSpriteEntry('floating_island/beach_10.png', 1),
+          StaticSpriteEntry('floating_island/beach_11.png', 1),
+          StaticSpriteEntry('floating_island/beach_12.png', 1),
+        ],
+      },
+      staticTileSize: 788.0,
+      seed: seed,
+      minSize: 60.0,
+      maxSize: 100.0,
     ));
 
     // 🧊 宝箱（不变）

@@ -9,7 +9,7 @@ import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/components/resource_bar.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 
 class XiancaoCollisionHandler {
   static final Random _rand = Random();
@@ -116,7 +116,7 @@ class XiancaoCollisionHandler {
         color: Colors.greenAccent,
       ));
 
-      game.camera.viewport.add(FloatingLingShiPopupComponent(
+      game.camera.viewport.add(FloatingIconTextPopupComponent(
         text: rewardText,
         imagePath: 'assets/images/herbs/$name.png',
         position: centerPos,

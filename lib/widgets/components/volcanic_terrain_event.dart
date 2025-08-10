@@ -4,7 +4,7 @@ import 'package:flame/game.dart';
 
 import '../../services/terrain_event_storage_service.dart';
 import '../../services/refine_material_service.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 
 class VolcanicTerrainEvent {
   static final Random _rand = Random();
@@ -73,7 +73,7 @@ class VolcanicTerrainEvent {
     // 🌟直接放在屏幕中心
     final centerPos = game.size / 2;
 
-    final popup = FloatingLingShiPopupComponent(
+    final popup = FloatingIconTextPopupComponent(
       text: text,
       imagePath: material.image,
       position: centerPos.clone(),

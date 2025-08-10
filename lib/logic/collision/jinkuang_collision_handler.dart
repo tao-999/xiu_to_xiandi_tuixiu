@@ -9,7 +9,7 @@ import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/components/resource_bar.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 
 class JinkuangCollisionHandler {
   static final Random _rand = Random();
@@ -117,7 +117,7 @@ class JinkuangCollisionHandler {
         color: Colors.amberAccent,
       ));
 
-      game.camera.viewport.add(FloatingLingShiPopupComponent(
+      game.camera.viewport.add(FloatingIconTextPopupComponent(
         text: rewardText,
         imagePath: 'assets/images/materials/$name.png',
         position: centerPos,

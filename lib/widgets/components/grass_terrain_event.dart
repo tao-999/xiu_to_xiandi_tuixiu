@@ -3,7 +3,7 @@ import 'package:flame/game.dart';
 
 import '../../services/resources_storage.dart';
 import '../../services/terrain_event_storage_service.dart';
-import 'floating_lingshi_popup_component.dart';
+import 'floating_icon_text_popup_component.dart';
 
 class GrassTerrainEvent {
   static final Random _rand = Random();
@@ -29,7 +29,7 @@ class GrassTerrainEvent {
     await ResourcesStorage.add(resourceKey, BigInt.one);
 
     // ✅ 弹窗提示
-    final popup = FloatingLingShiPopupComponent(
+    final popup = FloatingIconTextPopupComponent(
       text: '获得1张$rewardName',
       imagePath: imagePath,
       position: game.size / 2,

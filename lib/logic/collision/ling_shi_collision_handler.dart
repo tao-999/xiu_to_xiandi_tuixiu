@@ -8,7 +8,7 @@ import '../../utils/lingshi_util.dart';
 import '../../utils/number_format.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 import '../../widgets/components/floating_text_component.dart';
 import '../../widgets/components/resource_bar.dart';
 
@@ -106,7 +106,7 @@ class LingShiCollisionHandler {
         color: Colors.amberAccent,
       ));
 
-      game.camera.viewport.add(FloatingLingShiPopupComponent(
+      game.camera.viewport.add(FloatingIconTextPopupComponent(
         text: rewardText,
         imagePath: getLingShiImagePath(type),
         position: centerPos,

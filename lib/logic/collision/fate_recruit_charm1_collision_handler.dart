@@ -3,7 +3,7 @@ import '../../services/fate_recruit_charm_storage.dart';
 import '../../services/resources_storage.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
-import '../../widgets/components/floating_lingshi_popup_component.dart';
+import '../../widgets/components/floating_icon_text_popup_component.dart';
 import '../../widgets/components/resource_bar.dart';
 
 class FateRecruitCharm1CollisionHandler {
@@ -39,7 +39,7 @@ class FateRecruitCharm1CollisionHandler {
 
       final game = charm.findGame()!;
       final centerPos = game.size / 2;
-      game.add(FloatingLingShiPopupComponent(
+      game.add(FloatingIconTextPopupComponent(
         text: '获得资质券 ×1',
         imagePath: 'assets/images/fate_recruit_charm.png',
         position: centerPos,
