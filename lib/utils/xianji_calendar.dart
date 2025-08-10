@@ -28,4 +28,25 @@ class XianjiCalendar {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     return formatYearFromTimestamp(now);
   }
+
+  /// ✅ 判断某时间点属于玄历哪个季节（春/夏/秋/冬）
+  /// 规则（以玄历年内 dayOfYear 分段）：
+  /// 春: [0, 89] 共90天；夏: [90, 181] 共92天；
+  /// 秋: [182, 272] 共91天；冬: [273, 364] 共92天。
+  static Future<String> seasonFromTimestamp(int timestamp) async {
+    final player = await PlayerStorage.getPlayer();
+    if (player == null || player.createdAt == null) return '未知季节';
+
+    final base = player.createdAt!;
+    final diffSeconds = timestamp - base;
+    if (diffSeconds < 0) return '穿越前';
+
+    final immortalDays = diffSeconds ~/ IMMORTAL_SECONDS_PER_DAY;
+    final dayOfYear = immortalDays % 365; // 0-based
+
+    if (dayOfYear <= 89) return '春季';
+    if (dayOfYear <= 181) return '夏季';   // 90..181
+    if (dayOfYear <= 272) return '秋季';   // 182..272
+    return '冬季';                         // 273..364
+  }
 }

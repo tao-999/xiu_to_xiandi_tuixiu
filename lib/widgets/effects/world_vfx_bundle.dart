@@ -35,12 +35,12 @@ class WorldVfxBundle extends Component with HasGameReference<FlameGame> {
       getTerrainType: getTerrain,
       noiseMapGenerator: noise,
       allowedTerrains: const {'forest','grass','rock','shallow_ocean','snow'},
-      tileSize: 300.0,
-      tilesFps: 10.0,
+      tileSize: 500.0,
+      tilesFps: 20.0,
       seed: seed,
-      spawnProbability: 0.858, // 128→300 面积补偿
-      minPuffsPerTile: 15,
-      maxPuffsPerTile: 30,
+      spawnProbability: 0.858,
+      minPuffsPerTile: 55,
+      maxPuffsPerTile: 150,
       density: 0.65,
       globalWind: Vector2(10, -3),
       gustStrength: 0.7,
@@ -51,7 +51,7 @@ class WorldVfxBundle extends Component with HasGameReference<FlameGame> {
       hardPuffCap: 2000,
       updateSlices: 2,
       // useAtlas: true, atlasSize: 64,
-    )..priority = 1100;
+    )..priority = 9300;
     grid.add(mist);
 
     // ===== 闪电（只在你给的地形）=====

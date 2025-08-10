@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../components/infinite_grid_painter_component.dart';
 import '../components/noise_tile_map_generator.dart';
+import 'package:xiu_to_xiandi_tuixiu/utils/xianji_calendar.dart'; // 🆕 季节判断
 
 /// 用法：
 /// final snow = WorldSnowLayer(
@@ -21,7 +22,7 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
   final double tileSize;        // 生成/管理网格
   final double keepFactor;      // 生成/卸载范围（1.0=仅可视区）
   final double tilesFps;        // 扫描/生成/卸载频率（<=0 每帧）
-  final double intensity;       // 0..1 雪量：密度/速度/大小/透明度
+  final double intensity;       // 0..1 目标雪量：密度/速度/大小/透明度（冬季目标）
   final Vector2 wind;           // 世界风向（px/s）
   final int    updateSlices;    // 分帧更新（1=关闭）
   final bool   clipToView;      // 仅在可视区域内渲染
@@ -37,6 +38,11 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
   // —— 性能参数 ——
   final double fixedFps;        // 固定物理步长（0=关闭，默认60Hz）
   final bool   useSinLut;       // 用正弦查表优化
+
+  // —— 季节控制（🆕）——
+  final bool   onlyInWinter;          // 只在冬季下雪（默认 true）
+  final double seasonPollIntervalSec; // 季节轮询间隔（真实秒）
+  final double fadeSmoothSec;         // 可视化淡入/淡出时间常数（秒）
 
   // —— 内部 ——
   late InfiniteGridPainterComponent _grid;
@@ -58,6 +64,12 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
   static final List<double> _sinLut =
   List<double>.generate(_LUT_N, (i) => sin(2 * pi * i / _LUT_N), growable: false);
 
+  // —— 季节&淡入淡出（🆕）——
+  bool _isWinter = false;
+  double _seasonAcc = 1e9;     // 强制 onLoad 先检查一次
+  double _visibleIntensity = 0; // 渲染用强度（平滑到目标）
+  double _targetIntensity = 0;  // 目标强度：冬季=intensity；其它=0
+
   WorldSnowLayer({
     this.tileSize = 256.0,
     this.keepFactor = 1.0,
@@ -74,6 +86,10 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
     this.useSinLut = true,
     this.speedScale = 1.0,
     this.swayFreqScale = 1.0,
+    // 季节控制
+    this.onlyInWinter = true,            // 🆕 默认只在冬季下雪
+    this.seasonPollIntervalSec = 5.0,    // 🆕 5秒轮询一次季节（够用了）
+    this.fadeSmoothSec = 0.8,            // 🆕 0.8s 淡入/淡出
   }) : wind = wind ?? Vector2(50, 120);
 
   @override
@@ -94,12 +110,35 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
       final h = cellSize - _ATLAS_INSET * 2;
       return ui.Rect.fromLTWH(left.toDouble(), top.toDouble(), w.toDouble(), h.toDouble());
     });
+
+    // 首次季节采样
+    await _updateSeason(force: true);
+    _visibleIntensity = _targetIntensity; // 首帧不突变
   }
 
   @override
   void update(double dt) {
     super.update(dt);
     _t += dt;
+
+    // —— 季节轮询 & 强度平滑（🆕）——
+    if (onlyInWinter) {
+      _seasonAcc += dt;
+      if (_seasonAcc >= seasonPollIntervalSec) {
+        _seasonAcc = 0;
+        // 异步更新季节（不阻塞这一帧）
+        _updateSeason();
+      }
+      // 指数平滑（帧率无关）
+      final a = (fadeSmoothSec <= 0) ? 1.0 : (1.0 - exp(-dt / fadeSmoothSec));
+      _visibleIntensity += (_targetIntensity - _visibleIntensity) * a;
+    } else {
+      _targetIntensity = intensity;
+      _visibleIntensity = intensity;
+    }
+
+    // 没雪就只做“卸载”判定 & 返回（避免生成）
+    final hasAny = _visibleIntensity > 0.01;
 
     // 本帧只算一次视口
     final cam  = _noise.logicalOffset;
@@ -124,57 +163,62 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
       final ex = (keep.right / tileSize).ceil();
       final ey = (keep.bottom/ tileSize).ceil();
 
-      for (int tx = sx; tx < ex; tx++) {
-        for (int ty = sy; ty < ey; ty++) {
-          final key = '${tx}_${ty}';
-          if (_patches.containsKey(key)) continue;
+      if (hasAny) {
+        for (int tx = sx; tx < ex; tx++) {
+          for (int ty = sy; ty < ey; ty++) {
+            final key = '${tx}_${ty}';
+            if (_patches.containsKey(key)) continue;
 
-          final r = Random(_noise.seed ^ (tx * 92821) ^ (ty * 53987) ^ _SNOW_SALT);
-          // 基准密度（以 128^2 为单位面积）
-          final base  = 28;
-          final areaK = (tileSize * tileSize) / (128.0 * 128.0);
-          final count = max(6, (base * areaK * (0.35 + 1.2 * intensity)).round());
+            final r = Random(_noise.seed ^ (tx * 92821) ^ (ty * 53987) ^ _SNOW_SALT);
+            // 基准密度（以 128^2 为单位面积），随“可视强度”缩放
+            final eff = _visibleIntensity.clamp(0.0, 1.0);
+            final base  = 28;
+            final areaK = (tileSize * tileSize) / (128.0 * 128.0);
+            int count = (base * areaK * (0.35 + 1.2 * eff)).round();
+            if (eff < 0.05) count = max(0, count - 6); // 很弱时少生成
+            if (count <= 0) continue;                  // 不生成
 
-          final rect = _tileRect(tx, ty);
-          final flakes = <_Flake>[];
-          for (int i = 0; i < count; i++) {
-            final depth  = _randRange(r, 0.55, 1.20); // 远近层
-            final sizePx = _randRange(r, 6.0, 16.0) * depth * (0.7 + 0.9 * intensity);
-            final fall   = _randRange(r, 60.0, 140.0) *
-                depth * (0.7 + 1.1 * intensity) * speedScale;
-            final alpha  = _randRange(r, 0.35, 0.85) * (0.65 + 0.6 * depth);
-            final spinSp = _randRange(r, -1.2, 1.2);
-            final swayA  = _randRange(r, 8.0, 26.0) * depth;
-            final swayF  = _randRange(r, 0.4, 1.0) * swayFreqScale;
-            final sprite = r.nextInt(atlasCols * atlasRows);
+            final rect = _tileRect(tx, ty);
+            final flakes = <_Flake>[];
+            for (int i = 0; i < count; i++) {
+              final depth  = _randRange(r, 0.55, 1.20); // 远近层
+              final sizePx = _randRange(r, 6.0, 16.0) * depth * (0.7 + 0.9 * eff);
+              final fall   = _randRange(r, 60.0, 140.0) *
+                  depth * (0.7 + 1.1 * eff) * speedScale;
+              final alpha  = _randRange(r, 0.35, 0.85) * (0.65 + 0.6 * depth);
+              final spinSp = _randRange(r, -1.2, 1.2);
+              final swayA  = _randRange(r, 8.0, 26.0) * depth;
+              final swayF  = _randRange(r, 0.4, 1.0) * swayFreqScale;
+              final sprite = r.nextInt(atlasCols * atlasRows);
 
-            final pos = Vector2(
-              rect.left + r.nextDouble() * rect.width,
-              rect.top  + r.nextDouble() * rect.height,
-            );
-            final vel = Vector2(0, fall) + wind * (0.6 + 0.6 * depth);
+              final pos = Vector2(
+                rect.left + r.nextDouble() * rect.width,
+                rect.top  + r.nextDouble() * rect.height,
+              );
+              final vel = Vector2(0, fall) + wind * (0.6 + 0.6 * depth);
 
-            flakes.add(_Flake(
-              worldPos: pos,
-              baseVel: vel,
-              sizePx: sizePx,
-              alpha: alpha,
-              spin: r.nextDouble() * pi * 2,
-              spinSpeed: spinSp,
-              swayAmp: swayA,
-              swayFreq: swayF,
-              swayPhase: r.nextDouble() * pi * 2,
-              depth: depth,
-              spriteIndex: sprite,
-              twinklePhase: r.nextDouble() * pi * 2,
-            ));
+              flakes.add(_Flake(
+                worldPos: pos,
+                baseVel: vel,
+                sizePx: sizePx,
+                alpha: alpha,
+                spin: r.nextDouble() * pi * 2,
+                spinSpeed: spinSp,
+                swayAmp: swayA,
+                swayFreq: swayF,
+                swayPhase: r.nextDouble() * pi * 2,
+                depth: depth,
+                spriteIndex: sprite,
+                twinklePhase: r.nextDouble() * pi * 2,
+              ));
+            }
+
+            _patches[key] = _SnowPatch(tx: tx, ty: ty, flakes: flakes);
           }
-
-          _patches[key] = _SnowPatch(tx: tx, ty: ty, flakes: flakes);
         }
       }
 
-      // 卸载
+      // 卸载（非冬季也要卸载离开视野的旧补丁）
       final drop = <String>[];
       _patches.forEach((k, p) {
         final rect = _tileRect(p.tx, p.ty);
@@ -188,7 +232,7 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
     // —— 2) 固定步长 + 分片更新（无临时对象） ——
     final double h = (fixedFps <= 0) ? dt : (1.0 / fixedFps);
     double acc = (fixedFps <= 0) ? 0.0 : (_accum + dt);
-    const int maxSub = 3; // 最多3子步，避免卡顿时超循环
+    const int maxSub = 3;
     int substeps = 1;
 
     if (fixedFps > 0) {
@@ -211,12 +255,12 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
           // 自旋
           f.spin += f.spinSpeed * stepDt;
 
-          // 左右摆动：推进相位 + 快速正弦
+          // 左右摆动
           f.swayPhase += f.swayFreq * stepDt;
           final double swaySin = useSinLut ? _fastSin(f.swayPhase) : sin(f.swayPhase);
           final double sway = f.swayAmp * swaySin;
 
-          // 位移（逐分量累加）
+          // 位移
           f.worldPos.x += f.baseVel.x * stepDt + sway * stepDt;
           f.worldPos.y += f.baseVel.y * stepDt;
 
@@ -243,12 +287,13 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
     }
 
     final cam = _noise.logicalOffset;
+    final eff = _visibleIntensity.clamp(0.0, 1.0); // 🆕 可视强度（用于淡出）
 
     if (useAtlas && _atlas != null) {
       final img = _atlas!;
       final paint = Paint()
         ..isAntiAlias = true
-        ..filterQuality = FilterQuality.low; // 避免采样扩散到邻格
+        ..filterQuality = FilterQuality.low;
 
       final transforms = <ui.RSTransform>[];
       final rects = <ui.Rect>[];
@@ -259,11 +304,12 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
           final local = f.worldPos - cam;
           final angle = f.spin;
 
-          // 轻微闪烁（只是 alpha 微变）
+          // 轻微闪烁 + 全局淡出
           final tw = 0.9 + 0.1 * sin(_t * 0.6 + f.twinklePhase);
-          final a  = (f.alpha * tw).clamp(0.0, 1.0);
+          final a  = (f.alpha * tw * eff).clamp(0.0, 1.0);
 
-          final scale = (f.sizePx / cellSize).clamp(0.2, 2.5);
+          // 淡出时也缩点尺寸，观感更自然
+          final scale = ((f.sizePx * (0.7 + 0.3 * eff)) / cellSize).clamp(0.2, 2.5);
 
           transforms.add(ui.RSTransform.fromComponents(
             rotation: angle,
@@ -279,22 +325,29 @@ class WorldSnowLayer extends Component with HasGameReference<FlameGame> {
       });
 
       if (transforms.isNotEmpty) {
-        // 关键：modulate 只调制非透明像素，不会把整格染成方块
         canvas.drawAtlas(img, transforms, rects, colors, BlendMode.modulate, null, paint);
       }
     } else {
-      // 兜底：不用图集，直接画纯白软圆
       final p = Paint()..style = PaintingStyle.fill;
       _patches.forEach((_, patch) {
         for (final f in patch.flakes) {
           final local = f.worldPos - cam;
-          p.color = Colors.white.withOpacity(f.alpha);
-          canvas.drawCircle(Offset(local.x, local.y), f.sizePx * 0.5, p);
+          p.color = Colors.white.withOpacity(f.alpha * eff);
+          canvas.drawCircle(Offset(local.x, local.y), f.sizePx * 0.5 * (0.7 + 0.3 * eff), p);
         }
       });
     }
 
     if (clipToView) canvas.restore();
+  }
+
+  // —— 季节：异步更新（🆕）——
+  Future<void> _updateSeason({bool force = false}) async {
+    if (!onlyInWinter && !force) return;
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final season = await XianjiCalendar.seasonFromTimestamp(now);
+    _isWinter = (season == '冬季');
+    _targetIntensity = _isWinter ? intensity : 0.0;
   }
 
   // —— 工具 —— //

@@ -7,6 +7,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/infinite_grid_painter_co
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_player_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/floating_island_storage.dart';
 
+import '../effects/vfx_world_season_filter_layer.dart';
 import '../effects/world_vfx_bundle.dart';
 import 'dead_boss_decoration_component.dart';
 import 'floating_island_decorators.dart';
@@ -15,6 +16,9 @@ import 'floating_island_dynamic_spawner_component.dart';
 import 'floating_island_static_spawner_component.dart';
 import 'noise_tile_map_generator.dart';
 import 'resource_bar.dart';
+
+// 🆕 昼夜组件 & 玄历
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/day_night_cycle_component.dart';
 
 class FloatingIslandMapComponent extends FlameGame
     with HasCollisionDetection, WidgetsBindingObserver {
@@ -34,6 +38,9 @@ class FloatingIslandMapComponent extends FlameGame
   double _saveTimer = 0.0;
   static const double _autoSaveInterval = 5.0;
   double renderScale = 1.0;
+
+  // 🆕 昼夜组件句柄
+  late final DayNightCycleComponent _dayNight;
 
   FloatingIslandMapComponent({
     this.seed = 8888,
@@ -93,6 +100,16 @@ class FloatingIslandMapComponent extends FlameGame
     if (_grid != null && _noiseMapGenerator != null) {
       _grid!.add(WorldVfxBundle());
     }
+
+    add(WorldSeasonFilterLayer(
+      getVisibleTopLeft: () => Vector2.zero(), // 视口左上角
+      getViewSize: () => size,                 // 视口尺寸
+      // 可选：调过渡速度/采样间隔
+      fadeSmoothSec: 0.9,
+      seasonPollIntervalSec: 4.0,
+    )
+      ..priority = 9200 // 比大多数前景高，盖在上面
+    );
   }
 
   Future<void> _initGameWorld() async {
@@ -153,7 +170,6 @@ class FloatingIslandMapComponent extends FlameGame
       getViewCenter: () => logicalOffset + size / 2,
       getViewSize: () => size,
     ));
-
   }
 
   @override

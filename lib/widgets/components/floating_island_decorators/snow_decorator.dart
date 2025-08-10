@@ -36,19 +36,19 @@ class SnowDecorator extends Component {
         allowedTerrains: {'snow'},
         staticSpritesMap: {
           'snow': [
-            StaticSpriteEntry('floating_island/snow_1.png', 10),
-            StaticSpriteEntry('floating_island/snow_2.png', 10),
-            StaticSpriteEntry('floating_island/snow_3.png', 10),
-            StaticSpriteEntry('floating_island/snow_4.png', 10),
-            StaticSpriteEntry('floating_island/snow_5.png', 1),
+            StaticSpriteEntry('floating_island/snow_1.png', 10, priority: 0),
+            StaticSpriteEntry('floating_island/snow_2.png', 10, priority: 0),
+            StaticSpriteEntry('floating_island/snow_3.png', 10, priority: 0),
+            StaticSpriteEntry('floating_island/snow_4.png', 10, priority: 0),
+            StaticSpriteEntry('floating_island/snow_5.png', 1, priority: 0),
           ],
         },
         staticTileSize: 128.0,
         seed: seed,
         minCount: 5,
         maxCount: 10,
-        minSize: 48.0,
-        maxSize: 64.0,
+        minSize: 30.0,
+        maxSize: 48.0,
       ),
     );
 
@@ -77,6 +77,28 @@ class SnowDecorator extends Component {
         seed: seed,
         minDynamicObjectSize: 32.0,
         maxDynamicObjectSize: 64.0,
+        minSpeed: 10.0,
+        maxSpeed: 30.0,
+      ),
+    );
+    add(
+      FloatingIslandDynamicSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) =>
+            noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        noiseMapGenerator: noiseMapGenerator,
+        allowedTerrains: {'snow'},
+        dynamicSpritesMap: {
+          'snow': [
+            DynamicSpriteEntry('floating_island/snow_d_3.png', 1, defaultFacingRight: false),
+          ],
+        },
+        dynamicTileSize: 299.0,
+        seed: seed,
+        minDynamicObjectSize: 16.0,
+        maxDynamicObjectSize: 30.0,
         minSpeed: 10.0,
         maxSpeed: 30.0,
       ),
