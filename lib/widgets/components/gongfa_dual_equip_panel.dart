@@ -1,16 +1,15 @@
+// 📂 lib/widgets/components/gongfa_dual_equip_panel.dart
 import 'package:flutter/material.dart';
 
 import '../../models/gongfa.dart';
 import '../../services/gongfa_collected_storage.dart';
-import '../../services/gongfa_equip_storage.dart';           // 你现有的【速度】存储
 import '../../services/player_storage.dart';
-import '../../services/attack_gongfa_equip_storage.dart';   // 下面我也给你
+import '../../services/gongfa_equip_service.dart';
 
 /// 🔥 双槽合一：一个组件同时管理【速度】和【攻击技能】两种功法的装备/卸下
 /// - 左槽：速度功法（GongfaType.movement）
 /// - 右槽：攻击技能功法（GongfaType.attack）
 /// - 点击槽位：弹出对应选择框；长按槽位：卸下
-/// - UI/逻辑都在这里，不再分两个组件到处传
 class GongfaDualEquipPanel extends StatefulWidget {
   final VoidCallback? onChanged;
   final double size;     // 每个槽位方块尺寸
@@ -53,17 +52,21 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
     final p = await PlayerStorage.getPlayer();
     if (p == null) return;
     _playerId = p.id;
-    await Future.wait([
-      _loadEquipped(),
-      _loadAvailable(),
-    ]);
+    await Future.wait([_loadEquipped(), _loadAvailable()]);
   }
 
   Future<void> _loadEquipped() async {
-    final m = await GongfaEquipStorage.loadEquippedMovementBy(_playerId);
-    final a = await AttackGongfaEquipStorage.loadEquippedAttackBy(_playerId);
+    final m = await GongfaEquipService.loadEquipped(
+      slot: GongfaEquipService.movementSlot,
+      type: GongfaType.movement,
+    );
+    final a = await GongfaEquipService.loadEquipped(
+      slot: GongfaEquipService.attackSlot,
+      type: GongfaType.attack,
+    );
     _equippedMovement = m;
     _equippedAttack = a;
+
     if (mounted) setState(() {});
   }
 
@@ -97,33 +100,37 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
 
   // —— 装备 / 卸下 —— //
   Future<void> _equipMovement(Gongfa g) async {
-    await GongfaEquipStorage.equipMovement(ownerId: _playerId, gongfa: g);
+    await GongfaEquipService.equip(slot: GongfaEquipService.movementSlot, gongfa: g);
     widget.onChanged?.call();
     await _loadEquipped();
     await _loadAvailable();
-    if (context.mounted && Navigator.canPop(context)) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (Navigator.canPop(context)) Navigator.of(context).pop();
   }
 
   Future<void> _equipAttack(Gongfa g) async {
-    await AttackGongfaEquipStorage.equipAttack(ownerId: _playerId, gongfa: g);
+    await GongfaEquipService.equip(slot: GongfaEquipService.attackSlot, gongfa: g);
     widget.onChanged?.call();
     await _loadEquipped();
     await _loadAvailable();
-    if (context.mounted && Navigator.canPop(context)) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (Navigator.canPop(context)) Navigator.of(context).pop();
   }
 
   Future<void> _unequipMovement() async {
-    await GongfaEquipStorage.unequipMovement(_playerId);
+    await GongfaEquipService.unequip(GongfaEquipService.movementSlot);
     widget.onChanged?.call();
     await _loadEquipped();
-    if (context.mounted && Navigator.canPop(context)) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (Navigator.canPop(context)) Navigator.of(context).pop();
   }
 
   Future<void> _unequipAttack() async {
-    await AttackGongfaEquipStorage.unequipAttack(_playerId);
+    await GongfaEquipService.unequip(GongfaEquipService.attackSlot);
     widget.onChanged?.call();
     await _loadEquipped();
-    if (context.mounted && Navigator.canPop(context)) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (Navigator.canPop(context)) Navigator.of(context).pop();
   }
 
   // —— 弹框：根据槽位展示不同列表 —— //
@@ -157,9 +164,7 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
                 return InkWell(
                   onTap: isEquipped
                       ? null
-                      : () => isMovement
-                      ? _equipMovement(item)
-                      : _equipAttack(item),
+                      : () => isMovement ? _equipMovement(item) : _equipAttack(item),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -183,8 +188,7 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
                       ),
                       if (isEquipped)
                         Container(
-                          padding:
-                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           color: const Color(0xFF82D16F),
                           child: const Text('✅ 已装备',
                               style: TextStyle(color: Colors.white, fontSize: 10)),
@@ -192,17 +196,15 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
                       else
                         OutlinedButton(
                           style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                             side: const BorderSide(color: Colors.black87, width: 1),
                             shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.zero),
                             minimumSize: const Size(0, 0),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
-                          onPressed: () => isMovement
-                              ? _equipMovement(item)
-                              : _equipAttack(item),
+                          onPressed: () =>
+                          isMovement ? _equipMovement(item) : _equipAttack(item),
                           child: const Text('装备', style: TextStyle(fontSize: 12)),
                         ),
                       if (isEquipped)
@@ -218,8 +220,7 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
                               minimumSize: const Size(0, 0),
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            onPressed:
-                            isMovement ? _unequipMovement : _unequipAttack,
+                            onPressed: isMovement ? _unequipMovement : _unequipAttack,
                             child: const Text('卸下',
                                 style: TextStyle(fontSize: 12, color: Colors.red)),
                           ),
