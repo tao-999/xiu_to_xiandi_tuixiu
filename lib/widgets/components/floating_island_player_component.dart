@@ -10,16 +10,20 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 import '../../utils/collision_logic_handler.dart';
 import '../../utils/terrain_event_util.dart';
-import '../effects/fireball_hotkey_controller.dart';
+
+// 🔥/⚡ 统一热键控制器 + 两个适配器（都在 widgets/effects/）
+import '../effects/attack_hotkey_controller.dart';
 import '../effects/fireball_player_adapter.dart';
+import '../effects/player_lightning_chain_adapter.dart';
+
 import 'floating_island_static_decoration_component.dart';
-import 'floating_island_dynamic_mover_component.dart'; // ✅ 用于筛 boss
+import 'floating_island_dynamic_mover_component.dart'; // ✅ 用于筛 boss / 怪
 import 'resource_bar.dart';
 
 // ✅ 贴图控制器（朝向/缓存）
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/player_sprite_controller.dart';
 
-// ✅ 气流特效适配器
+// ✅ 周身气流特效适配器
 import 'package:xiu_to_xiandi_tuixiu/widgets/effects/airflow_player_adapter.dart';
 
 class FloatingIslandPlayerComponent extends SpriteComponent
@@ -51,8 +55,9 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   // —— 气流特效适配器 —— //
   late PlayerAirflowAdapter _airflowAdapter;
 
-  // —— 火球 —— //
+  // —— 火球 / 雷链 适配器 —— //
   late PlayerFireballAdapter _fireball;
+  late PlayerLightningChainAdapter _lightning;
 
   // —— 对外方法 —— //
   void moveTo(Vector2 target) => _targetPosition = target;
@@ -124,21 +129,34 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       logicalPosition: () => logicalPosition,
     );
 
-    // ✅ 火球适配器 + 热键控制器（Q 键开火，锁最近 boss）
+    // ===== 适配器：火球 & 雷链（渲染层与火球一致） =====
     _fireball = PlayerFireballAdapter.attach(
       host: this,
       layer: parent, // 或者你希望渲染在哪一层
-      getLogicalOffset: () => (game as dynamic).logicalOffset as Vector2, // 你的 MapComponent 就有这个字段
+      getLogicalOffset: () => (game as dynamic).logicalOffset as Vector2, // 你的 MapComponent 有这个字段
       resourceBarKey: resourceBarKey,
     );
-    // ✅ attach 调用（去掉 const）
-    FireballHotkeyController.attach(
+    _lightning = PlayerLightningChainAdapter.attach(
+      host: this,
+      layer: parent, // 与火球同层渲染
+      getLogicalOffset: () => (game as dynamic).logicalOffset as Vector2,
+      resourceBarKey: resourceBarKey,
+    );
+
+    // ===== ✅ 统一热键：Q = 已装备功法（火球 或 雷链） =====
+    AttackHotkeyController.attach(
       host: this,
       fireball: _fireball,
-      range: 300,       // 射程
-      cooldown: 0.8,    // 冷却
-      hotkeys: { LogicalKeyboardKey.keyQ },   // ← 不要 const
+      lightning: _lightning,
       candidatesProvider: _scanAllMovers,
+      hotkeys: { LogicalKeyboardKey.keyQ }, // PC：Q，注意不要 const
+      cooldown: 0.8,
+      // 雷链参数
+      castRange: 320,
+      jumpRange: 240,
+      maxJumps: 6,
+      // 火球速度（用于提前量 & VFX）
+      projectileSpeed: 420.0,
     );
   }
 
@@ -172,9 +190,9 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     void dfs(Component node) {
       for (final child in node.children) {
         if (child is FloatingIslandDynamicMoverComponent) {
-          final String? t = child.type;            // 可空
+          final String? t = child.type; // 可空
           final bool isBoss = (t?.contains('boss') ?? false);
-          final bool alive  = (child.isDead == false);
+          final bool alive = (child.isDead == false);
           if (isBoss && alive) {
             result.add(child);
           }
@@ -224,9 +242,8 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     }
 
     // —— 静态装饰锁定状态 —— //
-    final staticList = parent?.children
-        .whereType<FloatingIslandStaticDecorationComponent>()
-        .toList();
+    final staticList =
+    parent?.children.whereType<FloatingIslandStaticDecorationComponent>().toList();
     if (staticList != null) {
       CollisionLogicHandler.updateLockStatus(logicalPosition, staticList);
     }

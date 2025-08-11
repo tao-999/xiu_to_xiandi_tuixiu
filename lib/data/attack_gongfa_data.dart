@@ -39,11 +39,10 @@ class AttackGongfaData {
   );
 
   /// ⚡ 雷链（Chain Lightning）
-  /// 建议：多段跳跃伤害，后续按 0.8 衰减；这里先只提供基础数据，逻辑在技能实现里写。
   static const AttackGongfaTemplate chainLightning = AttackGongfaTemplate(
     name: '雷链',
     description: '以真雷为引，电光连环跃迁，群敌顷刻焦黑。',
-    atkBoost: 0.80, // 基础加成（多跳技能，实战更强）
+    atkBoost: 1.20, // 基础加成（多跳技能，实战更强）
     iconPath: 'gongfa/chain_lightning.png',
     palette: [
       Color(0xFFFFFFFF), // 核心高光
