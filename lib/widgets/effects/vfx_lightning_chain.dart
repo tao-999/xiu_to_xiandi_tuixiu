@@ -1,5 +1,6 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart' hide Image;
+import 'package:xiu_to_xiandi_tuixiu/widgets/effects/vfx_electro_hit_overlay.dart';
 
 import '../components/floating_island_dynamic_mover_component.dart';
 import '../components/floating_island_player_component.dart';
@@ -109,6 +110,21 @@ class VfxLightningChain extends Component with HasGameReference {
           killer: owner,
           logicalOffset: getLogicalOffset(),
           resourceBarKey: resourceBarKey,
+        );
+
+        // 👇 新增：被电到覆盖（作为目标的子组件，跟随移动）
+        tgt.add(
+          VfxElectroHitOverlay(
+            life: 0.18,
+            arcCount: 9,
+            arcSegments: 7,
+            jitter: 9,
+            thickness: 1.6,
+            color: const Color(0xFFB5F3FF),
+            pulse: 0.75,
+            shake: 0.9,
+            basePriority: 100000, // 压在目标子节点最上层
+          ),
         );
       }
 
