@@ -23,7 +23,7 @@ class AttackGongfaTemplate {
 }
 
 class AttackGongfaData {
-  /// 目前只需要一个：火球术
+  /// 🔥 火球术
   static const AttackGongfaTemplate fireball = AttackGongfaTemplate(
     name: '火球术',
     description: '凝聚灵炎，化球疾射，所至之处烈焰滔天。',
@@ -38,7 +38,27 @@ class AttackGongfaData {
     ],
   );
 
-  static const List<AttackGongfaTemplate> all = [fireball];
+  /// ⚡ 雷链（Chain Lightning）
+  /// 建议：多段跳跃伤害，后续按 0.8 衰减；这里先只提供基础数据，逻辑在技能实现里写。
+  static const AttackGongfaTemplate chainLightning = AttackGongfaTemplate(
+    name: '雷链',
+    description: '以真雷为引，电光连环跃迁，群敌顷刻焦黑。',
+    atkBoost: 0.80, // 基础加成（多跳技能，实战更强）
+    iconPath: 'gongfa/chain_lightning.png',
+    palette: [
+      Color(0xFFFFFFFF), // 核心高光
+      Color(0xFFE3F2FD), // 淡蓝辉光
+      Color(0xFF80DEEA), // 青蓝
+      Color(0xFF00B0FF), // 电蓝
+      Color(0xFF2979FF), // 深电蓝
+      Color(0xFF7C4DFF), // 紫电边缘
+    ],
+  );
+
+  static const List<AttackGongfaTemplate> all = [
+    fireball,
+    chainLightning,
+  ];
 
   static AttackGongfaTemplate? byName(String name) {
     for (final e in all) {
