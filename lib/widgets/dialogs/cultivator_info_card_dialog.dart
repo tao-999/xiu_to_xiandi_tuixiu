@@ -1,3 +1,4 @@
+// 📂 lib/widgets/dialogs/cultivator_info_card_dialog.dart
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/character.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
@@ -7,6 +8,8 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/aptitude_upgrade_dialog.dar
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/pill_consumer.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/player_equip_dialog.dart';
+// ✅ 新增：速度功法装备面板
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/movement_gongfa_equip_panel.dart';
 
 class CultivatorInfoCardDialog {
   static Future<void> show({
@@ -15,7 +18,6 @@ class CultivatorInfoCardDialog {
     required CultivationLevelDisplay display,
     required VoidCallback onUpdated,
   }) async {
-
     await showDialog(
       context: context,
       barrierDismissible: true,
@@ -36,8 +38,10 @@ class CultivatorInfoCardDialog {
                 final hp = PlayerStorage.getHp(player);
                 final atk = PlayerStorage.getAtk(player);
                 final def = PlayerStorage.getDef(player);
+                final speed = PlayerStorage.getMoveSpeed(player);
 
-                String formatPercent(double value) => '${(value * 100).toStringAsFixed(2)}%';
+                String formatPercent(double value) =>
+                    '${(value * 100).toStringAsFixed(2)}%';
 
                 Widget _buildLabeledRow(String label, String value, {String? extra}) {
                   return Padding(
@@ -70,7 +74,7 @@ class CultivatorInfoCardDialog {
                 }
 
                 return Container(
-                  width: 350,
+                  width: 500,
                   height: 350,
                   decoration: const BoxDecoration(
                     color: Color(0xFFFFF8DC),
@@ -82,7 +86,7 @@ class CultivatorInfoCardDialog {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 左卡片
+                            // —— 左卡片 —— //
                             Container(
                               width: 250,
                               padding: const EdgeInsets.all(16),
@@ -127,34 +131,47 @@ class CultivatorInfoCardDialog {
                                   _buildLabeledRow('攻击', formatAnyNumber(atk), extra: formatPercent(player.extraAtk)),
                                   _buildLabeledRow('防御', formatAnyNumber(def), extra: formatPercent(player.extraDef)),
                                   _buildLabeledRow(
-                                    '移动速度',
-                                    (player.moveSpeed * (1 + player.moveSpeedBoost)).toStringAsFixed(2),
-                                    extra: '${(player.moveSpeedBoost * 100).toStringAsFixed(2)}%',
+                                    '移动速度', formatAnyNumber(speed),
+                                    extra: formatPercent(player.moveSpeedBoost),
                                   ),
-
                                 ],
                               ),
                             ),
                             const SizedBox(width: 12),
+                            // —— 右侧：装备栏 + 速度功法槽 —— //
                             SizedBox(
-                              width: 60,
+                              width: 200, // 比原来的 100 宽一些，避免挤压
                               child: Padding(
                                 padding: const EdgeInsets.only(top: 16),
-                                child: Align(
-                                  alignment: Alignment.topCenter,
-                                  child: PlayerEquipDialog(
-                                    onChanged: () {
-                                      setState(() {}); // ✅ 触发重新加载 player
-                                      onUpdated();
-                                    },
-                                  ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // 装备面板
+                                    Align(
+                                      alignment: Alignment.topCenter,
+                                      child: PlayerEquipDialog(
+                                        onChanged: () {
+                                          setState(() {}); // 触发重新加载 player
+                                          onUpdated();
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    // ✅ 速度功法槽（点击选择/卸下）
+                                    MovementGongfaEquipPanel(
+                                      onChanged: () {
+                                        setState(() {}); // 更新数值显示：移动速度等
+                                        onUpdated();
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      // 雷达图
+                      // —— 雷达图 —— //
                       SizedBox(
                         height: 160,
                         child: Center(
@@ -168,7 +185,7 @@ class CultivatorInfoCardDialog {
                               labels: const ['金', '木', '水', '火', '土'],
                               max: 14,
                               strokeColor: Colors.brown,
-                              fillColor: Color.fromARGB(100, 205, 133, 63),
+                              fillColor: const Color.fromARGB(100, 205, 133, 63),
                               labelStyle: const TextStyle(fontSize: 11, color: Colors.black),
                             ),
                           ),
@@ -183,6 +200,5 @@ class CultivatorInfoCardDialog {
         ),
       ),
     );
-
   }
 }

@@ -144,6 +144,13 @@ class _BeibaoDialogState extends State<BeibaoDialog> {
 
     final gongfaList = await GongfaCollectedStorage.getAllGongfa();
     for (final g in gongfaList) {
+      // 小数 → 百分比文本（只在有速度加成时展示）
+      final String speedText = (g.moveSpeedBoost != 0)
+          ? '，速度：+${(g.moveSpeedBoost * 100).toStringAsFixed(0)}%'
+          : '';
+
+      final desc = '品阶：${g.level}$speedText，描述：${g.description}';
+
       newItems.add(BeibaoItem(
         name: g.name,
         imagePath: g.iconPath.startsWith('assets/')
@@ -151,9 +158,9 @@ class _BeibaoDialogState extends State<BeibaoDialog> {
             : 'assets/images/${g.iconPath}', // 保底兜个路径
         level: g.level,
         quantity: BigInt.from(g.count),
-        description: '品阶：${g.level}，描述：${g.description}',
-        type: BeibaoItemType.gongfa, // 你要在 enum 里加这个类型哦！
-        hiveKey: '${g.id}_${g.level}', // 可选，给未来操作用
+        description: desc,
+        type: BeibaoItemType.gongfa, // 记得 enum 里加这个
+        hiveKey: '${g.id}_${g.level}',
       ));
     }
 

@@ -1,9 +1,9 @@
 // 📂 lib/widgets/components/floating_island_player_component.dart
 
-import 'dart:async';
-import 'dart:math';
+import 'dart:async' as async;
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
+import 'package:flame/timer.dart' as f; // ✅ 用 Flame 的 Timer（update+onTick）
 import 'package:flutter/material.dart' hide Image;
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
@@ -12,8 +12,11 @@ import '../../utils/terrain_event_util.dart';
 import 'floating_island_static_decoration_component.dart';
 import 'resource_bar.dart';
 
-// ✅ 周身气流特效
-import '../effects/vfx_airflow.dart';
+// ✅ 贴图控制器（朝向/缓存）
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/player_sprite_controller.dart';
+
+// ✅ 气流特效适配器（一行装上，内部创建+更新；会按已装备“速度功法”自动取 palette）
+import 'package:xiu_to_xiandi_tuixiu/widgets/effects/airflow_player_adapter.dart';
 
 class FloatingIslandPlayerComponent extends SpriteComponent
     with HasGameReference, CollisionCallbacks {
@@ -27,24 +30,22 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   // —— 逻辑坐标 & 目标点 —— //
   Vector2 logicalPosition = Vector2.zero();
   Vector2? _targetPosition;
-  final double moveSpeed = 100;
+
+  // —— 实时移动速度（base*(1+boost)），由 PlayerStorage 计算 —— //
+  double _curMoveSpeed = 100.0; // px/s
+  late f.Timer _speedTimer;      // 轮询玩家最新速度
 
   // —— 位移变化通知 —— //
-  final StreamController<Vector2> _positionStreamController =
-  StreamController.broadcast();
-  Stream<Vector2> get onPositionChangedStream =>
+  final async.StreamController<Vector2> _positionStreamController =
+  async.StreamController.broadcast();
+  async.Stream<Vector2> get onPositionChangedStream =>
       _positionStreamController.stream;
 
-  // —— 速度计算辅助 —— //
-  Vector2 _lastLogicalPos = Vector2.zero();
+  // —— 贴图控制器 —— //
+  late PlayerSpriteController _spriteCtl;
 
-  // —— 气流特效 —— //
-  AirFlowEffect? _airflow;
-
-  // —— 贴图路径 & 朝向 & 缓存 —— //
-  late String _baseSpritePath; // e.g. icon_youli_${gender}.png（默认朝右）
-  bool _facingLeft = false;
-  final Map<String, Sprite> _spriteCache = {};
+  // —— 气流特效适配器 —— //
+  late PlayerAirflowAdapter _airflowAdapter;
 
   // —— 对外方法 —— //
   void moveTo(Vector2 target) => _targetPosition = target;
@@ -71,19 +72,37 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       return;
     }
 
-    // ✅ 默认朝右：路径不变
-    _baseSpritePath = 'icon_youli_${player.gender}.png';
-    await _applySpriteForFacing(left: false, keepSize: false); // 首次加载并设置尺寸
+    // ✅ 初始化贴图（默认朝右），首帧把宽设置为 32，等比缩放高
+    _spriteCtl = PlayerSpriteController(
+      host: this,
+      basePath: 'icon_youli_${player.gender}.png',
+    );
+    await _spriteCtl.init(keepSize: false, fixedWidth: 32);
 
-    // 画面初始位置居中
+    // ✅ 初始位置居中
     position = game.size / 2;
 
-    // ✅ 碰撞：先 passive，100ms 后 active，避免初始化误碰
+    // ✅ 初次读取 & 定期同步移动速度（每 0.25s）
+    _curMoveSpeed = PlayerStorage.getMoveSpeed(player); // = base * (1 + boost)
+    _speedTimer = f.Timer(
+      0.25,
+      repeat: true,
+      onTick: () {
+        // onTick 不能 async，这里包一层 IIFE
+        () async {
+          final p = await PlayerStorage.getPlayer();
+          if (p != null) {
+            _curMoveSpeed = PlayerStorage.getMoveSpeed(p);
+          }
+        }();
+      },
+    )..start();
+
+    // ✅ 碰撞：先 passive，100ms 后 active（避免初始化误碰）
     final hitbox = RectangleHitbox()
       ..size = size
       ..collisionType = CollisionType.passive;
     add(hitbox);
-
     Future.delayed(const Duration(milliseconds: 100), () {
       hitbox.collisionType = CollisionType.active;
       debugPrint('✅ 玩家碰撞激活完毕');
@@ -92,30 +111,11 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     // 首帧广播逻辑位置
     _positionStreamController.add(logicalPosition);
 
-    // ✅ 气流特效（跟随玩家中心）
-    _airflow = AirFlowEffect(
-      getWorldCenter: () => absolutePosition, // ✅ 脚底（bottomCenter）
-      getHostSize: () => size,
-
-      palette: [Colors.white],
-      mixMode: ColorMixMode.hsv,
-      baseRate: 170,
-      ringRadius: 12,
-
-      centerYFactor: 0.50,  // ✅ 从脚底上移 50% → 圆心=玩家几何中心
-      radiusFactor: 0.46,
-      pad: 1.8,
-      arcHalfAngle: pi / 12,
-      biasLeftX: 0.0,
-      biasRightX: 0.0,
-
-      debugArcColor: const Color(0xFFFF00FF),
-      debugArcWidth: 1.5,
-      debugArcSamples: 48,
+    // ✅ 一行装上气流特效（内部按已装备速度功法自动取颜色；没装备就不渲染）
+    _airflowAdapter = PlayerAirflowAdapter.attach(
+      host: this,
+      logicalPosition: () => logicalPosition,
     );
-    parent?.add(_airflow!);
-
-    _lastLogicalPos = logicalPosition.clone();
   }
 
   // —— 生命周期：更新帧 —— //
@@ -123,11 +123,14 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   void update(double dt) {
     super.update(dt);
 
+    // 驱动速度计时器
+    _speedTimer.update(dt);
+
     // —— 移动与朝向 —— //
     if (_targetPosition != null) {
       final delta = _targetPosition! - logicalPosition;
       final distance = delta.length;
-      final moveStep = moveSpeed * dt;
+      final moveStep = _curMoveSpeed * dt; // ✅ 使用实时速度
 
       if (distance <= moveStep) {
         logicalPosition = _targetPosition!;
@@ -136,17 +139,16 @@ class FloatingIslandPlayerComponent extends SpriteComponent
         logicalPosition += delta.normalized() * moveStep;
       }
 
-      // ✅ 根据水平分量判断朝向 → 切贴图（不使用 scale.x）
+      // ✅ 根据水平分量判断朝向 → 交给控制器换贴图
       final bool nowFacingLeft = delta.x < 0;
-      if (nowFacingLeft != _facingLeft) {
-        _facingLeft = nowFacingLeft;
-        _applySpriteForFacing(left: _facingLeft, keepSize: true);
+      if (nowFacingLeft != _spriteCtl.facingLeft) {
+        _spriteCtl.faceLeft(nowFacingLeft, keepSize: true);
       }
 
       _positionStreamController.add(logicalPosition);
     }
 
-    // —— 同步地图逻辑偏移（让玩家处于屏幕中心的那套做法） —— //
+    // —— 同步地图逻辑偏移（让玩家居中） —— //
     final mapGame = game as dynamic;
     if (_targetPosition != null) {
       mapGame.logicalOffset = logicalPosition.clone();
@@ -174,21 +176,12 @@ class FloatingIslandPlayerComponent extends SpriteComponent
         _targetPosition = null;
       }
     });
-
-    // —— 气流特效：按速度向量驱动 —— //
-    final vel = (logicalPosition - _lastLogicalPos) /
-        (dt <= 1e-6 ? 1e-6 : dt);
-    _lastLogicalPos.setFrom(logicalPosition);
-
-    if (_airflow != null) {
-      _airflow!.enabled = true;
-      _airflow!.moveVector = vel;
-    }
   }
 
   // —— 生命周期：移除 —— //
   @override
   void onRemove() {
+    _speedTimer.stop();
     _positionStreamController.close();
     super.onRemove();
   }
@@ -205,60 +198,5 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       other: other,
       resourceBarKey: resourceBarKey,
     );
-  }
-
-  // =========================
-  // 内部：贴图加载 & 缓存
-  // =========================
-
-  /// 按当前朝向应用贴图。
-  /// left=false 使用 `_baseSpritePath`
-  /// left=true  使用 `_baseSpritePath` + `_left` 后缀（.png 前插入）
-  Future<void> _applySpriteForFacing({
-    required bool left,
-    required bool keepSize,
-  }) async {
-    final path = left ? _withLeftSuffix(_baseSpritePath) : _baseSpritePath;
-    final loaded = await _loadSpriteCached(path);
-
-    // 首次需要根据原图等比缩放到固定宽度 32
-    if (!keepSize && loaded != null) {
-      final originalSize = loaded.srcSize;
-      const fixedWidth = 32.0;
-      final scaledHeight = originalSize.y * (fixedWidth / originalSize.x);
-      size = Vector2(fixedWidth, scaledHeight);
-    }
-  }
-
-  /// 带缓存的 Sprite 加载；加载失败自动回退到 base 图
-  Future<Sprite?> _loadSpriteCached(String path) async {
-    if (_spriteCache.containsKey(path)) {
-      sprite = _spriteCache[path];
-      return sprite;
-    }
-    try {
-      final sp = await Sprite.load(path);
-      _spriteCache[path] = sp;
-      sprite = sp;
-      return sp;
-    } catch (e) {
-      // 左图可能不存在：回退到基础图
-      if (path != _baseSpritePath) {
-        debugPrint('⚠️ 加载 $path 失败，回退至基础贴图 $_baseSpritePath；err=$e');
-        return _loadSpriteCached(_baseSpritePath);
-      } else {
-        debugPrint('❌ 基础贴图 $_baseSpritePath 加载失败；err=$e');
-        return null;
-      }
-    }
-  }
-
-  String _withLeftSuffix(String basePath) {
-    if (basePath.endsWith('.png')) {
-      final i = basePath.lastIndexOf('.png');
-      return '${basePath.substring(0, i)}_left.png';
-    }
-    // 兜底：没按 png 后缀也处理一下
-    return '${basePath}_left';
   }
 }

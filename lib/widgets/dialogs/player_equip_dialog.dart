@@ -177,19 +177,20 @@ class _PlayerEquipDialogState extends State<PlayerEquipDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 50, // ✅ 推荐你固定个宽度或者 minWidth 限制
-      alignment: Alignment.topCenter, // ✅ 关键！让子组件居中
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center, // ✅ 子项横向居中
-        children: [
-          buildSlot('accessory', accessory),
-          const SizedBox(height: 8),
-          buildSlot('weapon', weapon),
-          const SizedBox(height: 8),
-          buildSlot('armor', armor),
-        ],
+    return Align(
+      alignment: Alignment.topCenter,
+      child: FittedBox( // 自动等比缩小以适配可用宽度
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            buildSlot('accessory', accessory),
+            const SizedBox(width: 12),
+            buildSlot('weapon', weapon),
+            const SizedBox(width: 12),
+            buildSlot('armor', armor),
+          ],
+        ),
       ),
     );
   }
