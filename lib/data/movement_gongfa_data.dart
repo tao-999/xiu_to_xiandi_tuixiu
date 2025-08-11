@@ -111,8 +111,13 @@ class MovementGongfaData {
       moveSpeedBoost: 0.42,
       iconPath: 'gongfa/9.png',
       palette: [
-        Color(0xFFFFF8E1), Color(0xFFFFE082), Color(0xFFFFB74D),
-        Color(0xFFFF8A65),
+        Color(0xFFFF5252), // 🔴 red
+        Color(0xFFFFA726), // 🟠 orange
+        Color(0xFFFFEE58), // 🟡 yellow
+        Color(0xFF66BB6A), // 🟢 green
+        Color(0xFF26C6DA), // 🔵 cyan
+        Color(0xFF42A5F5), // 🔵 blue
+        Color(0xFF7E57C2), // 🟣 purple
       ],
     ),
     MovementGongfaTemplate(

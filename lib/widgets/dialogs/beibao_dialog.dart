@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_grid_view.dart';
 import '../../services/gongfa_collected_storage.dart';
+import '../../services/player_storage.dart';
 import '../../services/resources_storage.dart';
 import '../../data/beibao_resource_config.dart';
 import '../../models/beibao_item_type.dart';
@@ -142,7 +143,20 @@ class _BeibaoDialogState extends State<BeibaoDialog> {
       }
     });
 
-    final gongfaList = await GongfaCollectedStorage.getAllGongfa();
+    final player = await PlayerStorage.getPlayer();
+    final Map<String, List<String>> techMap = player?.techniquesMap ?? {};
+
+// ✅ 已装备功法的 ID 集合（所有类型）
+    final Set<String> equippedIds = techMap.values
+        .expand((ids) => ids)
+        .whereType<String>()
+        .toSet();
+
+// ✅ 只保留未装备的功法
+    final gongfaList = (await GongfaCollectedStorage.getAllGongfa())
+        .where((g) => !equippedIds.contains(g.id))
+        .toList();
+
     for (final g in gongfaList) {
       // 小数 → 百分比文本（只在有速度加成时展示）
       final String speedText = (g.moveSpeedBoost != 0)
