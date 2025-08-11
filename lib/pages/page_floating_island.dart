@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 🔧 关输入法/焦点
 import 'package:flame/game.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_map_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/player_distance_indicator.dart';
@@ -10,6 +11,7 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/resource_bar.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/route_observer.dart';
 
+import '../platform/ime_guard.dart';                 // ✅ 窗口级禁用 IME（Windows）
 import '../widgets/components/character_panel.dart';
 
 class FloatingIslandPage extends StatefulWidget {
@@ -27,14 +29,41 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
   // 🔥 用 key 控制资源条刷新的骚操作
   final GlobalKey<ResourceBarState> _resourceBarKey = GlobalKey<ResourceBarState>();
 
+  // 🎯 唯一给 GameWidget 用的焦点节点（不包外层 Focus，防环引用）
+  final FocusNode _gameFocus = FocusNode(
+    debugLabel: 'GameFocus',
+    skipTraversal: true,
+    canRequestFocus: true,
+  );
+
   @override
   void initState() {
     super.initState();
     _loadPlayerGender();
+
+    // ✅ 窗口模式：顶层窗 + Flutter 子视图窗同时禁用 IME（带重试）
+    ImeGuard.disableForWindow();
+
+    // 焦点变化时，顺手把软键盘也关掉（双保险）
+    _gameFocus.addListener(() {
+      if (_gameFocus.hasFocus) {
+        SystemChannels.textInput.invokeMethod('TextInput.hide');
+      }
+    });
+
+    // 首帧给游戏抢焦点
+    WidgetsBinding.instance.addPostFrameCallback((_) => _takeGameFocus());
+  }
+
+  // 抢焦点 + 关输入法（用在点击地图、返回页面等场景）
+  void _takeGameFocus() {
+    _gameFocus.requestFocus();
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
   }
 
   Future<void> _loadPlayerGender() async {
     final player = await PlayerStorage.getPlayer();
+    if (!mounted) return;
     setState(() {
       _gender = player?.gender ?? 'male';
     });
@@ -59,7 +88,12 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
     debugPrint('🚨 FloatingIslandPage dispose triggered');
     routeObserver.unsubscribe(this);
     _mapComponent?.saveState();
-    _destroyMapComponent(); // ✅ 用这个更稳
+    _destroyMapComponent();
+
+    // ✅ 离开地图时恢复 IME
+    ImeGuard.restore();
+
+    _gameFocus.dispose();
     super.dispose();
   }
 
@@ -75,6 +109,7 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
   void didPopNext() {
     debugPrint('👋 FloatingIslandPage popped');
     _resourceBarKey.currentState?.refresh();
+    _takeGameFocus(); // 回来时把焦点拉回给游戏
   }
 
   @override
@@ -82,9 +117,19 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
     return Scaffold(
       body: Stack(
         children: [
-          // ✅ 地图组件
+          // ✅ 地图组件（用 Listener 抢焦点，不参与手势竞技场 → 拖拽/缩放正常）
           if (_mapComponent != null)
-            Positioned.fill(child: GameWidget(game: _mapComponent!)),
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => _takeGameFocus(),
+                child: GameWidget(
+                  game: _mapComponent!,
+                  focusNode: _gameFocus, // ✅ 只在这里使用同一个 FocusNode
+                  autofocus: true,
+                ),
+              ),
+            ),
 
           // ✅ 初始加载地图
           if (!_hasSeed)
@@ -97,6 +142,8 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
                     resourceBarKey: _resourceBarKey,
                   );
                 });
+                // 地图创建完立刻把焦点给游戏
+                WidgetsBinding.instance.addPostFrameCallback((_) => _takeGameFocus());
               },
             ),
 
@@ -136,12 +183,11 @@ class FloatingIslandPageState extends State<FloatingIslandPage> with RouteAware 
             ),
 
           // 🆕 用 Positioned 把右侧的角色面板独立放置
-          Positioned(
+          const Positioned(
             top: 10,
             right: 50, // 调整这个值定位角色面板的位置
-            child: const CharacterPanel(),
+            child: CharacterPanel(),
           ),
-
 
           // ✅ 第三行：底部菜单
           if (_mapComponent != null)

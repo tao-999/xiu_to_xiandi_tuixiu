@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/beibao_grid_view.dart';
+import '../../models/gongfa.dart';
 import '../../services/gongfa_collected_storage.dart';
 import '../../services/player_storage.dart';
 import '../../services/resources_storage.dart';
@@ -158,22 +159,35 @@ class _BeibaoDialogState extends State<BeibaoDialog> {
         .toList();
 
     for (final g in gongfaList) {
-      // 小数 → 百分比文本（只在有速度加成时展示）
-      final String speedText = (g.moveSpeedBoost != 0)
-          ? '，速度：+${(g.moveSpeedBoost * 100).toStringAsFixed(0)}%'
-          : '';
+      final attrs = <String>[];
 
-      final desc = '品阶：${g.level}$speedText，描述：${g.description}';
+      // 攻击系：atkBoost 是伤害倍数（例如 1.10）
+      if (g.type == GongfaType.attack) {
+        final double dmgPct = (g.atkBoost as num).toDouble() * 100.0;
+        attrs.add('伤害：${dmgPct.toStringAsFixed(0)}%');
+      }
+
+      // 速度系：小数 → 百分比
+      if (g.moveSpeedBoost != 0) {
+        attrs.add('速度：+${(g.moveSpeedBoost * 100).toStringAsFixed(0)}%');
+      }
+
+      // 其它（如果你会用到就留着；没有就删）
+      if (g.defBoost != 0) attrs.add('防御：+${g.defBoost}%');
+      if (g.hpBoost != 0)  attrs.add('气血：+${g.hpBoost}%');
+
+      final attrText = attrs.isEmpty ? '' : '，' + attrs.join('，');
+      final desc = '品阶：${g.level}$attrText，描述：${g.description}';
 
       newItems.add(BeibaoItem(
         name: g.name,
         imagePath: g.iconPath.startsWith('assets/')
             ? g.iconPath
-            : 'assets/images/${g.iconPath}', // 保底兜个路径
+            : 'assets/images/${g.iconPath}', // 兜底路径
         level: g.level,
         quantity: BigInt.from(g.count),
         description: desc,
-        type: BeibaoItemType.gongfa, // 记得 enum 里加这个
+        type: BeibaoItemType.gongfa,
         hiveKey: '${g.id}_${g.level}',
       ));
     }

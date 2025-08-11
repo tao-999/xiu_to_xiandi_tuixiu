@@ -1,12 +1,19 @@
+// 📄 lib/widgets/components/floating_island_dynamic_mover_component.dart
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 import 'package:flutter/material.dart';
 import 'dart:async' as dart_async;
 
+import '../../services/dead_boss_storage.dart';
 import 'floating_island_dynamic_spawner_component.dart';
 import 'floating_island_player_component.dart';
+import 'floating_text_component.dart';
 import 'hp_bar_wrapper.dart';
+import 'resource_bar.dart';
+
+// ✅ 新增：Boss 奖励分发（按 boss.type 路由到各自 onKilled）
+import 'package:xiu_to_xiandi_tuixiu/logic/combat/boss_reward_registry.dart';
 
 class FloatingIslandDynamicMoverComponent extends SpriteComponent
     with CollisionCallbacks, HasGameReference {
@@ -42,6 +49,8 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   double? atk;
   double? def;
   bool isDead = false;
+  bool deathMarked = false; // ✅ 已持久化标记
+  bool get _isBossType => (type?.toLowerCase().contains('boss') ?? false);
 
   HpBarWrapper? hpBar;
 
@@ -157,6 +166,115 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     super.onRemove();
   }
 
+  // ========== 战斗：统一伤害入口 ==========
+  /// ✅ 推荐使用：带上下文（击杀者/地图偏移/UI刷新的 key），死亡时统一分发奖励
+  void applyDamage({
+    required double amount,                          // 入射伤害 = ATK * (1 + atkBoost)
+    required FloatingIslandPlayerComponent killer,   // 谁打的
+    required Vector2 logicalOffset,                  // 飘字用
+    required GlobalKey<ResourceBarState> resourceBarKey,
+    double defPenetration = 0.0,                     // 可选：破甲 0~1（默认无）
+  }) {
+    if (isDead) return;
+
+    // ===== 1) 结算防御 =====
+    final double hpMax = (hp ?? 0).toDouble();
+    if (hpMax <= 0) return;
+
+    final double defVal   = (def ?? 0).toDouble();
+    final double effDef   = (defVal * (1.0 - defPenetration)).clamp(0.0, 1e9);
+    final double rawIn    = (amount.isNaN ? 0.0 : amount);
+    final double realDmg  = max(1.0, rawIn - effDef);   // 至少 1 点伤害
+
+    final double prevHp   = currentHp;
+    currentHp             = max(0.0, min(hpMax, currentHp - realDmg));
+
+    // ===== 2) 刷血条 =====
+    if (hpBar != null && hp != null) {
+      hpBar!.setStats(
+        currentHp: currentHp.toInt(),
+        maxHp: hp!.toInt(),
+        atk: (atk ?? 0).toInt(),
+        def: (def ?? 0).toInt(),
+      );
+    }
+
+    // ===== 3) 飘伤害数字 =====
+    try {
+      final hitPos = logicalPosition - Vector2(0, size.y / 2 + 8);
+      parent?.add(FloatingTextComponent(
+        text: '-${realDmg.toInt()}',
+        logicalPosition: hitPos,
+        color: Colors.redAccent,
+        fontSize: 18,
+      ));
+    } catch (_) {}
+
+    // ===== 4) 判死 → mark → 奖励分发 =====
+    if (prevHp > 0 && currentHp <= 0 && !isDead) {
+      isDead = true;
+
+      // 4.1 先做持久化标记（仅 boss_*，只做一次）
+      if (_isBossType && !deathMarked) {
+        try {
+          DeadBossStorage.markDeadBoss(
+            tileKey: spawnedTileKey,
+            position: logicalPosition.clone(),
+            bossType: type ?? 'boss',
+            size: size.clone(),
+          );
+          deathMarked = true;
+        } catch (e) {
+          debugPrint('[Mover][$type] markDeadBoss failed: $e');
+        }
+      }
+
+      // 4.2 清理可视
+      try {
+        removeFromParent();
+        hpBar?..removeFromParent(); hpBar = null;
+        label?..removeFromParent(); label = null;
+      } catch (_) {}
+
+      // 4.3 统一奖励路由（各 Boss 的奖励逻辑在注册表里）
+      BossRewardRegistry.dispatch(
+        bossType: type ?? '',
+        ctx: BossKillContext(
+          player: killer,
+          logicalOffset: logicalOffset,
+          resourceBarKey: resourceBarKey,
+        ),
+        boss: this,
+      );
+    }
+  }
+
+  /// ❗️兼容旧调用：没有上下文时只做“扣血+自移除”，不会发奖励（打印警告）
+  void takeDamage(double amount) {
+    if (isDead) return;
+    final prev = currentHp;
+    currentHp = (currentHp - amount).clamp(0, (hp ?? 0));
+
+    if (hpBar != null && hp != null) {
+      hpBar!.setStats(
+        currentHp: currentHp.toInt(),
+        maxHp: hp!.toInt(),
+        atk: (atk ?? 0).toInt(),
+        def: (def ?? 0).toInt(),
+      );
+    }
+
+    if (prev > 0 && currentHp <= 0) {
+      isDead = true;
+      // 最小化清理，提示开发者改用 applyDamage
+      debugPrint(
+          '[Mover][$type] takeDamage() 没有上下文 → 已自移除但未触发奖励。请改用 applyDamage(...)');
+      removeFromParent();
+      hpBar?.removeFromParent(); hpBar = null;
+      label?.removeFromParent(); label = null;
+    }
+  }
+
   // ========== 计时器 ==========
   void _startTargetTimer() {
     _cancelTargetTimer();
@@ -188,12 +306,11 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     print('🛑 [Mover] 非法/未知地形 → 停止运动（tile=$spawnedTileKey）');
   }
 
-  // 自动恢复：当前地形合法就恢复（不依赖玩家碰撞）
   void _autoResumeIfLegal() {
     if (ignoreTerrainInMove) return;
     if (spawner is! FloatingIslandDynamicSpawnerComponent) return;
-    if (!_stoppedByIllegal) return;        // 不是非法停机，无需自检
-    if (!isMoveLocked) return;             // 没锁也不需要
+    if (!_stoppedByIllegal) return;
+    if (!isMoveLocked) return;
 
     final currentTerrain = spawner.getTerrainType(logicalPosition);
     final isLegal = currentTerrain != 'unknown' &&
@@ -204,7 +321,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     }
   }
 
-  // 实际恢复动作
   void _resumeFromIllegal() {
     _relocateFailCount = 0;
     _relocateGraceFrames = 0;
@@ -215,7 +331,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     print('▶️ [Mover] 地形已合法，自动恢复（tile=$spawnedTileKey）');
   }
 
-  /// 若你仍然需要外部手动触发（保留接口）
   void resumeMovement() {
     if (isDead) return;
     if (!_stoppedByIllegal) return;
@@ -255,7 +370,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
           return;
         }
       } else {
-        // 已停机 → 周期性自检，合法则自动恢复
         if (_autoResumeCooldown <= 0) {
           _autoResumeCooldown = _autoResumeCheckInterval;
           _autoResumeIfLegal();
@@ -263,7 +377,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       }
     }
 
-    // 若已停机，不再执行后续移动
     if (isMoveLocked) return;
 
     // ====== 自动追击 ======
@@ -405,28 +518,23 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     print('🎯 [Mover] 设置追击目标 = $_externalTarget');
   }
 
-  // 不再依赖玩家碰撞恢复
   @override
   void onCollisionStart(Set<Vector2> points, PositionComponent other) {
     if (isDead) return;
-
     if (onCustomCollision != null) {
       onCustomCollision!(points, other);
       return;
     }
-
     super.onCollisionStart(points, other);
   }
 
   @override
   void onCollision(Set<Vector2> points, PositionComponent other) {
     if (isDead) return;
-
     if (onCustomCollision != null) {
       onCustomCollision!(points, other);
       return;
     }
-
     super.onCollision(points, other);
   }
 }

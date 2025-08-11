@@ -8,8 +8,10 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/aptitude_upgrade_dialog.dar
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/pill_consumer.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/cultivation_level.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/dialogs/player_equip_dialog.dart';
-// ✅ 新增：速度功法装备面板
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/movement_gongfa_equip_panel.dart';
+// ❌ 删掉旧的速度面板
+// import 'package:xiu_to_xiandi_tuixiu/widgets/components/movement_gongfa_equip_panel.dart';
+// ✅ 使用新的“双槽合一”面板（速度+攻击）
+import 'package:xiu_to_xiandi_tuixiu/widgets/components/gongfa_dual_equip_panel.dart';
 
 class CultivatorInfoCardDialog {
   static Future<void> show({
@@ -27,7 +29,7 @@ class CultivatorInfoCardDialog {
         child: StatefulBuilder(
           builder: (context, setState) {
             return FutureBuilder<Character?>(
-              future: PlayerStorage.getPlayer(), // 🧠 每次都获取最新 player！
+              future: PlayerStorage.getPlayer(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData || snapshot.data == null) {
                   return const Center(child: CircularProgressIndicator());
@@ -47,7 +49,7 @@ class CultivatorInfoCardDialog {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      crossAxisAlignment: CrossAxisAlignment.baseline, // ✅ 改这里
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         SizedBox(
@@ -130,39 +132,37 @@ class CultivatorInfoCardDialog {
                                   _buildLabeledRow('气血', formatAnyNumber(hp), extra: formatPercent(player.extraHp)),
                                   _buildLabeledRow('攻击', formatAnyNumber(atk), extra: formatPercent(player.extraAtk)),
                                   _buildLabeledRow('防御', formatAnyNumber(def), extra: formatPercent(player.extraDef)),
-                                  _buildLabeledRow(
-                                    '移动速度', formatAnyNumber(speed),
-                                    extra: formatPercent(player.moveSpeedBoost),
-                                  ),
+                                  _buildLabeledRow('移动速度', formatAnyNumber(speed), extra: formatPercent(player.moveSpeedBoost)),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 12),
-                            // —— 右侧：装备栏 + 速度功法槽 —— //
+                            // —— 右侧：装备栏 + 双槽功法面板 —— //
                             SizedBox(
-                              width: 200, // 比原来的 100 宽一些，避免挤压
+                              width: 220, // 稍微宽一点，两个槽不挤
                               child: Padding(
                                 padding: const EdgeInsets.only(top: 16),
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    // 装备面板
                                     Align(
                                       alignment: Alignment.topCenter,
                                       child: PlayerEquipDialog(
                                         onChanged: () {
-                                          setState(() {}); // 触发重新加载 player
+                                          setState(() {});
                                           onUpdated();
                                         },
                                       ),
                                     ),
                                     const SizedBox(height: 10),
-                                    // ✅ 速度功法槽（点击选择/卸下）
-                                    MovementGongfaEquipPanel(
+                                    // ✅ 新的「速度+攻击」双槽合一组件
+                                    GongfaDualEquipPanel(
                                       onChanged: () {
-                                        setState(() {}); // 更新数值显示：移动速度等
+                                        setState(() {}); // 刷新显示
                                         onUpdated();
                                       },
+                                      size: 40,
+                                      spacing: 8,
                                     ),
                                   ],
                                 ),

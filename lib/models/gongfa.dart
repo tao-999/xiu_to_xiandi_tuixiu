@@ -20,14 +20,17 @@ class Gongfa {
   @HiveField(4)
   final String description;
 
+  /// 攻击加成（小数；1.10=110% 伤害，或 0.10=+10% 视你的语义）
   @HiveField(5)
-  final int atkBoost;
+  final double atkBoost;
 
+  /// 防御加成（小数；0.15 = +15%）
   @HiveField(6)
-  final int defBoost;
+  final double defBoost;
 
+  /// 气血加成（小数；0.20 = +20%）
   @HiveField(7)
-  final int hpBoost;
+  final double hpBoost;
 
   @HiveField(8)
   final String iconPath;
@@ -41,8 +44,9 @@ class Gongfa {
   @HiveField(11)
   int count; // 拥有数量（默认为1）
 
+  /// 移动速度加成（小数；0.25 = +25%）
   @HiveField(12)
-  final double moveSpeedBoost; // 🆕 移动速度平铺加成（可正可负）
+  final double moveSpeedBoost;
 
   Gongfa({
     required this.id,
@@ -50,21 +54,24 @@ class Gongfa {
     required this.level,
     required this.type,
     required this.description,
-    this.atkBoost = 0,
-    this.defBoost = 0,
-    this.hpBoost = 0,
+    this.atkBoost = 0.0,
+    this.defBoost = 0.0,
+    this.hpBoost = 0.0,
     this.iconPath = '',
     this.isLearned = false,
     DateTime? acquiredAt,
     this.count = 1,
-    this.moveSpeedBoost = 0.0, // 🆕 默认0
+    this.moveSpeedBoost = 0.0,
   }) : acquiredAt = acquiredAt ?? DateTime.now();
 
-  /// ✅ 拷贝方法（用于更新数量、学习状态、速度加成等）
+  /// ✅ 拷贝（更新数量/学习状态/加成等）
   Gongfa copyWith({
     int? count,
     bool? isLearned,
-    double? speedBoost, // 🆕
+    double? speedBoost,
+    double? atkBoost,
+    double? defBoost,
+    double? hpBoost,
   }) {
     return Gongfa(
       id: id,
@@ -72,14 +79,14 @@ class Gongfa {
       level: level,
       type: type,
       description: description,
-      atkBoost: atkBoost,
-      defBoost: defBoost,
-      hpBoost: hpBoost,
+      atkBoost: atkBoost ?? this.atkBoost,
+      defBoost: defBoost ?? this.defBoost,
+      hpBoost: hpBoost ?? this.hpBoost,
       iconPath: iconPath,
       isLearned: isLearned ?? this.isLearned,
       acquiredAt: acquiredAt,
       count: count ?? this.count,
-      moveSpeedBoost: speedBoost ?? this.moveSpeedBoost, // 🆕
+      moveSpeedBoost: speedBoost ?? moveSpeedBoost,
     );
   }
 }

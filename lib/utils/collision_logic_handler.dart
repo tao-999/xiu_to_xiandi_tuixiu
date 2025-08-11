@@ -4,9 +4,6 @@ import 'package:xiu_to_xiandi_tuixiu/logic/collision/favorability_collision_hand
 import 'package:xiu_to_xiandi_tuixiu/logic/collision/jinkuang_collision_handler.dart';
 import 'package:xiu_to_xiandi_tuixiu/logic/collision/ling_shi_collision_handler.dart';
 import '../logic/collision/baoxiang1_collision_handler.dart';
-import '../logic/collision/boss1_collision_handler.dart';
-import '../logic/collision/boss2_collision_handler.dart';
-import '../logic/collision/boss3_collision_handler.dart';
 import '../logic/collision/danyao1_collision_handler.dart';
 import '../logic/collision/fate_recruit_charm1_collision_handler.dart';
 import '../logic/collision/gongfa1_collision_handler.dart';
@@ -40,22 +37,6 @@ class CollisionLogicHandler {
             resourceBarKey: resourceBarKey,
           );
           break;
-        case 'boss_1':
-          Boss1CollisionHandler.handle(
-            player: player,
-            boss: other,
-            logicalOffset: logicalOffset,
-            resourceBarKey: resourceBarKey,
-          );
-          break;
-        case 'boss_2':
-          Boss2CollisionHandler.handle(
-            player: player,
-            boss: other,
-            logicalOffset: logicalOffset,
-            resourceBarKey: resourceBarKey,
-          );
-          break;
         case 'gongfa_1':
           Gongfa1CollisionHandler.handle(
             player: player,
@@ -67,14 +48,6 @@ class CollisionLogicHandler {
           Danyao1CollisionHandler.handle(
             player: player,
             danyao: other,
-            resourceBarKey: resourceBarKey,
-          );
-          break;
-        case 'boss_3':
-          Boss3CollisionHandler.handle(
-            player: player,
-            boss: other,
-            logicalOffset: logicalOffset,
             resourceBarKey: resourceBarKey,
           );
           break;

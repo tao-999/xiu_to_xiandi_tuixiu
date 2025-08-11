@@ -1,3 +1,5 @@
+// 📄 lib/widgets/components/floating_island_map_component.dart
+import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
@@ -20,8 +22,14 @@ import 'resource_bar.dart';
 // 🆕 昼夜组件 & 玄历
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/day_night_cycle_component.dart';
 
+// 🆕 Boss奖励路由注册
+import 'package:xiu_to_xiandi_tuixiu/logic/combat/boss_reward_registry.dart';
+import 'package:xiu_to_xiandi_tuixiu/logic/collision/boss1_collision_handler.dart';
+import 'package:xiu_to_xiandi_tuixiu/logic/collision/boss2_collision_handler.dart';
+import 'package:xiu_to_xiandi_tuixiu/logic/collision/boss3_collision_handler.dart';
+
 class FloatingIslandMapComponent extends FlameGame
-    with HasCollisionDetection, WidgetsBindingObserver {
+    with HasKeyboardHandlerComponents, HasCollisionDetection, WidgetsBindingObserver {
   late final DragMap _dragMap;
   InfiniteGridPainterComponent? _grid;
   NoiseTileMapGenerator? _noiseMapGenerator;
@@ -42,6 +50,16 @@ class FloatingIslandMapComponent extends FlameGame
   // 🆕 昼夜组件句柄
   late final DayNightCycleComponent _dayNight;
 
+  // 🆕 防止重复注册（热重载/多次进入页面）
+  static bool _bossRewardsRegistered = false;
+  void _registerBossRewardsOnce() {
+    if (_bossRewardsRegistered) return;
+    BossRewardRegistry.register('boss_1', Boss1CollisionHandler.onKilled);
+    BossRewardRegistry.register('boss_2', Boss2CollisionHandler.onKilled);
+    BossRewardRegistry.register('boss_3', Boss3CollisionHandler.onKilled);
+    _bossRewardsRegistered = true;
+  }
+
   FloatingIslandMapComponent({
     this.seed = 8888,
     required this.resourceBarKey, // ✅ 接收
@@ -50,6 +68,9 @@ class FloatingIslandMapComponent extends FlameGame
   @override
   Future<void> onLoad() async {
     await super.onLoad();
+
+    // ✅ 先注册Boss奖励路由（越早越好，确保刷怪前就可用）
+    _registerBossRewardsOnce();
 
     add(
       FpsTextComponent(

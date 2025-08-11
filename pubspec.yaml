@@ -31,6 +31,7 @@ dependencies:
   window_size: ^0.1.0
   window_manager: ^0.5.1
   screen_retriever: ^0.2.0
+  win32: ^5.5.0
 
 dev_dependencies:
   flutter_test:

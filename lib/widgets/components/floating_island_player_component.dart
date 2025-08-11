@@ -3,19 +3,23 @@
 import 'dart:async' as async;
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
-import 'package:flame/timer.dart' as f; // ✅ 用 Flame 的 Timer（update+onTick）
+import 'package:flame/timer.dart' as f; // ✅ Flame Timer
 import 'package:flutter/material.dart' hide Image;
+import 'package:flutter/services.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 
 import '../../utils/collision_logic_handler.dart';
 import '../../utils/terrain_event_util.dart';
+import '../effects/fireball_hotkey_controller.dart';
+import '../effects/fireball_player_adapter.dart';
 import 'floating_island_static_decoration_component.dart';
+import 'floating_island_dynamic_mover_component.dart'; // ✅ 用于筛 boss
 import 'resource_bar.dart';
 
 // ✅ 贴图控制器（朝向/缓存）
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/player_sprite_controller.dart';
 
-// ✅ 气流特效适配器（一行装上，内部创建+更新；会按已装备“速度功法”自动取 palette）
+// ✅ 气流特效适配器
 import 'package:xiu_to_xiandi_tuixiu/widgets/effects/airflow_player_adapter.dart';
 
 class FloatingIslandPlayerComponent extends SpriteComponent
@@ -33,7 +37,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
 
   // —— 实时移动速度（base*(1+boost)），由 PlayerStorage 计算 —— //
   double _curMoveSpeed = 100.0; // px/s
-  late f.Timer _speedTimer;      // 轮询玩家最新速度
+  late f.Timer _speedTimer; // 轮询玩家最新速度
 
   // —— 位移变化通知 —— //
   final async.StreamController<Vector2> _positionStreamController =
@@ -46,6 +50,9 @@ class FloatingIslandPlayerComponent extends SpriteComponent
 
   // —— 气流特效适配器 —— //
   late PlayerAirflowAdapter _airflowAdapter;
+
+  // —— 火球 —— //
+  late PlayerFireballAdapter _fireball;
 
   // —— 对外方法 —— //
   void moveTo(Vector2 target) => _targetPosition = target;
@@ -111,11 +118,73 @@ class FloatingIslandPlayerComponent extends SpriteComponent
     // 首帧广播逻辑位置
     _positionStreamController.add(logicalPosition);
 
-    // ✅ 一行装上气流特效（内部按已装备速度功法自动取颜色；没装备就不渲染）
+    // ✅ 气流特效（按装备自动取 palette）
     _airflowAdapter = PlayerAirflowAdapter.attach(
       host: this,
       logicalPosition: () => logicalPosition,
     );
+
+    // ✅ 火球适配器 + 热键控制器（Q 键开火，锁最近 boss）
+    _fireball = PlayerFireballAdapter.attach(
+      host: this,
+      layer: parent, // 或者你希望渲染在哪一层
+      getLogicalOffset: () => (game as dynamic).logicalOffset as Vector2, // 你的 MapComponent 就有这个字段
+      resourceBarKey: resourceBarKey,
+    );
+    // ✅ attach 调用（去掉 const）
+    FireballHotkeyController.attach(
+      host: this,
+      fireball: _fireball,
+      range: 300,       // 射程
+      cooldown: 0.8,    // 冷却
+      hotkeys: { LogicalKeyboardKey.keyQ },   // ← 不要 const
+      candidatesProvider: _scanAllMovers,
+    );
+  }
+
+  // ✅ 扫描所有“可攻击”的动态移动体（含 boss 与非 boss），仅收集存活的
+  List<PositionComponent> _scanAllMovers() {
+    final Component root = parent ?? this;
+    final List<PositionComponent> result = [];
+
+    void dfs(Component node) {
+      for (final child in node.children) {
+        if (child is FloatingIslandDynamicMoverComponent) {
+          final bool alive = (child.isDead == false);
+          if (alive) {
+            result.add(child); // 包含 boss_* 以及普通怪，全都收
+          }
+        }
+        if (child.children.isNotEmpty) dfs(child);
+      }
+    }
+
+    dfs(root);
+    return result;
+  }
+
+  // —— 筛选可攻击 boss（在同一树下递归找 mover） —— //
+  // ✅ 只取还活着、type 含 'boss' 的 mover（空安全）
+  List<PositionComponent> _scanBossCandidates() {
+    final root = parent ?? this;
+    final List<PositionComponent> result = [];
+
+    void dfs(Component node) {
+      for (final child in node.children) {
+        if (child is FloatingIslandDynamicMoverComponent) {
+          final String? t = child.type;            // 可空
+          final bool isBoss = (t?.contains('boss') ?? false);
+          final bool alive  = (child.isDead == false);
+          if (isBoss && alive) {
+            result.add(child);
+          }
+        }
+        if (child.children.isNotEmpty) dfs(child);
+      }
+    }
+
+    dfs(root);
+    return result;
   }
 
   // —— 生命周期：更新帧 —— //

@@ -139,78 +139,23 @@ class Character {
   /// - List<Map>: 旧完整对象 → 解析为 techniques（并可聚合出 map）
   /// - List<String>: 旧仅ID → 按 movement 槽兜底：{'movement':[ids]}
   factory Character.fromJson(Map<String, dynamic> json) {
+    // elements
     final elements = Map<String, int>.fromEntries(
       (json['elements'] as Map<String, dynamic>? ?? {}).entries.map(
             (e) => MapEntry(e.key, (e.value as num).toInt()),
       ),
     );
 
-    final rawTech = json['techniques'];
-    final parsedTechniques = <Gongfa>[];
-    Map<String, List<String>> parsedMap = <String, List<String>>{};
-
-    if (rawTech is Map) {
-      // ✅ 新格式：{type: [ids]}
-      final m = Map<String, dynamic>.from(rawTech);
+    // ✅ 只认：Map<String, List<String>> techniquesMap
+    final Map<String, List<String>> parsedMap = {};
+    final raw = json['techniquesMap'];
+    if (raw is Map) {
+      final m = Map<String, dynamic>.from(raw);
       m.forEach((k, v) {
         if (v is List) {
           parsedMap[k] = v.whereType<String>().toList();
         }
       });
-    } else if (rawTech is List) {
-      if (rawTech.isNotEmpty && rawTech.first is Map) {
-        // ✅ 老格式：内联对象
-        for (final e in rawTech) {
-          final m = Map<String, dynamic>.from(e as Map);
-          final typeIdx =
-          (m['type'] ?? 0) is num ? (m['type'] as num).toInt() : 0;
-
-          DateTime at;
-          final acquired = m['acquiredAt'];
-          if (acquired is String) {
-            at = DateTime.tryParse(acquired) ?? DateTime.now();
-          } else if (acquired is int) {
-            at = DateTime.fromMillisecondsSinceEpoch(acquired);
-          } else {
-            at = DateTime.now();
-          }
-
-          final g = Gongfa(
-            id: m['id']?.toString() ?? '',
-            name: m['name']?.toString() ?? '无名功法',
-            level: (m['level'] ?? 1) is num ? (m['level'] as num).toInt() : 1,
-            type: GongfaType
-                .values[(typeIdx).clamp(0, GongfaType.values.length - 1)],
-            description: m['description']?.toString() ?? '',
-            atkBoost: (m['atkBoost'] ?? 0) is num
-                ? (m['atkBoost'] as num).toInt()
-                : 0,
-            defBoost: (m['defBoost'] ?? 0) is num
-                ? (m['defBoost'] as num).toInt()
-                : 0,
-            hpBoost: (m['hpBoost'] ?? 0) is num
-                ? (m['hpBoost'] as num).toInt()
-                : 0,
-            iconPath: m['iconPath']?.toString() ?? '',
-            isLearned: (m['isLearned'] ?? false) == true,
-            acquiredAt: at,
-            count:
-            (m['count'] ?? 1) is num ? (m['count'] as num).toInt() : 1,
-            moveSpeedBoost:
-            (m['moveSpeedBoost'] ?? 0.0 is num ? m['moveSpeedBoost'] : 0.0)
-                .toDouble(),
-          );
-          parsedTechniques.add(g);
-        }
-        // 聚合出 map 备用
-        for (final g in parsedTechniques) {
-          final k = g.type.name;
-          (parsedMap[k] ??= <String>[]).add(g.id);
-        }
-      } else if (rawTech.isNotEmpty && rawTech.first is String) {
-        // ✅ 老格式：仅ID → 默认归到 movement 槽
-        parsedMap['movement'] = rawTech.whereType<String>().toList();
-      }
     }
 
     return Character(
@@ -218,10 +163,8 @@ class Character {
       name: json['name'],
       gender: json['gender'],
       career: json['career'],
-      cultivation:
-      BigInt.tryParse(json['cultivation'].toString()) ?? BigInt.zero,
-      cultivationEfficiency:
-      (json['cultivationEfficiency'] ?? 1.0).toDouble(),
+      cultivation: BigInt.tryParse(json['cultivation'].toString()) ?? BigInt.zero,
+      cultivationEfficiency: (json['cultivationEfficiency'] ?? 1.0).toDouble(),
       currentMapStage: json['currentMapStage'] ?? 1,
       aptitude: json['aptitude'] ?? 0,
       realmLevel: json['realmLevel'] ?? 0,
@@ -245,10 +188,13 @@ class Character {
       weakAura: (json['weakAura'] ?? 0.0).toDouble(),
       corrosionAura: (json['corrosionAura'] ?? 0.0).toDouble(),
       elements: elements,
-      techniques: parsedTechniques,
+
+      // ❌ 不再解析老格式，直接置空
+      techniques: const <Gongfa>[],
+      // ✅ 只用新格式
       techniquesMap: parsedMap,
-      createdAt:
-      json['createdAt'] ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000),
+
+      createdAt: json['createdAt'] ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000),
     );
   }
 
