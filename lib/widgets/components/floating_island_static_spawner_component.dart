@@ -1,3 +1,4 @@
+// 📂 lib/widgets/components/floating_island_static_spawner_component.dart
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
@@ -24,24 +25,28 @@ class FloatingIslandStaticSpawnerComponent extends Component {
   final void Function(FloatingIslandStaticDecorationComponent deco, String terrainType)?
   onStaticComponentCreated;
 
-  // —— 你的原有状态 —— //
+  // —— 原有状态 —— //
   final List<_PendingTile> _pendingTiles = [];
   final Set<String> _activeTiles = {};
   Vector2? _lastLogicalOffset;
 
-  // ===== 新增：优先级重排“脏标记 + 低频移动重排” =====
-  /// 地图移动时是否也按低频重排（默认开）
+  // ===== 优先级：脏标记 + 低频移动重排 + 防抖 =====
+  /// 地图移动时是否也按低频重排
   final bool updatePriorityOnMove;
 
-  /// 重排频率（Hz），<=0 表示每次检测到移动就重排一次（不建议太大）
+  /// 重排频率（Hz），<=0 表示不做节流（不建议）
   final double priorityFps;
 
   /// 相机位移达到多少像素才认为“需要移动重排”
   final double priorityMoveThreshold;
 
-  bool _zOrderDirty = true;     // 有增删时置脏，立刻重排一次
-  double _prioAcc = 0;          // 低频累计器
-  Vector2? _prioLastOffset;     // 上次用于重排的相机位置
+  /// 新增：脏标记的防抖；有大量增删时，等这么久再排一次
+  final double dirtyDebounceSec;
+
+  bool _zOrderDirty = true;   // 有增删时置脏
+  double _prioAcc = 0;        // 频率累计器（基于 priorityFps）
+  double _dirtyAcc = 0;       // 脏标记防抖累计
+  Vector2? _prioLastOffset;   // 上次用来判断移动的相机位置
 
   FloatingIslandStaticSpawnerComponent({
     required this.grid,
@@ -58,10 +63,11 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     this.maxSize = 48.0,
     this.onStaticComponentCreated,
 
-    // ✅ 新增三个可调参数（给了合理默认值）
+    // ✅ 降频：默认 6 次/秒；移动阈值 12px；新增防抖 0.20s
     this.updatePriorityOnMove = true,
-    this.priorityFps = 15.0,
-    this.priorityMoveThreshold = 6.0,
+    this.priorityFps = 6.0,
+    this.priorityMoveThreshold = 12.0,
+    this.dirtyDebounceSec = 0.20,
   })  : allowedTerrains = allowedTerrains,
         staticSpritesMap = _normalizeSpriteMap(staticSpritesMap);
 
@@ -83,7 +89,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     final offset = getLogicalOffset();
     final viewSize = getViewSize();
 
-    // 你原先的小位移早退逻辑：但在早退前也跑一次“低频/按需重排”tick
+    // 小位移早退，但仍跑一次“节流重排 tick”
     if (_lastLogicalOffset != null && (_lastLogicalOffset! - offset).length < 1) {
       _updatePrioritiesTick(dt, offset);
       return;
@@ -97,7 +103,8 @@ class FloatingIslandStaticSpawnerComponent extends Component {
   }
 
   static Map<String, List<StaticSpriteEntry>> _normalizeSpriteMap(
-      Map<String, List<StaticSpriteEntry>> original) {
+      Map<String, List<StaticSpriteEntry>> original,
+      ) {
     const defaultType = 'default_static';
     final result = <String, List<StaticSpriteEntry>>{};
     for (final entry in original.entries) {
@@ -110,6 +117,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     return result;
   }
 
+  // ==== 外部强刷 / 同步偏移 ====
   void forceRefresh() {
     final offset = getLogicalOffset();
     final viewSize = getViewSize();
@@ -122,6 +130,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     _lastLogicalOffset = offset.clone();
   }
 
+  // ==== 生成渲染 ====
   void updateTileRendering(Vector2 offset, Vector2 viewSize) {
     final visibleTopLeft = offset - viewSize / 2;
     final visibleBottomRight = visibleTopLeft + viewSize;
@@ -141,7 +150,8 @@ class FloatingIslandStaticSpawnerComponent extends Component {
           tileCenterY > bufferBottomRight.y;
     });
 
-    final decorations = grid.children.whereType<FloatingIslandStaticDecorationComponent>().toList();
+    final decorations =
+    grid.children.whereType<FloatingIslandStaticDecorationComponent>().toList();
     for (final deco in decorations) {
       final pos = deco.worldPosition;
       if (pos.x < bufferTopLeft.x ||
@@ -152,7 +162,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         final ty = (pos.y / staticTileSize).floor();
         _activeTiles.remove('${tx}_${ty}');
         deco.removeFromParent();
-        _zOrderDirty = true; // ✅ 有移除 → 置脏
+        _zOrderDirty = true; // 有移除 → 置脏（但会被防抖合并）
       } else {
         deco.updateVisualPosition(offset);
       }
@@ -160,6 +170,7 @@ class FloatingIslandStaticSpawnerComponent extends Component {
 
     _collectPendingTiles(visibleTopLeft, visibleBottomRight);
 
+    // 一帧全刷/保留你原逻辑（如需更丝滑，可改成分帧）
     final tilesPerFrame = _pendingTiles.length;
     int spawned = 0;
     while (_pendingTiles.isNotEmpty && spawned < tilesPerFrame) {
@@ -188,7 +199,8 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         final terrain = getTerrainType(tileCenter);
         if (!allowedTerrains.contains(terrain)) continue;
 
-        final expectedTypes = staticSpritesMap[terrain]?.map((e) => e.type).toSet() ?? {};
+        final expectedTypes =
+            staticSpritesMap[terrain]?.map((e) => e.type).toSet() ?? {};
         final alreadyExists = grid.children
             .whereType<FloatingIslandStaticDecorationComponent>()
             .where((c) {
@@ -219,32 +231,38 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     _pendingTiles.addAll(newlyFound);
   }
 
-  Future<void> _spawnTile(int tx, int ty, String terrain, Vector2 currentOffset) async {
+  Future<void> _spawnTile(
+      int tx,
+      int ty,
+      String terrain,
+      Vector2 currentOffset,
+      ) async {
     final tileKey = '${tx}_${ty}';
     if (_activeTiles.contains(tileKey)) return;
     _activeTiles.add(tileKey);
 
     final rand = Random(seed + tx * 92821 + ty * 53987 + 1);
-    if (rand.nextDouble() > 0.5) return;
+    if (rand.nextDouble() > 0.5) return; // 保留你原来的概率策略
 
     final entries = staticSpritesMap[terrain] ?? [];
     if (entries.isEmpty) return;
 
     final selected = _pickStaticByWeight(entries, rand);
 
-    // ✅ 宝箱生成判断（按 tileKey）→ await！
+    // 宝箱生成判断（按 tileKey）
     if (selected.type == 'treasure_chest' &&
         await TreasureChestStorage.isOpenedTile(tileKey)) {
-      // print('🚫 [Spawner] 已开启宝箱，跳过生成 tileKey=$tileKey');
       return;
     }
 
     final count = (selected.minCount != null && selected.maxCount != null)
-        ? rand.nextInt(selected.maxCount! - selected.minCount! + 1) + selected.minCount!
+        ? rand.nextInt(selected.maxCount! - selected.minCount! + 1) +
+        selected.minCount!
         : rand.nextInt(maxCount - minCount + 1) + minCount;
 
     final tileSize = staticTileSize;
-    final sizeValue = selected.fixedSize ?? (minSize + rand.nextDouble() * (maxSize - minSize));
+    final sizeValue =
+        selected.fixedSize ?? (minSize + rand.nextDouble() * (maxSize - minSize));
 
     final List<FloatingIslandStaticDecorationComponent> components = [];
 
@@ -255,16 +273,12 @@ class FloatingIslandStaticSpawnerComponent extends Component {
 
       if (!allowedTerrains.contains(getTerrainType(worldPos))) continue;
 
-      // ✅ 异步判断贴图（比如宝箱开没开）
       final spritePath = await FloatingStaticEventStateUtil.getEffectiveSpritePath(
         originalPath: selected.path,
         worldPosition: worldPos,
         type: selected.type,
         tileKey: tileKey,
       );
-
-      final flameGame = grid.findGame();
-      if (flameGame == null) return;
 
       final sprite = await Sprite.load(spritePath);
       final imageSize = sprite.srcSize;
@@ -278,11 +292,11 @@ class FloatingIslandStaticSpawnerComponent extends Component {
         logicalOffset: currentOffset,
         spritePath: selected.path,
         type: selected.type,
-        tileKey: tileKey, // ✅ tileKey 保留
+        tileKey: tileKey,
         anchor: Anchor.bottomCenter,
       );
 
-      // 🔧 仅当 type 非 null 时才添加碰撞盒（你指定的规则）
+      // 仅当 type 非 null 时才添加碰撞盒
       if (selected.type != null) {
         deco.add(RectangleHitbox()..collisionType = CollisionType.passive);
       }
@@ -301,41 +315,46 @@ class FloatingIslandStaticSpawnerComponent extends Component {
     }
 
     if (components.isNotEmpty) {
-      _zOrderDirty = true; // ✅ 有新增 → 置脏
+      _zOrderDirty = true; // 有新增 → 置脏（会被防抖合并）
+      _dirtyAcc = 0.0;     // 置脏后开始计时
     }
   }
 
-  // ===== 优先级：只在必要时重排（脏标记 / 低频移动） =====
+  // ===== 低频 / 防抖重排 =====
   void _updatePrioritiesTick(double dt, Vector2 currentOffset) {
+    // 频率累计（节流）
+    if (priorityFps > 0) _prioAcc += dt;
+    final step = (priorityFps > 0) ? (1.0 / priorityFps) : 0.0;
     final movedEnough = _prioLastOffset != null
         ? (_prioLastOffset! - currentOffset).length >= priorityMoveThreshold
         : true;
 
+    // 1) 有脏标记 → 走防抖（合并本帧的批量增删）
     if (_zOrderDirty) {
-      _updateDecorationPriorities();
-      _zOrderDirty = false;
-      _prioLastOffset = currentOffset.clone();
-      _prioAcc = 0;
+      _dirtyAcc += dt;
+      // 未到防抖时间就先不排
+      if (_dirtyAcc < dirtyDebounceSec) return;
+      // 到点了，且（若设置了节流）也到频率了 → 排一次
+      if (priorityFps <= 0 || _prioAcc >= step) {
+        _doSort(currentOffset);
+      }
       return;
     }
 
+    // 2) 没脏标记，仅因相机移动触发 → 按位移阈值 + 频率节流
     if (!updatePriorityOnMove) return;
     if (!movedEnough) return;
+    if (priorityFps > 0 && _prioAcc < step) return;
 
-    if (priorityFps <= 0) {
-      _updateDecorationPriorities();
-      _prioLastOffset = currentOffset.clone();
-      _prioAcc = 0;
-      return;
-    }
+    _doSort(currentOffset);
+  }
 
-    _prioAcc += dt;
-    final step = 1.0 / priorityFps;
-    if (_prioAcc >= step) {
-      _prioAcc = 0;
-      _updateDecorationPriorities();
-      _prioLastOffset = currentOffset.clone();
-    }
+  void _doSort(Vector2 currentOffset) {
+    _updateDecorationPriorities();
+    _zOrderDirty = false;
+    _dirtyAcc = 0.0;
+    _prioAcc = 0.0;
+    _prioLastOffset = currentOffset.clone();
   }
 
   void _updateDecorationPriorities() {

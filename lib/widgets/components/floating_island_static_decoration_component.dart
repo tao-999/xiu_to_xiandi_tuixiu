@@ -1,7 +1,8 @@
+// 📂 lib/widgets/components/floating_island_static_decoration_component.dart
 import 'package:flame/components.dart';
 import 'package:flame/collisions.dart';
 
-/// 🌿 静态装饰组件（支持碰撞、逻辑坐标、路径标识、类型标签、tileKey）
+/// 🌿 静态装饰组件（支持碰撞、逻辑坐标、路径标识、类型标签、tileKey、移除回调）
 class FloatingIslandStaticDecorationComponent extends SpriteComponent
     with CollisionCallbacks {
   FloatingIslandStaticDecorationComponent({
@@ -11,41 +12,44 @@ class FloatingIslandStaticDecorationComponent extends SpriteComponent
     required Vector2 logicalOffset,
     this.spritePath,
     this.type,
-    this.tileKey, // ✅ 新增：每个静态资源所属 tile（如 '42_66'）
-    this.ignoreAutoPriority = false, // ✅ 新增：是否跳过自动排序
+    this.tileKey, // 每个静态资源所属 tile（如 '42_66'）
+    this.ignoreAutoPriority = false, // 是否跳过自动排序（由外部控制）
     Anchor anchor = Anchor.center,
   }) : super(
     sprite: sprite,
     size: size,
     anchor: anchor,
-    position: worldPosition - logicalOffset, // ✅ 初始化视觉位置
+    position: worldPosition - logicalOffset, // 初始化视觉位置
     priority: 10,
   ) {
     _worldPosition = worldPosition;
   }
 
-  /// 🌍 世界坐标（逻辑坐标，用于定位、排序）
+  // ===== 位置信息（逻辑/世界） =====
   late Vector2 _worldPosition;
   Vector2 get worldPosition => _worldPosition;
   set worldPosition(Vector2 value) => _worldPosition = value;
 
-  /// 🖼️ 当前贴图路径（便于后续切换或识别）
+  /// 🖼️ 贴图路径（可用于后续替换/识别）
   String? spritePath;
 
-  /// 🔖 类型字段（如 tree / rock / npc_statue / treasure_chest）
+  /// 🔖 类型（tree / rock / npc_statue / treasure_chest ...）
   String? type;
 
-  /// 🧩 所属 tileKey（如 "42_66"），用于持久化判断（如宝箱开启状态）
+  /// 🧩 所属 tileKey（如 "42_66"）
   String? tileKey;
 
-  /// 🚫 是否跳过自动 Y 排序（由 StaticSpriteEntry 的 priority 决定是否赋值）
+  /// 🚫 是否跳过自动 Y 排序（外部可改）
   bool ignoreAutoPriority = false;
 
-  /// 🎯 自定义碰撞回调（可用于特效或互动逻辑）
+  /// 🎯 自定义碰撞回调（可选）
   void Function(Set<Vector2> intersectionPoints, PositionComponent other)?
   onCustomCollision;
 
-  /// 🧭 更新组件的视觉位置（地图移动时调用）
+  /// 🪝 外部可挂的“被移除时回调”（Spawner 用这个做索引清理）
+  void Function()? onDespawn;
+
+  /// 同步视觉位置（随相机偏移）
   void updateVisualPosition(Vector2 logicalOffset) {
     position = _worldPosition - logicalOffset;
   }
@@ -59,5 +63,14 @@ class FloatingIslandStaticDecorationComponent extends SpriteComponent
       onCustomCollision!(intersectionPoints, other);
     }
     super.onCollision(intersectionPoints, other);
+  }
+
+  @override
+  void onRemove() {
+    // 先通知回调，再走父类移除
+    try {
+      onDespawn?.call();
+    } catch (_) {}
+    super.onRemove();
   }
 }

@@ -24,6 +24,11 @@ class PlayerAirflowAdapter extends Component with HasGameReference {
   static const double _pollInterval      = 0.75;   // 轮询装备间隔
   static const double _bigDtReset        = 0.12;   // 大卡顿直接对齐，避免尖峰
 
+  // ✅ 以 bottomCenter 为基准，向上抬的比例（0.35~0.50 常用）
+  static const double _yFromBottomFactor = 0.42;
+  // 若素材有额外透明边，需要再细调像素级：正数向下、负数向上
+  static const double _yPixelNudge = 0.0;
+
   // —— 复用向量，避免分配 —— //
   final Vector2 _lastPos = Vector2.zero();
   final Vector2 _vel     = Vector2.zero();
@@ -47,6 +52,14 @@ class PlayerAirflowAdapter extends Component with HasGameReference {
     final a = PlayerAirflowAdapter._(host: host, getLogicalPosition: logicalPosition);
     (host.parent ?? host).add(a);
     return a;
+  }
+
+  // ✅ 统一世界圆心：以锚点（bottomCenter）为基准向上抬
+  Vector2 _worldCenter() {
+    // 注意：absolutePosition 是「锚点」的世界坐标；你的锚点是 bottomCenter
+    final anchorWorld = host.absolutePosition;
+    final y = anchorWorld.y - host.size.y * _yFromBottomFactor + _yPixelNudge;
+    return Vector2(anchorWorld.x, y);
   }
 
   @override
@@ -90,7 +103,7 @@ class PlayerAirflowAdapter extends Component with HasGameReference {
     // —— 离屏裁剪（不在相机可见范围就不画）—— //
     if (game is FlameGame) {
       final camRect = (game as FlameGame).camera.visibleWorldRect.inflate(_offscreenPad);
-      final worldPos = host.absoluteCenter; // 比 absolutePosition 更贴近中心
+      final worldPos = _worldCenter(); // ✅ 用同一圆心做裁剪判断
       if (!camRect.containsPoint(worldPos)) {
         fx.enabled = false;
         _lastPos.setFrom(cur);
@@ -162,22 +175,21 @@ class PlayerAirflowAdapter extends Component with HasGameReference {
       // 重建特效（Release 关闭 debug 绘制）
       _fx?.removeFromParent();
       _fx = AirFlowEffect(
-        getWorldCenter: () => host.absoluteCenter,
+        getWorldCenter: _worldCenter,         // ✅ 用锚点上抬后的圆心
         getHostSize: () => host.size,
         palette: palette,
         mixMode: ColorMixMode.hsv,
         baseRate: 160,
         ringRadius: 12,
-        centerYFactor: 0.50,
+        centerYFactor: 0.0,                   // ✅ 取消内部额外 Y 偏移，避免叠加
         radiusFactor: 0.46,
         pad: 1.8,
         arcHalfAngle: pi / 12,
         biasLeftX: 0.0,
         biasRightX: 0.0,
-        // 🚫 Release 关闭/降级 Debug 项（它们每帧都有绘制开销）
-        debugArcColor: Colors.transparent,
-        debugArcWidth: 0.0,
-        debugArcSamples: 24,
+        // Debug（你开 showDebugArc 就能直观看到）
+        // 若要彻底关闭：把颜色设为透明、宽度设为 0
+        // 这里保留默认，由你在 AirFlowEffect 内部开关
       );
       (host.parent ?? parent)?.add(_fx!);
       _equippedName = equipped.name;
