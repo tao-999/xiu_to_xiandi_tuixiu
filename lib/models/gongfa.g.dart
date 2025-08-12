@@ -30,13 +30,14 @@ class GongfaAdapter extends TypeAdapter<Gongfa> {
       acquiredAt: fields[10] as DateTime?,
       count: fields[11] as int,
       moveSpeedBoost: fields[12] as double,
+      attackSpeed: fields[13] as double,
     );
   }
 
   @override
   void write(BinaryWriter writer, Gongfa obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -62,7 +63,9 @@ class GongfaAdapter extends TypeAdapter<Gongfa> {
       ..writeByte(11)
       ..write(obj.count)
       ..writeByte(12)
-      ..write(obj.moveSpeedBoost);
+      ..write(obj.moveSpeedBoost)
+      ..writeByte(13)
+      ..write(obj.attackSpeed);
   }
 
   @override

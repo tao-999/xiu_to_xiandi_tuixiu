@@ -62,9 +62,10 @@ class AttackHotkeyController extends Component
   // ===== 流星坠：参数 =====
   final int    meteorCount;
   final double meteorSpread;
-  final double meteorWarn;
+  final double meteorWarn;               // 兼容保留（实际调用传 0）
   final double meteorInterval;
   final double meteorExplosionRadius;
+  final double meteorCastRange;          // ★ 施法最大距离
 
   static const bool _debug = false;
 
@@ -99,6 +100,7 @@ class AttackHotkeyController extends Component
     required this.meteorWarn,
     required this.meteorInterval,
     required this.meteorExplosionRadius,
+    required this.meteorCastRange,
   })  : _hotkeys = hotkeys,
         _cdTimer = f.Timer(cooldown, repeat: false),
         _fireballNames = fireballNames,
@@ -147,9 +149,10 @@ class AttackHotkeyController extends Component
     // 流星
     int    meteorCount = 7,
     double meteorSpread = 140,
-    double meteorWarn = 0.35,
+    double meteorWarn = 0.0,      // 兼容参数，实际调用强制 0
     double meteorInterval = 0.08,
     double meteorExplosionRadius = 68,
+    double meteorCastRange = 320, // ★ 施法最大距离
   }) {
     final chosenHotkeys =
     hotkeys.isEmpty ? {LogicalKeyboardKey.keyQ} : hotkeys;
@@ -180,6 +183,7 @@ class AttackHotkeyController extends Component
       meteorWarn: meteorWarn,
       meteorInterval: meteorInterval,
       meteorExplosionRadius: meteorExplosionRadius,
+      meteorCastRange: meteorCastRange,
     );
     (host.parent ?? host).add(c);
     return c;
@@ -310,35 +314,58 @@ class AttackHotkeyController extends Component
     lightning.castChain(targets: chainTargets);
   }
 
-  // ==================== 流星坠 ====================
+  // ==================== 流星坠（范围内优先Boss→其它→随机点） ====================
   void _castMeteor() {
-    final list = candidatesProvider();
-    Vector2 center;
+    final poolAll = candidatesProvider()
+        .whereType<FloatingIslandDynamicMoverComponent>()
+        .where((c) => c.isMounted && !(c.isDead == true))
+        .toList();
 
-    if (list.isNotEmpty) {
-      // 仍然 Boss 优先
-      PositionComponent? boss, other;
-      double bestBoss = double.infinity, bestOther = double.infinity;
-      final origin = host.absoluteCenter;
-      for (final c in list) {
-        final d2 = c.absoluteCenter.distanceToSquared(origin);
-        if (_isBoss(c)) {
-          if (d2 < bestBoss) { bestBoss = d2; boss = c; }
-        } else {
-          if (d2 < bestOther) { bestOther = d2; other = c; }
-        }
+    final origin = host.absoluteCenter;
+    final r2 = meteorCastRange * meteorCastRange;
+
+    // 只考虑“范围内”的目标
+    final inRangeBoss = <FloatingIslandDynamicMoverComponent>[];
+    final inRangeOther = <FloatingIslandDynamicMoverComponent>[];
+
+    for (final c in poolAll) {
+      final d2 = c.absoluteCenter.distanceToSquared(origin);
+      if (d2 > r2) continue;
+      if (_isBoss(c)) {
+        inRangeBoss.add(c);
+      } else {
+        inRangeOther.add(c);
       }
-      center = (boss ?? other ?? host).absoluteCenter.clone();
-    } else {
-      center = host.absoluteCenter + Vector2(220, 0);
     }
 
-    // ✅ 强制不画圈：warnTime = 0
+    Vector2 center;
+
+    if (inRangeBoss.isNotEmpty) {
+      // 最近 Boss
+      inRangeBoss.sort((a,b) =>
+          a.absoluteCenter.distanceToSquared(origin)
+              .compareTo(b.absoluteCenter.distanceToSquared(origin)));
+      center = inRangeBoss.first.absoluteCenter.clone();
+    } else if (inRangeOther.isNotEmpty) {
+      // 最近其它
+      inRangeOther.sort((a,b) =>
+          a.absoluteCenter.distanceToSquared(origin)
+              .compareTo(b.absoluteCenter.distanceToSquared(origin)));
+      center = inRangeOther.first.absoluteCenter.clone();
+    } else {
+      // ✅ 范围内没有任何 move：在“施法圆”内随机一点（均匀分布）
+      final rng = math.Random();
+      final ang = rng.nextDouble() * math.pi * 2;
+      final rr = math.sqrt(rng.nextDouble()) * meteorCastRange; // 均匀圆盘
+      center = origin + Vector2(math.cos(ang), math.sin(ang))..scale(rr);
+    }
+
+    // 强制无预告圈
     meteor.castRain(
       centerWorld: center,
       count: meteorCount,
       spreadRadius: meteorSpread,
-      warnTime: 0.0,                  // ← 关键
+      warnTime: 0.0,
       interval: meteorInterval,
       explosionRadius: meteorExplosionRadius,
     );

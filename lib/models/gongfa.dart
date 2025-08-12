@@ -20,15 +20,15 @@ class Gongfa {
   @HiveField(4)
   final String description;
 
-  /// 攻击加成（小数；1.10=110% 伤害，或 0.10=+10% 视你的语义）
+  /// 伤害加成（按你工程语义：1.10 = 110% 伤害；或 0.10 = +10%）
   @HiveField(5)
   final double atkBoost;
 
-  /// 防御加成（小数；0.15 = +15%）
+  /// 防御加成（0.15 = +15%）
   @HiveField(6)
   final double defBoost;
 
-  /// 气血加成（小数；0.20 = +20%）
+  /// 气血加成（0.20 = +20%）
   @HiveField(7)
   final double hpBoost;
 
@@ -42,11 +42,16 @@ class Gongfa {
   final DateTime acquiredAt;
 
   @HiveField(11)
-  int count; // 拥有数量（默认为1）
+  int count; // 拥有数量（默认 1）
 
-  /// 移动速度加成（小数；0.25 = +25%）
+  /// 移速加成（0.25 = +25%）
   @HiveField(12)
   final double moveSpeedBoost;
+
+  /// ⚡ 攻速（Attacks Per Second，次/秒）
+  /// 老数据没有这个字段时，使用构造默认值 1.0
+  @HiveField(13)
+  final double attackSpeed;
 
   Gongfa({
     required this.id,
@@ -62,9 +67,10 @@ class Gongfa {
     DateTime? acquiredAt,
     this.count = 1,
     this.moveSpeedBoost = 0.0,
+    this.attackSpeed = 1.0, // ← 默认 1 次/秒，向后兼容
   }) : acquiredAt = acquiredAt ?? DateTime.now();
 
-  /// ✅ 拷贝（更新数量/学习状态/加成等）
+  /// ✅ 拷贝（更新数量/学习状态/各加成/攻速）
   Gongfa copyWith({
     int? count,
     bool? isLearned,
@@ -72,6 +78,7 @@ class Gongfa {
     double? atkBoost,
     double? defBoost,
     double? hpBoost,
+    double? attackSpeed, // ← 新增
   }) {
     return Gongfa(
       id: id,
@@ -87,6 +94,7 @@ class Gongfa {
       acquiredAt: acquiredAt,
       count: count ?? this.count,
       moveSpeedBoost: speedBoost ?? moveSpeedBoost,
+      attackSpeed: attackSpeed ?? this.attackSpeed,
     );
   }
 }
