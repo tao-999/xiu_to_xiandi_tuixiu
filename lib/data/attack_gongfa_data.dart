@@ -42,7 +42,7 @@ class AttackGongfaData {
   static const AttackGongfaTemplate chainLightning = AttackGongfaTemplate(
     name: '雷链',
     description: '以真雷为引，电光连环跃迁，群敌顷刻焦黑。',
-    atkBoost: 1.20, // 基础加成（多跳技能，实战更强）
+    atkBoost: 1.20, // 多跳技能，实战更强
     iconPath: 'gongfa/chain_lightning.png',
     palette: [
       Color(0xFFFFFFFF), // 核心高光
@@ -54,9 +54,25 @@ class AttackGongfaData {
     ],
   );
 
+  /// ☄️ 流星坠（Meteor Rain）
+  static const AttackGongfaTemplate meteorRain = AttackGongfaTemplate(
+    name: '流星坠',
+    description: '引星坠地，烈焰轰鸣，冲击波席卷四野。',
+    atkBoost: 1.15, // 范围AoE，介于火球与雷链之间
+    iconPath: 'gongfa/meteor_rain.png',
+    palette: [
+      Color(0xFFFFFDE7), // 微黄高光
+      Color(0xFFFFE082), // 金黄
+      Color(0xFFFFB74D), // 橙火
+      Color(0xFFFF8A65), // 橙红
+      Color(0xFF8D6E63), // 烟尘棕
+    ],
+  );
+
   static const List<AttackGongfaTemplate> all = [
     fireball,
     chainLightning,
+    meteorRain, // 👈 新增
   ];
 
   static AttackGongfaTemplate? byName(String name) {

@@ -1,50 +1,70 @@
+// 📄 lib/widgets/effects/attack_hotkey_controller.dart
 import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/timer.dart' as f;
 import 'package:flutter/services.dart';
 
+// 适配器（都在 widgets/effects/）
 import 'fireball_player_adapter.dart';
 import 'player_lightning_chain_adapter.dart';
+import 'player_meteor_rain_adapter.dart';
+
+// 你的工程服务/模型
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/gongfa_collected_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/models/gongfa.dart';
-import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_dynamic_mover_component.dart';
 
-enum _AttackKind { none, fireball, chain }
+// 目标组件类型
+import '../components/floating_island_dynamic_mover_component.dart';
 
+enum _AttackKind { none, fireball, chain, meteor }
+
+/// 统一热键控制器：一个 Q，按“已装备功法”自动释放 火球 / 雷链 / 流星坠
 class AttackHotkeyController extends Component
     with KeyboardHandler, HasGameReference {
   final SpriteComponent host;
+
+  // —— 三种技能的适配器 —— //
   final PlayerFireballAdapter fireball;
   final PlayerLightningChainAdapter lightning;
+  final PlayerMeteorRainAdapter meteor;
 
+  // 候选目标
   final List<PositionComponent> Function() candidatesProvider;
 
-  // 键位：只用 Q，允许外部覆盖
+  // 键位：只用 Q（可覆盖）
   final Set<LogicalKeyboardKey> _hotkeys;
 
   // 公共冷却
   final f.Timer _cdTimer;
   bool _onCd = false;
 
-  // 装备判定
+  // 装备判定（按名字）
   final String attackSlotKey;
   final Set<String> _fireballNames;
   final Set<String> _chainNames;
+  final Set<String> _meteorNames;
   final bool requireEquipped;
   final f.Timer _equipPoller;
   _AttackKind _equippedKind = _AttackKind.none;
   Map<String, Gongfa>? _idToAttack; // id -> Gongfa
 
-  // 目标速度采样（火球提前量）
-  final double projectileSpeed; // 与 fireball.cast 的 speed 对齐
+  // ===== 火球：提前量所需 =====
+  final double projectileSpeed; // 与 PlayerFireballAdapter.cast 的 speed 对齐
   final Map<PositionComponent, Vector2> _lastPos = {};
   final Map<PositionComponent, Vector2> _vel = {};
 
-  // 雷链参数
-  final double castRange;   // 第一跳
-  final double jumpRange;   // 后续跳跃
-  final int maxJumps;
+  // ===== 雷链：范围/跳数 =====
+  final double castRange;   // 第一跳最大距离
+  final double jumpRange;   // 后续跳跃最大距离
+  final int maxJumps;       // 最大跳数（含第一跳）
+
+  // ===== 流星坠：参数 =====
+  final int    meteorCount;
+  final double meteorSpread;
+  final double meteorWarn;
+  final double meteorInterval;
+  final double meteorExplosionRadius;
 
   static const bool _debug = false;
 
@@ -52,6 +72,7 @@ class AttackHotkeyController extends Component
     required this.host,
     required this.fireball,
     required this.lightning,
+    required this.meteor,
     required this.candidatesProvider,
     required Set<LogicalKeyboardKey> hotkeys,
     required double cooldown,
@@ -60,6 +81,7 @@ class AttackHotkeyController extends Component
     required this.attackSlotKey,
     required Set<String> fireballNames,
     required Set<String> chainNames,
+    required Set<String> meteorNames,
     required this.requireEquipped,
     required double equipCheckInterval,
 
@@ -70,10 +92,18 @@ class AttackHotkeyController extends Component
     required this.castRange,
     required this.jumpRange,
     required this.maxJumps,
+
+    // 流星
+    required this.meteorCount,
+    required this.meteorSpread,
+    required this.meteorWarn,
+    required this.meteorInterval,
+    required this.meteorExplosionRadius,
   })  : _hotkeys = hotkeys,
         _cdTimer = f.Timer(cooldown, repeat: false),
         _fireballNames = fireballNames,
         _chainNames = chainNames,
+        _meteorNames = meteorNames,
         _equipPoller = f.Timer(equipCheckInterval, repeat: true) {
     _cdTimer.onTick = () => _onCd = false;
     _equipPoller.onTick = () {
@@ -87,28 +117,39 @@ class AttackHotkeyController extends Component
     };
   }
 
-  /// 一行挂上（默认 Q 一个键，自动识别火球/雷链）
+  /// 一行挂上（默认就用 Q）
   static AttackHotkeyController attach({
     required SpriteComponent host,
     required PlayerFireballAdapter fireball,
     required PlayerLightningChainAdapter lightning,
+    required PlayerMeteorRainAdapter meteor,
     required List<PositionComponent> Function() candidatesProvider,
 
     Set<LogicalKeyboardKey> hotkeys = const {}, // 运行时兜底
     double cooldown = 0.8,
 
+    // 装备判定（按名字）
     String attackSlotKey = 'attack',
     Set<String> fireballNames = const {'火球术', '火球', 'fireball', 'fire ball'},
-    Set<String> chainNames = const {
-      '雷链', '雷链术', '雷电链', 'chain lightning', 'chain-lightning'
-    },
+    Set<String> chainNames = const {'雷链', '雷链术', '雷电链', 'chain lightning', 'chain-lightning'},
+    Set<String> meteorNames = const {'流星坠','流星雨','meteor rain','meteor'},
     bool requireEquipped = true,
     double equipCheckInterval = 0.5,
 
-    double projectileSpeed = 420.0, // 火球飞行速度
-    double castRange = 320,         // 雷链第一跳
-    double jumpRange = 240,         // 雷链后续跳
+    // 火球
+    double projectileSpeed = 420.0,
+
+    // 雷链
+    double castRange = 320,
+    double jumpRange = 240,
     int maxJumps = 6,
+
+    // 流星
+    int    meteorCount = 7,
+    double meteorSpread = 140,
+    double meteorWarn = 0.35,
+    double meteorInterval = 0.08,
+    double meteorExplosionRadius = 68,
   }) {
     final chosenHotkeys =
     hotkeys.isEmpty ? {LogicalKeyboardKey.keyQ} : hotkeys;
@@ -117,19 +158,28 @@ class AttackHotkeyController extends Component
       host: host,
       fireball: fireball,
       lightning: lightning,
+      meteor: meteor,
       candidatesProvider: candidatesProvider,
       hotkeys: chosenHotkeys,
       cooldown: cooldown,
       attackSlotKey: attackSlotKey,
       fireballNames:
       fireballNames.map((e) => e.trim().toLowerCase()).toSet(),
-      chainNames: chainNames.map((e) => e.trim().toLowerCase()).toSet(),
+      chainNames:
+      chainNames.map((e) => e.trim().toLowerCase()).toSet(),
+      meteorNames:
+      meteorNames.map((e) => e.trim().toLowerCase()).toSet(),
       requireEquipped: requireEquipped,
       equipCheckInterval: equipCheckInterval,
       projectileSpeed: projectileSpeed,
       castRange: castRange,
       jumpRange: jumpRange,
       maxJumps: maxJumps,
+      meteorCount: meteorCount,
+      meteorSpread: meteorSpread,
+      meteorWarn: meteorWarn,
+      meteorInterval: meteorInterval,
+      meteorExplosionRadius: meteorExplosionRadius,
     );
     (host.parent ?? host).add(c);
     return c;
@@ -166,6 +216,9 @@ class AttackHotkeyController extends Component
       case _AttackKind.chain:
         _castChain();
         break;
+      case _AttackKind.meteor:
+        _castMeteor();
+        break;
       case _AttackKind.none:
         return true;
     }
@@ -175,7 +228,7 @@ class AttackHotkeyController extends Component
     return true;
   }
 
-  // ======== 火球：跟你原控制器保持一致 ========
+  // ==================== 火球 ====================
   void _castFireball() {
     final fromW = host.absoluteCenter.clone();
 
@@ -183,27 +236,26 @@ class AttackHotkeyController extends Component
     Vector2 aimToW;
 
     if (target != null) {
-      final vT = _vel[target] ?? Vector2.zero();
+      final vT = _vel[target] ?? Vector2.zero(); // 目标速度（世界）
       final lead =
       _predictIntercept(fromW, target.absoluteCenter.clone(), vT, projectileSpeed);
-      // 不限制最大距离；飞行范围交给 adapter 的 maxDistance（你那边已处理）
       aimToW = lead;
     } else {
-      // 没目标也能发：朝右
+      // 没有目标也要能释放：朝正右直飞 300 像素
       aimToW = fromW + Vector2(300, 0);
     }
 
     fireball.cast(
       to: aimToW,
-      follow: target,
+      follow: target,                 // 只用于锁定中心估算；不拐弯
       speed: projectileSpeed,
-      turnRateDegPerSec: 0,
-      maxDistance: 300,        // 和你火球 attach 的 range 对齐
+      turnRateDegPerSec: 0,          // 不追踪
+      maxDistance: 300,              // =“射程”
       explodeOnTimeout: true,
     );
   }
 
-  // ======== 雷链：选一条链然后丢给适配器 ========
+  // ==================== 雷链 ====================
   void _castChain() {
     final pool = candidatesProvider()
         .whereType<FloatingIslandDynamicMoverComponent>()
@@ -213,7 +265,7 @@ class AttackHotkeyController extends Component
 
     final origin = host.absoluteCenter;
 
-    // 第一跳：在 castRange 内优先 Boss 再最近
+    // 第一跳：在 castRange 内优先 Boss，再最近
     FloatingIslandDynamicMoverComponent? pickFirst() {
       double bestBoss = double.infinity;
       double bestOther = double.infinity;
@@ -258,6 +310,40 @@ class AttackHotkeyController extends Component
     lightning.castChain(targets: chainTargets);
   }
 
+  // ==================== 流星坠 ====================
+  void _castMeteor() {
+    final list = candidatesProvider();
+    Vector2 center;
+
+    if (list.isNotEmpty) {
+      // 仍然 Boss 优先
+      PositionComponent? boss, other;
+      double bestBoss = double.infinity, bestOther = double.infinity;
+      final origin = host.absoluteCenter;
+      for (final c in list) {
+        final d2 = c.absoluteCenter.distanceToSquared(origin);
+        if (_isBoss(c)) {
+          if (d2 < bestBoss) { bestBoss = d2; boss = c; }
+        } else {
+          if (d2 < bestOther) { bestOther = d2; other = c; }
+        }
+      }
+      center = (boss ?? other ?? host).absoluteCenter.clone();
+    } else {
+      center = host.absoluteCenter + Vector2(220, 0);
+    }
+
+    // ✅ 强制不画圈：warnTime = 0
+    meteor.castRain(
+      centerWorld: center,
+      count: meteorCount,
+      spreadRadius: meteorSpread,
+      warnTime: 0.0,                  // ← 关键
+      interval: meteorInterval,
+      explosionRadius: meteorExplosionRadius,
+    );
+  }
+
   // ========== 装备判定 ==========
   Future<void> _ensureIdCache() async {
     if (_idToAttack != null) return;
@@ -278,7 +364,7 @@ class AttackHotkeyController extends Component
 
     await _ensureIdCache();
 
-    // 确保缓存覆盖完整
+    // 防止缓存不全
     bool refresh = false;
     for (final id in ids) {
       if (!(_idToAttack?.containsKey(id) ?? false)) { refresh = true; break; }
@@ -294,6 +380,7 @@ class AttackHotkeyController extends Component
       if (name == null) continue;
       if (_fireballNames.contains(name)) return _AttackKind.fireball;
       if (_chainNames.contains(name)) return _AttackKind.chain;
+      if (_meteorNames.contains(name)) return _AttackKind.meteor;
     }
     return _AttackKind.none;
   }
@@ -314,7 +401,7 @@ class AttackHotkeyController extends Component
       final now = c.absoluteCenter;
       final last = _lastPos[c];
       if (last != null) {
-        _vel[c] = (now - last) / dt;
+        _vel[c] = (now - last) / dt; // 世界速度
       }
       _lastPos[c] = now.clone();
     }
@@ -363,7 +450,7 @@ class AttackHotkeyController extends Component
       if (identical(c, host)) continue;
 
       final d2 = c.absoluteCenter.distanceToSquared(origin);
-      if (d2 > maxD2) continue; // 只看范围内
+      if (d2 > maxD2) continue;
 
       if (_isBoss(c)) {
         if (d2 < bestBossD2) { bestBossD2 = d2; bestBoss = c; }

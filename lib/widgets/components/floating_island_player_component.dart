@@ -16,6 +16,7 @@ import '../effects/attack_hotkey_controller.dart';
 import '../effects/fireball_player_adapter.dart';
 import '../effects/player_lightning_chain_adapter.dart';
 
+import '../effects/player_meteor_rain_adapter.dart';
 import 'floating_island_static_decoration_component.dart';
 import 'floating_island_dynamic_mover_component.dart'; // ✅ 用于筛 boss / 怪
 import 'resource_bar.dart';
@@ -58,6 +59,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   // —— 火球 / 雷链 适配器 —— //
   late PlayerFireballAdapter _fireball;
   late PlayerLightningChainAdapter _lightning;
+  late PlayerMeteorRainAdapter _meteor;
 
   // —— 对外方法 —— //
   void moveTo(Vector2 target) => _targetPosition = target;
@@ -143,20 +145,31 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       resourceBarKey: resourceBarKey,
     );
 
-    // ===== ✅ 统一热键：Q = 已装备功法（火球 或 雷链） =====
+    _meteor = PlayerMeteorRainAdapter.attach(
+      host: this,
+      layer: parent,
+      getLogicalOffset: () => (game as dynamic).logicalOffset as Vector2,
+      resourceBarKey: resourceBarKey,
+      candidatesProvider: _scanAllMovers, // 复用你的扫描
+    );
+
+// 3) 统一热键 attach 时传入 meteor（其余参数保留原样）
     AttackHotkeyController.attach(
       host: this,
       fireball: _fireball,
       lightning: _lightning,
+      meteor: _meteor,                      // 👈 新增
       candidatesProvider: _scanAllMovers,
-      hotkeys: { LogicalKeyboardKey.keyQ }, // PC：Q，注意不要 const
+      hotkeys: { LogicalKeyboardKey.keyQ },
       cooldown: 0.8,
-      // 雷链参数
-      castRange: 320,
-      jumpRange: 240,
-      maxJumps: 6,
-      // 火球速度（用于提前量 & VFX）
+      castRange: 320, jumpRange: 240, maxJumps: 6,
       projectileSpeed: 420.0,
+      // 可选：覆盖流星参数
+      meteorCount: 7,
+      meteorSpread: 140,
+      meteorWarn: 0.35,
+      meteorInterval: 0.08,
+      meteorExplosionRadius: 68,
     );
   }
 
