@@ -52,6 +52,7 @@ class Gongfa1CollisionHandler {
         moveSpeedBoost: scaledSpeed, // 小数
         iconPath: base.iconPath,
         isLearned: false,
+        attackSpeed: 1.0,
         acquiredAt: DateTime.now(),
         count: 1,
       );
