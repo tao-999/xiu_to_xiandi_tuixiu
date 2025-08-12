@@ -339,6 +339,18 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     _resumeCooldown = 0.25;
   }
 
+  // ====== 辅助：敌人与玩家是否在同一种允许地形 ======
+  bool _sameAllowedTerrainAsPlayer(
+      FloatingIslandDynamicSpawnerComponent sp,
+      Vector2 enemyPos,
+      Vector2 playerPos,
+      ) {
+    final tEnemy  = sp.getTerrainType(enemyPos);
+    final tPlayer = sp.getTerrainType(playerPos);
+    if (tEnemy == 'unknown' || tPlayer == 'unknown') return false;
+    return tEnemy == tPlayer && sp.allowedTerrains.contains(tEnemy);
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -379,7 +391,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (isMoveLocked) return;
 
-    // ====== 自动追击 ======
+    // ====== 自动追击（👣 同地形才追） ======
     if (enableAutoChase && autoChaseRange != null) {
       final player = game.descendants().whereType<FloatingIslandPlayerComponent>().firstOrNull;
       if (player != null) {
@@ -387,12 +399,27 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         final distance = delta.length;
 
         if (distance <= autoChaseRange!) {
+          // 只有“同一种允许地形”才追
+          if (spawner is FloatingIslandDynamicSpawnerComponent) {
+            final sameTerrain = _sameAllowedTerrainAsPlayer(
+              spawner as FloatingIslandDynamicSpawnerComponent,
+              logicalPosition,
+              player.logicalPosition,
+            );
+            if (!sameTerrain) {
+              // 玩家在别的地形：不追、不翻、不改目标；维持原地/游走
+              return;
+            }
+          }
+
+          // 地形一致，正常追击
           final moveStep = delta.normalized() * speed * dt;
           final nextPos = logicalPosition + moveStep;
 
           if (spawner is FloatingIslandDynamicSpawnerComponent) {
             final nextTerrain = spawner.getTerrainType(nextPos);
             if (!spawner.allowedTerrains.contains(nextTerrain)) {
+              // 下一步会越界地形 → 直接换游走目标，避免边缘抖动
               pickNewTarget();
               return;
             }
