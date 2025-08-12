@@ -19,7 +19,7 @@ MoveDir detectMoveDir(Vector2 v, {double deadZone = 1e-3}) {
   return MoveDir.downRight;
 }
 
-/// ✅ 周身气流（世界坐标基准，支持挂到 parent）+ 圆弧可视化调试
+/// ✅ 周身气流（世界坐标基准，支持挂到 parent）+ 圆弧可视化调试（默认关闭）
 class AirFlowEffect extends PositionComponent {
   // —— 宿主信息（必须提供） —— //
   final Vector2 Function() getWorldCenter; // 宿主世界“基准点”（见 centerYFactor 注释）
@@ -70,6 +70,13 @@ class AirFlowEffect extends PositionComponent {
   double _emitTicker = 0;
   double _linger = 0;
 
+  // —— 粒子预算（防止组件/分配爆炸）—— //
+  static const int _kMaxActiveParticles = 240; // 活跃粒子/组件上限
+  static const int _kMaxAddsPerFrame    = 35;  // 每帧最多新增（防洪峰）
+
+  // —— 复用 Paint，降低 GC —— //
+  final Paint _tmpPaint = Paint()..blendMode = BlendMode.plus;
+
   AirFlowEffect({
     required this.getWorldCenter,
     required this.getHostSize,
@@ -87,7 +94,7 @@ class AirFlowEffect extends PositionComponent {
     this.pad = 1.8,
     this.biasLeftX = 0.0,
     this.biasRightX = 0.0,
-    // 可视化
+    // 可视化（Release 建议保持关闭）
     this.showDebugArc = false,
     this.debugArcColor = const Color(0xFFFF00FF),
     this.debugArcWidth = 1.5,
@@ -118,16 +125,29 @@ class AirFlowEffect extends PositionComponent {
     final speed = v.length;
     final moving = speed > 1e-2 && enabled;
 
+    // 渐亮/渐隐
     _linger = (moving ? _linger + dt * 2.6 : _linger - dt * 1.25).clamp(0.0, 1.0);
     if (_linger <= 1e-3) return;
 
+    // 发射速率（随速度增强）
     final rateMul = 1.0 + (speed / 180.0).clamp(0.0, speedBoostMul - 1.0);
     final emitPerSec = baseRate * rateMul * _linger;
 
+    // —— 预算发射器：限制本帧新增与总活跃数 —— //
     _emitTicker += dt * emitPerSec;
-    while (_emitTicker >= 1) {
-      _emitTicker -= 1;
+
+    // Active 粒子过多：本帧不发
+    if (children.length >= _kMaxActiveParticles) return;
+
+    int budget = _emitTicker.floor();
+    if (budget <= 0) return;
+
+    final int toEmit = budget.clamp(0, _kMaxAddsPerFrame);
+    _emitTicker -= toEmit;
+
+    for (int i = 0; i < toEmit; i++) {
       _emitOnce(v);
+      if (children.length >= _kMaxActiveParticles) break;
     }
   }
 
@@ -178,64 +198,65 @@ class AirFlowEffect extends PositionComponent {
     final glowB     = _mixColor(c1, c2, 0.7);
     final smokeC    = _mixColor(c1, c2, 0.5);
 
-    // 1) 核心
-    add(ParticleSystemComponent(
-      particle: AcceleratedParticle(
-        lifespan: life * 0.85,
-        acceleration: -vel * 0.65,
-        speed: vel,
-        child: gradientOnCore && mixMode != ColorMixMode.solid
-            ? _plumeCoreGradient(
-          start: coreStart, end: coreEnd,
-          thickness: 2.0 + _rng.nextDouble() * 1.6,
-          angle: ang, lenMul: 1.2 + speed / 260.0,
-        )
-            : _plumeCoreSolid(
-          color: coreStart,
-          thickness: 2.0 + _rng.nextDouble() * 1.6,
-          angle: ang, lenMul: 1.2 + speed / 260.0,
-        ),
+    // —— 单组件：用 ComposedParticle 合并核心/光晕/烟 —— //
+    final core = AcceleratedParticle(
+      lifespan: life * 0.85,
+      acceleration: -vel * 0.65,
+      speed: vel,
+      child: gradientOnCore && mixMode != ColorMixMode.solid
+          ? _plumeCoreGradient(
+        start: coreStart, end: coreEnd,
+        thickness: 2.0 + _rng.nextDouble() * 1.6,
+        angle: ang, lenMul: 1.2 + speed / 260.0,
+      )
+          : _plumeCoreSolid(
+        color: coreStart,
+        thickness: 2.0 + _rng.nextDouble() * 1.6,
+        angle: ang, lenMul: 1.2 + speed / 260.0,
       ),
-      position: spawnLocal,
-    ));
+    );
 
-    // 2) 光晕
-    add(ParticleSystemComponent(
-      particle: AcceleratedParticle(
-        lifespan: life,
-        acceleration: -vel * 0.55,
-        speed: vel,
-        child: gradientOnGlow && mixMode != ColorMixMode.solid
-            ? _plumeGlowGradient(a: glowA, b: glowB)
-            : _plumeGlowSolid(color: glowA),
-      ),
-      position: spawnLocal,
-    ));
+    final glow = AcceleratedParticle(
+      lifespan: life,
+      acceleration: -vel * 0.55,
+      speed: vel,
+      child: gradientOnGlow && mixMode != ColorMixMode.solid
+          ? _plumeGlowGradient(a: glowA, b: glowB)
+          : _plumeGlowSolid(color: glowA),
+    );
 
-    // 3) 烟羽
+    Particle? smoke;
     if (_rng.nextDouble() < 0.6) {
       final smokeVel = vel * (0.55 + _rng.nextDouble() * 0.25);
-      add(ParticleSystemComponent(
-        particle: AcceleratedParticle(
-          lifespan: life * (1.1 + _rng.nextDouble() * 0.4),
-          acceleration: -smokeVel * 0.35,
-          speed: smokeVel,
-          child: gradientOnSmoke && mixMode != ColorMixMode.solid
-              ? _smokePuffGradient(
-            start: _withAlpha(smokeC, 0.22),
-            end: _withAlpha(smokeC, 0.03),
-            rStart: 6 + _rng.nextDouble() * 4,
-            rEnd: 16 + _rng.nextDouble() * 10,
-          )
-              : _smokePuffSolid(
-            color: _withAlpha(smokeC, 0.22),
-            rStart: 6 + _rng.nextDouble() * 4,
-            rEnd: 16 + _rng.nextDouble() * 10,
-          ),
+      smoke = AcceleratedParticle(
+        lifespan: life * (1.1 + _rng.nextDouble() * 0.4),
+        acceleration: -smokeVel * 0.35,
+        speed: smokeVel,
+        child: gradientOnSmoke && mixMode != ColorMixMode.solid
+            ? _smokePuffGradient(
+          start: _withAlpha(smokeC, 0.22),
+          end: _withAlpha(smokeC, 0.03),
+          rStart: 6 + _rng.nextDouble() * 4,
+          rEnd: 16 + _rng.nextDouble() * 10,
+        )
+            : _smokePuffSolid(
+          color: _withAlpha(smokeC, 0.22),
+          rStart: 6 + _rng.nextDouble() * 4,
+          rEnd: 16 + _rng.nextDouble() * 10,
         ),
-        position: spawnLocal,
-      ));
+      );
     }
+
+    final composed = ComposedParticle(children: [
+      core,
+      glow,
+      if (smoke != null) smoke,
+    ]);
+
+    add(ParticleSystemComponent(
+      particle: composed,
+      position: spawnLocal,
+    ));
   }
 
   // ---------- 圆弧可视化（调试） ----------
@@ -315,9 +336,8 @@ class AirFlowEffect extends PositionComponent {
   // ---------------- 工具 & 渲染器 ----------------
 
   // 世界点 → 本地（以特效组件为参照）
-  // vfx_airflow.dart 内
-// ✅ 用组件自己的变换链，自动考虑 anchor/scale/父级等
   Vector2 _worldToThisLocal(Vector2 worldPoint) {
+    // 用组件自己的变换链，自动考虑 anchor/scale/父级等
     return absoluteToLocal(worldPoint);
   }
 
@@ -330,8 +350,9 @@ class AirFlowEffect extends PositionComponent {
     return ComputedParticle(
       renderer: (canvas, particle) {
         final t = particle.progress;
-        final p = Paint()
-          ..blendMode = BlendMode.plus
+        final p = _tmpPaint
+          ..shader = null
+          ..maskFilter = null
           ..color = color.withOpacity(0.95 * (1 - t))
           ..strokeWidth = thickness
           ..strokeCap = StrokeCap.round;
@@ -365,9 +386,9 @@ class AirFlowEffect extends PositionComponent {
           Offset(len, 0),
           [c0.withOpacity(a), c1.withOpacity(a * 0.8)],
         );
-        final p = Paint()
-          ..blendMode = BlendMode.plus
+        final p = _tmpPaint
           ..shader = shader
+          ..maskFilter = null
           ..strokeWidth = thickness
           ..strokeCap = StrokeCap.round;
         canvas.save();
@@ -382,8 +403,8 @@ class AirFlowEffect extends PositionComponent {
     return ComputedParticle(
       renderer: (canvas, particle) {
         final t = particle.progress;
-        final paint = Paint()
-          ..blendMode = BlendMode.plus
+        final paint = _tmpPaint
+          ..shader = null
           ..color = color.withOpacity(0.55 * (1 - t))
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
         final r = 4.0 * (1.0 + 0.8 * (1 - t));
@@ -403,10 +424,9 @@ class AirFlowEffect extends PositionComponent {
         final shader = ui.Gradient.radial(
           Offset.zero, r,
           [c0.withOpacity(0.55 * (1 - t)), c1.withOpacity(0.0)],
-          [0.0, 1.0],
+          const [0.0, 1.0],
         );
-        final paint = Paint()
-          ..blendMode = BlendMode.plus
+        final paint = _tmpPaint
           ..shader = shader
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
         canvas.drawCircle(Offset.zero, r, paint);
@@ -445,9 +465,9 @@ class AirFlowEffect extends PositionComponent {
         final shader = ui.Gradient.radial(
           Offset.zero, r,
           [a, end.withOpacity(0)],
-          [0.0, 1.0],
+          const [0.0, 1.0],
         );
-        final paint = Paint()
+        final paint = _tmpPaint
           ..shader = shader
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5);
         canvas.drawCircle(Offset.zero, r, paint);

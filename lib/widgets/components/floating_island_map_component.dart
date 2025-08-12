@@ -47,9 +47,6 @@ class FloatingIslandMapComponent extends FlameGame
   static const double _autoSaveInterval = 5.0;
   double renderScale = 1.0;
 
-  // 🆕 昼夜组件句柄
-  late final DayNightCycleComponent _dayNight;
-
   // 🆕 防止重复注册（热重载/多次进入页面）
   static bool _bossRewardsRegistered = false;
   void _registerBossRewardsOnce() {
