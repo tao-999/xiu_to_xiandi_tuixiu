@@ -348,7 +348,7 @@ class AttackHotkeyController extends Component
     lightning.castChain(targets: chainTargets);
   }
 
-  // ==================== 流星坠（范围内优先Boss→其它→随机点） ====================
+// ==================== 流星坠（范围内优先Boss→其它→随机点） ====================
   void _castMeteor() {
     final poolAll = candidatesProvider()
         .whereType<FloatingIslandDynamicMoverComponent>()
@@ -358,18 +358,16 @@ class AttackHotkeyController extends Component
     final origin = host.absoluteCenter;
     final r2 = meteorCastRange * meteorCastRange;
 
-    // 只考虑“范围内”的目标
-    final inRangeBoss = <FloatingIslandDynamicMoverComponent>[];
+    // 只取“施法范围内”的
+    final inRangeBoss  = <FloatingIslandDynamicMoverComponent>[];
     final inRangeOther = <FloatingIslandDynamicMoverComponent>[];
-
     for (final c in poolAll) {
       final d2 = c.absoluteCenter.distanceToSquared(origin);
       if (d2 > r2) continue;
-      if (_isBoss(c)) inRangeBoss.add(c); else inRangeOther.add(c);
+      (_isBoss(c) ? inRangeBoss : inRangeOther).add(c);
     }
 
     Vector2 center;
-
     if (inRangeBoss.isNotEmpty) {
       inRangeBoss.sort((a,b) =>
           a.absoluteCenter.distanceToSquared(origin)
@@ -381,11 +379,8 @@ class AttackHotkeyController extends Component
               .compareTo(b.absoluteCenter.distanceToSquared(origin)));
       center = inRangeOther.first.absoluteCenter.clone();
     } else {
-      // ✅ 范围内没有任何 move：在“施法圆”内随机一点（均匀分布）
-      final rng = math.Random();
-      final ang = rng.nextDouble() * math.pi * 2;
-      final rr = math.sqrt(rng.nextDouble()) * meteorCastRange; // 均匀圆盘
-      center = origin + Vector2(math.cos(ang), math.sin(ang))..scale(rr);
+      // ✅ 关键：范围内没有任何 move → 在圆盘内随机一个坐标
+      center = _randomPointInRange(origin, meteorCastRange);
     }
 
     // 强制无预告圈
@@ -397,6 +392,14 @@ class AttackHotkeyController extends Component
       interval: meteorInterval,
       explosionRadius: meteorExplosionRadius,
     );
+  }
+
+  // 放在类里，工具函数
+  Vector2 _randomPointInRange(Vector2 origin, double r) {
+    final rng = math.Random();
+    final ang = rng.nextDouble() * math.pi * 2;
+    final rad = math.sqrt(rng.nextDouble()) * r; // 均匀圆盘
+    return origin + Vector2(math.cos(ang), math.sin(ang)) * rad;
   }
 
   // ========== 装备判定 ==========

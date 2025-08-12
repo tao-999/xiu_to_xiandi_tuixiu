@@ -202,12 +202,16 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     // ===== 3) 飘伤害数字 =====
     try {
       final hitPos = logicalPosition - Vector2(0, size.y / 2 + 8);
-      parent?.add(FloatingTextComponent(
+      // 飘伤害数字（把 priority 提到 10010，压过血条/名字）
+      final ft = FloatingTextComponent(
         text: '-${realDmg.toInt()}',
         logicalPosition: hitPos,
         color: Colors.redAccent,
         fontSize: 18,
-      ));
+      )..priority = 10010;          // 👈 提高层级
+
+      parent?.add(ft);
+
     } catch (_) {}
 
     // ===== 4) 判死 → mark → 奖励分发 =====
