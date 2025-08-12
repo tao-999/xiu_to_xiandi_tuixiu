@@ -292,9 +292,10 @@ class NoiseTileMapGenerator extends PositionComponent {
     final uk = key ^ 0x9E3779B97F4A7C15; // 不同扰动，避免 Map 退化
     final tk = key ^ 0xC2B2AE3D27D4EB4F;
 
+    const double SAFE_SHIFT = 1048576.0; // 2^20
     final h1 = _hCache[hk] ??= (_noiseHeight.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
-    final h2 = _uCache[uk] ??= (_noiseHumidity.fbm(nx + 1e14, ny + 1e14, octaves, frequency, persistence) + 1) / 2;
-    final h3 = _tCache[tk] ??= (_noiseTemperature.fbm(nx - 1e14, ny - 1e14, octaves, frequency, persistence) + 1) / 2;
+    final h2 = _uCache[uk] ??= (_noiseHumidity.fbm(nx + SAFE_SHIFT, ny + SAFE_SHIFT, octaves, frequency, persistence) + 1) / 2;
+    final h3 = _tCache[tk] ??= (_noiseTemperature.fbm(nx - SAFE_SHIFT, ny - SAFE_SHIFT, octaves, frequency, persistence) + 1) / 2;
 
     final mixed = (h1 * 0.4 + h2 * 0.3 + h3 * 0.3).clamp(0.0, 1.0);
     int idx;

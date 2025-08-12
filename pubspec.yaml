@@ -63,6 +63,8 @@ flutter:
     - family: ZcoolCangEr
       fonts:
         - asset: assets/fonts/zcool_canger/zcool_canger-W03.ttf
+  shaders:
+    - shaders/fbm_terrain.frag
 
 flutter_icons:
   android: true
