@@ -12,6 +12,7 @@ import 'player_meteor_rain_adapter.dart';
 // 你的工程服务/模型
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import 'package:xiu_to_xiandi_tuixiu/services/gongfa_collected_storage.dart';
+import 'package:xiu_to_xiandi_tuixiu/services/attack_gongfa_equip_storage.dart'; // ★ 读已装备功法（拿 APS）
 import 'package:xiu_to_xiandi_tuixiu/models/gongfa.dart';
 
 // 目标组件类型
@@ -20,6 +21,8 @@ import '../components/floating_island_dynamic_mover_component.dart';
 enum _AttackKind { none, fireball, chain, meteor }
 
 /// 统一热键控制器：一个 Q，按“已装备功法”自动释放 火球 / 雷链 / 流星坠
+/// ✅ 冷却时间与攻速(APS)绑定：cooldown = 1.0 / attackSpeed （读已装备攻击功法）
+///    读不到时回退到 attach 传入的 cooldown
 class AttackHotkeyController extends Component
     with KeyboardHandler, HasGameReference {
   final SpriteComponent host;
@@ -35,8 +38,9 @@ class AttackHotkeyController extends Component
   // 键位：只用 Q（可覆盖）
   final Set<LogicalKeyboardKey> _hotkeys;
 
-  // 公共冷却
-  final f.Timer _cdTimer;
+  // 冷却：改成“动态时长”的一次性 Timer
+  final double baseCooldown;         // attach 传入的兜底冷却
+  f.Timer? _cdTimer;                 // 每次释放后按 APS 重建
   bool _onCd = false;
 
   // 装备判定（按名字）
@@ -65,7 +69,7 @@ class AttackHotkeyController extends Component
   final double meteorWarn;               // 兼容保留（实际调用传 0）
   final double meteorInterval;
   final double meteorExplosionRadius;
-  final double meteorCastRange;          // ★ 施法最大距离
+  final double meteorCastRange;          // 施法最大距离
 
   static const bool _debug = false;
 
@@ -76,8 +80,7 @@ class AttackHotkeyController extends Component
     required this.meteor,
     required this.candidatesProvider,
     required Set<LogicalKeyboardKey> hotkeys,
-    required double cooldown,
-
+    required this.baseCooldown,                 // ★
     // 装备判定
     required this.attackSlotKey,
     required Set<String> fireballNames,
@@ -85,15 +88,12 @@ class AttackHotkeyController extends Component
     required Set<String> meteorNames,
     required this.requireEquipped,
     required double equipCheckInterval,
-
     // 火球
     required this.projectileSpeed,
-
     // 雷链
     required this.castRange,
     required this.jumpRange,
     required this.maxJumps,
-
     // 流星
     required this.meteorCount,
     required this.meteorSpread,
@@ -102,12 +102,10 @@ class AttackHotkeyController extends Component
     required this.meteorExplosionRadius,
     required this.meteorCastRange,
   })  : _hotkeys = hotkeys,
-        _cdTimer = f.Timer(cooldown, repeat: false),
         _fireballNames = fireballNames,
         _chainNames = chainNames,
         _meteorNames = meteorNames,
         _equipPoller = f.Timer(equipCheckInterval, repeat: true) {
-    _cdTimer.onTick = () => _onCd = false;
     _equipPoller.onTick = () {
       () async {
         _equippedKind = await _detectEquippedKind();
@@ -128,7 +126,7 @@ class AttackHotkeyController extends Component
     required List<PositionComponent> Function() candidatesProvider,
 
     Set<LogicalKeyboardKey> hotkeys = const {}, // 运行时兜底
-    double cooldown = 0.8,
+    double cooldown = 0.8,                      // ★ 兜底冷却
 
     // 装备判定（按名字）
     String attackSlotKey = 'attack',
@@ -152,7 +150,7 @@ class AttackHotkeyController extends Component
     double meteorWarn = 0.0,      // 兼容参数，实际调用强制 0
     double meteorInterval = 0.08,
     double meteorExplosionRadius = 68,
-    double meteorCastRange = 320, // ★ 施法最大距离
+    double meteorCastRange = 320, // 施法最大距离
   }) {
     final chosenHotkeys =
     hotkeys.isEmpty ? {LogicalKeyboardKey.keyQ} : hotkeys;
@@ -164,7 +162,7 @@ class AttackHotkeyController extends Component
       meteor: meteor,
       candidatesProvider: candidatesProvider,
       hotkeys: chosenHotkeys,
-      cooldown: cooldown,
+      baseCooldown: cooldown,                 // ★
       attackSlotKey: attackSlotKey,
       fireballNames:
       fireballNames.map((e) => e.trim().toLowerCase()).toSet(),
@@ -200,7 +198,7 @@ class AttackHotkeyController extends Component
   @override
   void update(double dt) {
     super.update(dt);
-    _cdTimer.update(dt);
+    _cdTimer?.update(dt);  // ★ 动态 Timer
     _equipPoller.update(dt);
     _sampleVelocities(dt); // 火球提前量采样
   }
@@ -213,6 +211,10 @@ class AttackHotkeyController extends Component
     if (_onCd) return true;
     if (requireEquipped && _equippedKind == _AttackKind.none) return true;
 
+    // 标记进冷却，并异步算 APS → 开计时
+    _onCd = true;
+    _startCooldownByAPS(); // ★ 关键
+
     switch (_equippedKind) {
       case _AttackKind.fireball:
         _castFireball();
@@ -224,12 +226,44 @@ class AttackHotkeyController extends Component
         _castMeteor();
         break;
       case _AttackKind.none:
+      // 兜底：直接结束 CD
+        _onCd = false;
         return true;
     }
-
-    _onCd = true;
-    _cdTimer.start();
     return true;
+  }
+
+  // ======== 冷却绑定 APS ========
+  void _startCooldownByAPS() {
+    () async {
+      final cd = await _calcEffectiveCooldown(); // 1/APS 或 baseCooldown
+      _cdTimer?.stop();
+      _cdTimer = f.Timer(cd, repeat: false);
+      _cdTimer!.onTick = () => _onCd = false;
+      _cdTimer!.start();
+      if (_debug) {
+        // ignore: avoid_print
+        print('[AttackHotkey] cooldown=$cd');
+      }
+    }();
+  }
+
+// 把 _calcEffectiveCooldown 改成直接把 attackSpeed 当冷却秒数用
+
+  Future<double> _calcEffectiveCooldown() async {
+    try {
+      final p = await PlayerStorage.getPlayer();
+      if (p == null) return baseCooldown;
+
+      final g = await AttackGongfaEquipStorage.loadEquippedAttackBy(p.id);
+
+      // ✅ 现在语义：attackSpeed = 冷却秒数（秒/次），不再取倒数
+      final sec = g?.attackSpeed;
+      if (sec == null || sec <= 0) return baseCooldown;
+      return sec;  // ← 直接返回冷却秒数
+    } catch (_) {
+      return baseCooldown;
+    }
   }
 
   // ==================== 火球 ====================
@@ -331,23 +365,17 @@ class AttackHotkeyController extends Component
     for (final c in poolAll) {
       final d2 = c.absoluteCenter.distanceToSquared(origin);
       if (d2 > r2) continue;
-      if (_isBoss(c)) {
-        inRangeBoss.add(c);
-      } else {
-        inRangeOther.add(c);
-      }
+      if (_isBoss(c)) inRangeBoss.add(c); else inRangeOther.add(c);
     }
 
     Vector2 center;
 
     if (inRangeBoss.isNotEmpty) {
-      // 最近 Boss
       inRangeBoss.sort((a,b) =>
           a.absoluteCenter.distanceToSquared(origin)
               .compareTo(b.absoluteCenter.distanceToSquared(origin)));
       center = inRangeBoss.first.absoluteCenter.clone();
     } else if (inRangeOther.isNotEmpty) {
-      // 最近其它
       inRangeOther.sort((a,b) =>
           a.absoluteCenter.distanceToSquared(origin)
               .compareTo(b.absoluteCenter.distanceToSquared(origin)));
