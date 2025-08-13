@@ -12,13 +12,15 @@ import 'floating_text_component.dart';
 import 'hp_bar_wrapper.dart';
 import 'resource_bar.dart';
 
-// ✅ 新增：Boss 奖励分发（按 boss.type 路由到各自 onKilled）
+// ✅ Boss 奖励分发（按 boss.type 路由到各自 onKilled）
 import 'package:xiu_to_xiandi_tuixiu/logic/combat/boss_reward_registry.dart';
 
 class FloatingIslandDynamicMoverComponent extends SpriteComponent
     with CollisionCallbacks, HasGameReference {
+  // —— 世界坐标（不随相机变）——
   Vector2 logicalPosition;
   Vector2 targetPosition;
+
   final Rect movementBounds;
   double speed;
   double collisionCooldown = 0.0;
@@ -72,13 +74,14 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   double _autoResumeCooldown = 0.0;  // 自动检测冷却
   static const double _autoResumeCheckInterval = 0.5; // 每0.5s检测一次
 
+  // 注意：这里不再把“世界坐标”传给 super(position)
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
     required this.spawnedTileKey,
     this.type,
     this.spawner,
     required Sprite sprite,
-    required Vector2 position,
+    required Vector2 position, // 世界坐标
     Vector2? size,
     this.speed = 30,
     required this.movementBounds,
@@ -98,28 +101,33 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     this.customPriority,
     this.ignoreTerrainInMove = false,
   })  : logicalPosition = position.clone(),
-        targetPosition = position.clone(),
+        targetPosition  = position.clone(),
         super(
         sprite: sprite,
         size: size ?? Vector2.all(48),
         anchor: Anchor.bottomCenter,
         priority: customPriority ?? 11,
+        // ❌ 不传 position，避免首帧用错坐标
       );
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
 
-    currentHp = hp ?? 100;
+    // ✅ 首帧立即按相机偏移对齐一次视觉坐标（position/label/hpBar 都用这个坐标）
+    final off = (game as dynamic).logicalOffset as Vector2? ?? Vector2.zero();
+    updateVisualPosition(off);
 
-    // 延迟添加碰撞盒，避免出生即碰撞
+    currentHp = (hp ?? 100).toDouble();
+
+    // ✅ 延迟加碰撞盒，避免出生即碰撞
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!isDead && !isRemoving) {
         add(RectangleHitbox()..collisionType = CollisionType.active);
       }
     });
 
-    // 名字标签
+    // ✅ 用已对齐的 position 来放 label/hpBar（首帧不抖）
     if (labelText != null && labelText!.isNotEmpty) {
       label = TextComponent(
         text: labelText!,
@@ -136,7 +144,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       parent?.add(label!);
     }
 
-    // 血条
     if (hp != null && atk != null && def != null) {
       hpBar = HpBarWrapper()
         ..anchor = Anchor.bottomCenter
@@ -144,17 +151,18 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         ..priority = 9998;
       parent?.add(hpBar!);
 
+      // 异步刷新数值
       Future.delayed(Duration.zero, () {
         hpBar?.setStats(
           currentHp: currentHp.toInt(),
-          maxHp: hp!.toInt(),
-          atk: atk!.toInt(),
-          def: def!.toInt(),
+          maxHp: (hp ?? 0).toInt(),
+          atk: (atk ?? 0).toInt(),
+          def: (def ?? 0).toInt(),
         );
       });
     }
 
-    // 初始化移动目标 + 开计时器
+    // 初始化移动目标 + 计时器
     pickNewTarget();
     _startTargetTimer();
   }
@@ -167,7 +175,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   }
 
   // ========== 战斗：统一伤害入口 ==========
-  /// ✅ 推荐使用：带上下文（击杀者/地图偏移/UI刷新的 key），死亡时统一分发奖励
   void applyDamage({
     required double amount,                          // 入射伤害 = ATK * (1 + atkBoost)
     required FloatingIslandPlayerComponent killer,   // 谁打的
@@ -177,7 +184,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   }) {
     if (isDead) return;
 
-    // ===== 1) 结算防御 =====
     final double hpMax = (hp ?? 0).toDouble();
     if (hpMax <= 0) return;
 
@@ -189,7 +195,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     final double prevHp   = currentHp;
     currentHp             = max(0.0, min(hpMax, currentHp - realDmg));
 
-    // ===== 2) 刷血条 =====
     if (hpBar != null && hp != null) {
       hpBar!.setStats(
         currentHp: currentHp.toInt(),
@@ -199,26 +204,22 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       );
     }
 
-    // ===== 3) 飘伤害数字 =====
+    // 飘伤害数字（层级比血条/名字高）
     try {
       final hitPos = logicalPosition - Vector2(0, size.y / 2 + 8);
-      // 飘伤害数字（把 priority 提到 10010，压过血条/名字）
       final ft = FloatingTextComponent(
         text: '-${realDmg.toInt()}',
         logicalPosition: hitPos,
         color: Colors.redAccent,
         fontSize: 18,
-      )..priority = 10010;          // 👈 提高层级
-
+      )..priority = 10010;
       parent?.add(ft);
-
     } catch (_) {}
 
-    // ===== 4) 判死 → mark → 奖励分发 =====
+    // 判死 → 标记 → 分发奖励
     if (prevHp > 0 && currentHp <= 0 && !isDead) {
       isDead = true;
 
-      // 4.1 先做持久化标记（仅 boss_*，只做一次）
       if (_isBossType && !deathMarked) {
         try {
           DeadBossStorage.markDeadBoss(
@@ -233,14 +234,12 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         }
       }
 
-      // 4.2 清理可视
       try {
         removeFromParent();
         hpBar?..removeFromParent(); hpBar = null;
         label?..removeFromParent(); label = null;
       } catch (_) {}
 
-      // 4.3 统一奖励路由（各 Boss 的奖励逻辑在注册表里）
       BossRewardRegistry.dispatch(
         bossType: type ?? '',
         ctx: BossKillContext(
@@ -253,7 +252,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     }
   }
 
-  /// ❗️兼容旧调用：没有上下文时只做“扣血+自移除”，不会发奖励（打印警告）
+  /// 兼容旧调用：没有上下文不触发奖励
   void takeDamage(double amount) {
     if (isDead) return;
     final prev = currentHp;
@@ -262,7 +261,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     if (hpBar != null && hp != null) {
       hpBar!.setStats(
         currentHp: currentHp.toInt(),
-        maxHp: hp!.toInt(),
+        maxHp: (hp ?? 0).toInt(),
         atk: (atk ?? 0).toInt(),
         def: (def ?? 0).toInt(),
       );
@@ -270,9 +269,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (prev > 0 && currentHp <= 0) {
       isDead = true;
-      // 最小化清理，提示开发者改用 applyDamage
-      debugPrint(
-          '[Mover][$type] takeDamage() 没有上下文 → 已自移除但未触发奖励。请改用 applyDamage(...)');
+      debugPrint('[Mover][$type] takeDamage() 没有上下文 → 已自移除但未触发奖励。请改用 applyDamage(...)');
       removeFromParent();
       hpBar?.removeFromParent(); hpBar = null;
       label?.removeFromParent(); label = null;
@@ -301,9 +298,9 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
   // ========== 停机 / 恢复 ==========
   void _stopMovement() {
-    if (_stoppedByIllegal) return; // 已停过就别重复
+    if (_stoppedByIllegal) return;
     isMoveLocked = true;
-    _stoppedByIllegal = true;      // 标记非法停机
+    _stoppedByIllegal = true;
     _externalTarget = null;
     targetPosition = logicalPosition.clone();
     _cancelTargetTimer();
@@ -338,12 +335,11 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   void resumeMovement() {
     if (isDead) return;
     if (!_stoppedByIllegal) return;
-    if (_resumeCooldown > 0) return; // 防抖
+    if (_resumeCooldown > 0) return;
     _resumeFromIllegal();
     _resumeCooldown = 0.25;
   }
 
-  // ====== 辅助：敌人与玩家是否在同一种允许地形 ======
   bool _sameAllowedTerrainAsPlayer(
       FloatingIslandDynamicSpawnerComponent sp,
       Vector2 enemyPos,
@@ -360,7 +356,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     super.update(dt);
     if (isDead) return;
 
-    // 冷却
     if (_resumeCooldown > 0) {
       _resumeCooldown -= dt;
       if (_resumeCooldown < 0) _resumeCooldown = 0;
@@ -395,7 +390,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
     if (isMoveLocked) return;
 
-    // ====== 自动追击（👣 同地形才追） ======
+    // 👣 自动追击（同地形才追）
     if (enableAutoChase && autoChaseRange != null) {
       final player = game.descendants().whereType<FloatingIslandPlayerComponent>().firstOrNull;
       if (player != null) {
@@ -403,27 +398,21 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
         final distance = delta.length;
 
         if (distance <= autoChaseRange!) {
-          // 只有“同一种允许地形”才追
           if (spawner is FloatingIslandDynamicSpawnerComponent) {
             final sameTerrain = _sameAllowedTerrainAsPlayer(
               spawner as FloatingIslandDynamicSpawnerComponent,
               logicalPosition,
               player.logicalPosition,
             );
-            if (!sameTerrain) {
-              // 玩家在别的地形：不追、不翻、不改目标；维持原地/游走
-              return;
-            }
+            if (!sameTerrain) return;
           }
 
-          // 地形一致，正常追击
           final moveStep = delta.normalized() * speed * dt;
           final nextPos = logicalPosition + moveStep;
 
           if (spawner is FloatingIslandDynamicSpawnerComponent) {
             final nextTerrain = spawner.getTerrainType(nextPos);
             if (!spawner.allowedTerrains.contains(nextTerrain)) {
-              // 下一步会越界地形 → 直接换游走目标，避免边缘抖动
               pickNewTarget();
               return;
             }
@@ -438,7 +427,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       }
     }
 
-    // ====== 外部控制移动 ======
+    // 外部强制目标
     if (_externalTarget != null) {
       final delta = _externalTarget! - logicalPosition;
       final distance = delta.length;
@@ -468,7 +457,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       return;
     }
 
-    // ====== 普通游走 ======
+    // 普通游走
     final dir = targetPosition - logicalPosition;
     final distance = dir.length;
 
@@ -516,6 +505,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     }
   }
 
+  // ✅ 视觉同步：相机移动/重基时外部会调用
   void updateVisualPosition(Vector2 logicalOffset) {
     position = logicalPosition - logicalOffset;
     label?.position = position - Vector2(0, size.y + 4);
@@ -534,7 +524,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     } while (dir.length < 0.1);
 
     dir.normalize();
-    final distance = minDistance + rand.nextDouble() * (maxDistance - minDistance);
+    final distance = minDistance + rand.nextDouble() * (maxDistance - max(minDistance, minDistance));
     targetPosition = logicalPosition + dir * distance;
 
     if (enableMirror) {
