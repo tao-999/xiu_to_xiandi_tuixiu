@@ -1,33 +1,29 @@
-// 📄 lib/widgets/effects/fbm_terrain_layer.dart
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/noise_utils.dart';
 
 class FbmTerrainLayer extends PositionComponent {
-  // === 视图 / 世界 ===
-  final Vector2 Function() getViewSize;      // 屏幕像素尺寸
-  final double Function() getViewScale;      // px / world
-  final Vector2 Function() getLogicalOffset; // 世界相机中心
+  final Vector2 Function() getViewSize;
+  final double Function() getViewScale;
+  final Vector2 Function() getLogicalOffset;
 
-  // === fBm 参数（与 CPU 保持一致） ===
+  // 保留接口以便以后扩展；本版里传入 Vector2.zero()
+  final Vector2 Function() getWorldBase;
+
   double frequency;
-  int    octaves;       // 1..8（shader 内部会 clamp 至 8）
-  double persistence;   // 0.2..0.9
+  int    octaves;
+  double persistence;
   bool   animate;
-  final int seed;
+  final  int seed;
 
-  /// 控制台打印 uniforms（每秒一次）
   final bool debugLogUniforms;
-
-  /// 0=正常；1=坐标热图；2=perm 检查
   double debugLevel;
 
-  /// 🆕 LOD 自适应：缩得很远时跳过高频 octave
+  // LOD
   bool   useLodAdaptive;
-  double lodNyquist; // 建议 0.5
+  double lodNyquist;
 
-  // ---- Shader & 纹理 ----
   static ui.FragmentProgram? _cachedProgram;
   ui.FragmentShader? _shader;
   final Paint _paint = Paint();
@@ -42,6 +38,7 @@ class FbmTerrainLayer extends PositionComponent {
     required this.getViewSize,
     required this.getViewScale,
     required this.getLogicalOffset,
+    required this.getWorldBase,
     this.frequency = 0.004,
     this.octaves = 6,
     this.persistence = 0.6,
@@ -49,8 +46,8 @@ class FbmTerrainLayer extends PositionComponent {
     this.seed = 1337,
     this.debugLogUniforms = false,
     this.debugLevel = 0.0,
-    this.useLodAdaptive = true, // 🆕 默认开启
-    this.lodNyquist = 0.5,      // 🆕
+    this.useLodAdaptive = true,
+    this.lodNyquist = 0.5,
     int? priority,
   }) : super(priority: priority ?? -10000);
 
@@ -61,16 +58,9 @@ class FbmTerrainLayer extends PositionComponent {
       _cachedProgram ??= await ui.FragmentProgram.fromAsset('shaders/fbm_terrain.frag');
       _shader = _cachedProgram!.fragmentShader();
 
-      // 三张与 CPU 完全一致的 perm 纹理（seed, seed+999, seed-999）
       _perm1 = await _buildPermImage(NoiseUtils(seed).perm);
       _perm2 = await _buildPermImage(NoiseUtils(seed + 999).perm);
       _perm3 = await _buildPermImage(NoiseUtils(seed - 999).perm);
-
-      if (debugLogUniforms) {
-        debugPrint('[FbmTerrainLayer] ✅ Shader loaded. '
-            'seed=$seed freq=$frequency oct=$octaves per=$persistence '
-            'lod=${useLodAdaptive ? "on" : "off"} nyq=$lodNyquist');
-      }
     } catch (e, st) {
       debugPrint('[FbmTerrainLayer] ⚠️ Shader load failed: $e\n$st');
       _shader = null;
@@ -86,41 +76,21 @@ class FbmTerrainLayer extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    final screen = getViewSize();   // px
-    final scale  = getViewScale();  // px/world
+    final screen = getViewSize();
+    final scale  = getViewScale();
     final center = getLogicalOffset();
+
     final worldSize    = screen / scale;
     final worldTopLeft = center - worldSize / 2;
     final rect = Rect.fromLTWH(0, 0, screen.x, screen.y);
 
     final s = _shader;
-    if (s == null) {
+    if (s == null || _perm1 == null || _perm2 == null || _perm3 == null) {
       canvas.drawRect(rect, _fallback);
       return;
-    }
-    if (_perm1 == null || _perm2 == null || _perm3 == null) {
-      canvas.drawRect(rect, _fallback);
-      return;
-    }
-
-    if (debugLogUniforms && _logTimer >= 1.0) {
-      _logTimer = 0.0;
-      debugPrint(
-        '[FbmTerrainLayer] uniforms → '
-            'uResolution=(${screen.x.toStringAsFixed(1)}, ${screen.y.toStringAsFixed(1)}) '
-            'uWorldTopLeft=(${worldTopLeft.x.toStringAsFixed(2)}, ${worldTopLeft.y.toStringAsFixed(2)}) '
-            'uScale=${scale.toStringAsFixed(5)} '
-            'uFreq=${frequency.toStringAsFixed(8)} '
-            'uTime=${(animate ? _t : 0.0).toStringAsFixed(3)} '
-            'uOctaves=${octaves.clamp(1, 8)} '
-            'uPersistence=${persistence.toStringAsFixed(3)} '
-            'seed=$seed debug=$debugLevel '
-            'LOD=${useLodAdaptive ? "ON" : "OFF"} nyq=$lodNyquist',
-      );
     }
 
     try {
-      // ---- setFloat（严格按 .frag 声明顺序） ----
       s.setFloat(0,  screen.x);
       s.setFloat(1,  screen.y);
       s.setFloat(2,  worldTopLeft.x);
@@ -132,15 +102,17 @@ class FbmTerrainLayer extends PositionComponent {
       s.setFloat(8,  persistence);
       s.setFloat(9,  seed.toDouble());
       s.setFloat(10, debugLevel);
-      s.setFloat(11, useLodAdaptive ? 1.0 : 0.0); // 🆕 uLodEnable
-      s.setFloat(12, lodNyquist);                 // 🆕 uLodNyquist
+      s.setFloat(11, useLodAdaptive ? 1.0 : 0.0);
+      s.setFloat(12, lodNyquist);
 
-      // ---- 绑定采样器（uPerm1/uPerm2/uPerm3） ----
+      // ✅ 关键：把 uWorldBase 固定传 0，保证 GPU 与 CPU 完全一致
+      s.setFloat(13, 0.0);
+      s.setFloat(14, 0.0);
+
       s.setImageSampler(0, _perm1!);
       s.setImageSampler(1, _perm2!);
       s.setImageSampler(2, _perm3!);
 
-      // ---- 绘制 ----
       _paint.shader = s;
       canvas.drawRect(rect, _paint);
     } catch (e, st) {
@@ -157,7 +129,6 @@ class FbmTerrainLayer extends PositionComponent {
     super.onRemove();
   }
 
-  /// 把 0..255 的 perm 数组烘成 256x1 R 通道纹理（采样时取 .r）
   Future<ui.Image> _buildPermImage(List<int> perm) async {
     final recorder = ui.PictureRecorder();
     final c = Canvas(recorder);

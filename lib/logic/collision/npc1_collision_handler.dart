@@ -4,6 +4,7 @@ import 'package:flame/effects.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/resources_storage.dart';
+import '../../utils/global_distance.dart';
 import '../../utils/lingshi_util.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_icon_text_popup_component.dart';
@@ -56,7 +57,8 @@ class Npc1CollisionHandler {
       npc.tauntCooldown = 5.0;
 
       final roll = rand.nextDouble();
-      final distance = npc.logicalPosition.length;
+      final game = npc.findGame()!;
+      final double distance = computeGlobalDistancePx(comp: npc, game: game);
 
       if (roll < 0.1) {
         // 🎁 10% 奖励灵石逻辑

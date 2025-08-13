@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/collected_lingshi_storage.dart';
 import '../../services/resources_storage.dart';
+import '../../utils/global_distance.dart';
 import '../../utils/lingshi_util.dart';
 import '../../utils/number_format.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
@@ -68,7 +69,8 @@ class LingShiCollisionHandler {
     if (lingShi.isDead || lingShi.collisionCooldown > 0) return;
     lingShi.collisionCooldown = double.infinity;
 
-    final distance = lingShi.logicalPosition.length;
+    final game = lingShi.findGame()!;
+    final double distance = computeGlobalDistancePx(comp: lingShi, game: game);
 
     // ✅ 计算最大可抽阶数（最多为 4）
     int maxLevel = _levelBounds.indexWhere((b) => distance < b);
@@ -94,7 +96,6 @@ class LingShiCollisionHandler {
     ResourcesStorage.add(fieldName, BigInt.from(count));
 
     // ✅ 弹窗与飘字
-    final game = lingShi.findGame();
     if (game != null) {
       final formattedCount = formatAnyNumber(count);
       final rewardText = '获得【${lingShiNames[type]}】×$formattedCount';

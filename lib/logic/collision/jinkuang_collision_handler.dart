@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../data/all_refine_blueprints.dart'; // 提供 levelForgeMaterials
 import '../../services/collected_jinkuang_storage.dart';
 import '../../services/refine_material_service.dart';
+import '../../utils/global_distance.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_text_component.dart';
@@ -84,7 +85,8 @@ class JinkuangCollisionHandler {
     if (jinkuang.isDead || jinkuang.collisionCooldown > 0) return;
     jinkuang.collisionCooldown = double.infinity;
 
-    final distance = jinkuang.logicalPosition.length;
+    final game = jinkuang.findGame()!;
+    final double distance = computeGlobalDistancePx(comp: jinkuang, game: game);
 
     // ✅ 最大阶（根据距离）
     int maxLevel = _levelBounds.indexWhere((b) => distance < b);
@@ -106,7 +108,6 @@ class JinkuangCollisionHandler {
     RefineMaterialService.add(name, 1);
 
     // ✅ 弹窗提示
-    final game = jinkuang.findGame();
     if (game != null) {
       final rewardText = '开采到【$name】×1';
       final centerPos = game.size / 2;

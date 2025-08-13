@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../models/pill.dart';
 import '../../services/collected_pill_storage.dart';
 import '../../services/pill_storage_service.dart';
+import '../../utils/global_distance.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_icon_text_popup_component.dart';
@@ -32,7 +33,8 @@ class Danyao1CollisionHandler {
     final iconPath = selected.$3;
 
     // 📏 计算距离 → 等级
-    final distance = danyao.logicalPosition.length;
+    final game = danyao.findGame()!;
+    final double distance = computeGlobalDistancePx(comp: danyao, game: game);
     final level = (log(distance) / log(10) - 5).floor().clamp(1, 999);
 
     // 🎯 随等级翻倍属性奖励范围

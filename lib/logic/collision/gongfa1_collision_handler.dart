@@ -6,6 +6,7 @@ import '../../data/movement_gongfa_data.dart';
 import '../../data/attack_gongfa_data.dart';
 import '../../models/gongfa.dart';
 import '../../services/gongfa_collected_storage.dart';
+import '../../utils/global_distance.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_icon_text_popup_component.dart';
@@ -24,7 +25,8 @@ class Gongfa1CollisionHandler {
     gongfaBook.collisionCooldown = double.infinity;
 
     // ✅ 按距离决定最高等级 → 随机出最终等级
-    final dist = gongfaBook.logicalPosition.length;
+    final game = gongfaBook.findGame()!;
+    final double dist = computeGlobalDistancePx(comp: gongfaBook, game: game);
     final maxLevel = _calculateMaxLevel(dist);
     final selectedLevel = _pickRandomLevel(maxLevel, rand);
 
@@ -85,7 +87,6 @@ class Gongfa1CollisionHandler {
     GongfaCollectedStorage.markCollected(gongfaBook.spawnedTileKey);
 
     // ✅ 飘字
-    final game = gongfaBook.findGame()!;
     game.add(FloatingIconTextPopupComponent(
       text: '获得功法《${finalGongfa.name}》Lv.$selectedLevel',
       imagePath: finalGongfa.iconPath,

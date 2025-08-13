@@ -1,11 +1,12 @@
+// 📄 lib/widgets/components/player_distance_indicator.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flame/components.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/floating_island_map_component.dart';
-import '../../utils/number_format.dart';
+import '../../utils/pixel_ly_format.dart';
 
 class PlayerDistanceIndicator extends StatefulWidget {
   final FloatingIslandMapComponent mapComponent;
-
   const PlayerDistanceIndicator({super.key, required this.mapComponent});
 
   @override
@@ -13,86 +14,58 @@ class PlayerDistanceIndicator extends StatefulWidget {
 }
 
 class _PlayerDistanceIndicatorState extends State<PlayerDistanceIndicator> {
-  double _distance = 0;
-  StreamSubscription? _positionSub;
+  String _distanceText = '0 米';
+  StreamSubscription<Vector2>? _sub;
 
   @override
   void initState() {
     super.initState();
-    _waitForPlayerAndSubscribe();
+    _bind();
   }
 
-  Future<void> _waitForPlayerAndSubscribe() async {
+  Future<void> _bind() async {
     while (widget.mapComponent.player == null) {
       await Future.delayed(const Duration(milliseconds: 50));
       if (!mounted) return;
     }
+    final p = widget.mapComponent.player!;
 
-    final initialLogicalPos = widget.mapComponent.player!.logicalPosition;
-    setState(() {
-      _distance = initialLogicalPos.length;
-    });
+    // 首次
+    _distanceText = formatDistanceFromOriginStrictCN(
+      worldBase: widget.mapComponent.worldBase,
+      localPos: p.logicalPosition,
+      meterDigits: 4, // 米系小数
+      lyDigits: 4,    // 光年系小数
+    );
+    if (mounted) setState(() {});
 
-    _positionSub = widget.mapComponent.player!.onPositionChangedStream.listen((pos) {
-      final dist = pos.length;
-      if (mounted) {
-        setState(() {
-          _distance = dist;
-        });
-      }
+    // 订阅更新（支持浮动原点）
+    _sub = p.onPositionChangedStream.listen((pos) {
+      if (!mounted) return;
+      final text = formatDistanceFromOriginStrictCN(
+        worldBase: widget.mapComponent.worldBase,
+        localPos: pos,
+        meterDigits: 4,
+        lyDigits: 4,
+      );
+      setState(() => _distanceText = text);
     });
   }
 
   @override
   void dispose() {
-    _positionSub?.cancel();
+    _sub?.cancel();
     super.dispose();
-  }
-
-  void _showMapInfoDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFFF9F5E3),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-        ),
-        title: const Text(
-          '🌍 无限地图',
-          style: TextStyle(fontSize: 16, fontFamily: 'ZcoolCangEr'),
-        ),
-        content: const Text(
-          '这里是无尽的浮空仙岛，四面八方都是探索的方向。\n\n'
-              '不论你朝哪个方向走，地图都会自动生长，延伸出无穷的领域。\n\n'
-              '据说有位修士已经飘到百万光年之外，仍未到尽头——他可能还在飘。\n\n'
-              '去吧！用脚步丈量这片浩瀚疆域，前方有神秘机缘等着你！',
-          style: TextStyle(fontSize: 14, fontFamily: 'ZcoolCangEr'),
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '距离原点: ${formatAnyNumber(_distance)} 米',
-            style: const TextStyle(color: Colors.white, fontSize: 10),
-          ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: _showMapInfoDialog,
-            child: const Icon(
-              Icons.info_outline,
-              size: 12,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('距离原点: $_distanceText',
+            style: const TextStyle(color: Colors.white, fontSize: 10)),
+      ],
     );
   }
 }

@@ -9,9 +9,10 @@ uniform float uTime;          // 6 (可不用)
 uniform float uOctaves;       // 7
 uniform float uPersistence;   // 8
 uniform float uSeed;          // 9 (占位)
-uniform float uDebug;         // 10  0=正常; 1=显示 world 坐标; 2=perm 绑定检查
+uniform float uDebug;         // 10  0=正常; 1=显示 world 坐标; 2=perm 检查
 uniform float uLodEnable;     // 11  1=开启 LOD；0=关闭
 uniform float uLodNyquist;    // 12  Nyquist 阈值（建议 0.5）
+uniform vec2  uWorldBase;     // 13,14 ✅ 世界基准（已在 Dart 侧做基础周期取模，始终是小数）
 
 // ---- 三张 permutation 纹理：seed / seed+999 / seed-999 ----
 uniform sampler2D uPerm1;     // sampler 0
@@ -25,7 +26,7 @@ const float SAFE_SHIFT = 1048576.0; // 2^20
 const float INV_256    = 1.0 / 256.0;
 const int   MAX_OCT    = 8;
 
-// ========= 调色板（常量向量，避免数组）=========
+// ========= 调色板（常量向量，避免 SkSL 数组）=========
 const vec3 C0 = vec3(0.937,0.937,0.937);
 const vec3 C1 = vec3(0.608,0.796,0.459);
 const vec3 C2 = vec3(0.427,0.416,0.373);
@@ -35,7 +36,7 @@ const vec3 C5 = vec3(0.309,0.639,0.780);
 const vec3 C6 = vec3(0.918,0.843,0.714);
 const vec3 C7 = vec3(0.494,0.231,0.231);
 
-// ========= Perlin（与 NoiseUtils 一致）=========
+// ========= Perlin =========
 float fade5(float t){ return t*t*t*(t*(t*6.0 - 15.0) + 10.0); }
 
 float permAt1(float i){ float x=(floor(mod(i,256.0))+0.5)*INV_256; return texture(uPerm1, vec2(x,0.5)).r*255.0; }
@@ -56,90 +57,55 @@ float gradDot(float h, float x, float y){
   return dot(g, vec2(x, y));
 }
 
-// ✅ perlin*：复用 perm(Y)/perm(Y+1) → 每层 6 次采样
+// 每层 6 次采样：复用 perm(Y)/perm(Y+1)
 float perlin1(vec2 p){
-  vec2 pf = floor(p);
-  vec2 f  = p - pf;
+  vec2 pf = floor(p), f = p - pf;
   float X = mod(pf.x,256.0), Y = mod(pf.y,256.0);
-  float pY  = permAt1(Y);
-  float pY1 = permAt1(Y + 1.0);
-  float aa=permAt1(X +     pY );
-  float ab=permAt1(X +     pY1);
-  float ba=permAt1(X + 1.0+pY );
-  float bb=permAt1(X + 1.0+pY1);
+  float pY=permAt1(Y), pY1=permAt1(Y+1.0);
+  float aa=permAt1(X+pY), ab=permAt1(X+pY1), ba=permAt1(X+1.0+pY), bb=permAt1(X+1.0+pY1);
   float u=fade5(f.x), v=fade5(f.y);
-  float x1=mix(gradDot(aa, f.x,        f.y      ), gradDot(ba, f.x-1.0, f.y      ), u);
-  float x2=mix(gradDot(ab, f.x,        f.y-1.0   ), gradDot(bb, f.x-1.0, f.y-1.0  ), u);
+  float x1=mix(gradDot(aa, f.x, f.y),     gradDot(ba, f.x-1.0, f.y),     u);
+  float x2=mix(gradDot(ab, f.x, f.y-1.0), gradDot(bb, f.x-1.0, f.y-1.0), u);
   return mix(x1, x2, v);
 }
 float perlin2(vec2 p){
-  vec2 pf = floor(p);
-  vec2 f  = p - pf;
+  vec2 pf = floor(p), f = p - pf;
   float X = mod(pf.x,256.0), Y = mod(pf.y,256.0);
-  float pY  = permAt2(Y);
-  float pY1 = permAt2(Y + 1.0);
-  float aa=permAt2(X +     pY );
-  float ab=permAt2(X +     pY1);
-  float ba=permAt2(X + 1.0+pY );
-  float bb=permAt2(X + 1.0+pY1);
+  float pY=permAt2(Y), pY1=permAt2(Y+1.0);
+  float aa=permAt2(X+pY), ab=permAt2(X+pY1), ba=permAt2(X+1.0+pY), bb=permAt2(X+1.0+pY1);
   float u=fade5(f.x), v=fade5(f.y);
-  float x1=mix(gradDot(aa, f.x,        f.y      ), gradDot(ba, f.x-1.0, f.y      ), u);
-  float x2=mix(gradDot(ab, f.x,        f.y-1.0   ), gradDot(bb, f.x-1.0, f.y-1.0  ), u);
+  float x1=mix(gradDot(aa, f.x, f.y),     gradDot(ba, f.x-1.0, f.y),     u);
+  float x2=mix(gradDot(ab, f.x, f.y-1.0), gradDot(bb, f.x-1.0, f.y-1.0), u);
   return mix(x1, x2, v);
 }
 float perlin3(vec2 p){
-  vec2 pf = floor(p);
-  vec2 f  = p - pf;
+  vec2 pf = floor(p), f = p - pf;
   float X = mod(pf.x,256.0), Y = mod(pf.y,256.0);
-  float pY  = permAt3(Y);
-  float pY1 = permAt3(Y + 1.0);
-  float aa=permAt3(X +     pY );
-  float ab=permAt3(X +     pY1);
-  float ba=permAt3(X + 1.0+pY );
-  float bb=permAt3(X + 1.0+pY1);
+  float pY=permAt3(Y), pY1=permAt3(Y+1.0);
+  float aa=permAt3(X+pY), ab=permAt3(X+pY1), ba=permAt3(X+1.0+pY), bb=permAt3(X+1.0+pY1);
   float u=fade5(f.x), v=fade5(f.y);
-  float x1=mix(gradDot(aa, f.x,        f.y      ), gradDot(ba, f.x-1.0, f.y      ), u);
-  float x2=mix(gradDot(ab, f.x,        f.y-1.0   ), gradDot(bb, f.x-1.0, f.y-1.0  ), u);
+  float x1=mix(gradDot(aa, f.x, f.y),     gradDot(ba, f.x-1.0, f.y),     u);
+  float x2=mix(gradDot(ab, f.x, f.y-1.0), gradDot(bb, f.x-1.0, f.y-1.0), u);
   return mix(x1, x2, v);
 }
 
-// ✅ 分支无关 fBm + LOD 自适应
-float fbm1(vec2 p, int oct, float freq, float pers, float pxPerWorld, float lodEnable, float lodNyquist){
+// 分支无关 fBm + LOD（⚠️ 关键：每个 octave 用 period 做模，使采样坐标永远小）
+float fbm_core(vec2 p, int oct, float freq, float pers, float pxPerWorld, float lodEnable, float lodNyquist, int channel){
   float total=0.0, amp=1.0, sumAmp=0.0, f=freq;
   for (int i=0; i<MAX_OCT; ++i){
     float base = step(float(i), float(oct-1));
     float span = f / pxPerWorld;
     float vis  = mix(1.0, step(span, lodNyquist), lodEnable);
     float m = base * vis;
-    float n = perlin1(p*f);
-    total  += n * amp * m;
-    sumAmp += amp * m;
-    amp *= pers; f *= 2.0;
-  }
-  return (sumAmp>0.0)?(total/sumAmp):0.0;
-}
-float fbm2(vec2 p, int oct, float freq, float pers, float pxPerWorld, float lodEnable, float lodNyquist){
-  float total=0.0, amp=1.0, sumAmp=0.0, f=freq;
-  for (int i=0; i<MAX_OCT; ++i){
-    float base = step(float(i), float(oct-1));
-    float span = f / pxPerWorld;
-    float vis  = mix(1.0, step(span, lodNyquist), lodEnable);
-    float m = base * vis;
-    float n = perlin2(p*f);
-    total  += n * amp * m;
-    sumAmp += amp * m;
-    amp *= pers; f *= 2.0;
-  }
-  return (sumAmp>0.0)?(total/sumAmp):0.0;
-}
-float fbm3(vec2 p, int oct, float freq, float pers, float pxPerWorld, float lodEnable, float lodNyquist){
-  float total=0.0, amp=1.0, sumAmp=0.0, f=freq;
-  for (int i=0; i<MAX_OCT; ++i){
-    float base = step(float(i), float(oct-1));
-    float span = f / pxPerWorld;
-    float vis  = mix(1.0, step(span, lodNyquist), lodEnable);
-    float m = base * vis;
-    float n = perlin3(p*f);
+
+    // ✅ 将世界基准按当层周期取模，避免大数进入 Perlin
+    float period = 256.0 / f;
+    vec2  pEff   = p + mod(uWorldBase, vec2(period));
+
+    float n = (channel==1) ? perlin1(pEff*f)
+    : (channel==2) ? perlin2(pEff*f)
+    : perlin3(pEff*f);
+
     total  += n * amp * m;
     sumAmp += amp * m;
     amp *= pers; f *= 2.0;
@@ -147,7 +113,11 @@ float fbm3(vec2 p, int oct, float freq, float pers, float pxPerWorld, float lodE
   return (sumAmp>0.0)?(total/sumAmp):0.0;
 }
 
-// ========= 行亮度 =========
+float fbm1(vec2 p,int o,float fr,float pe,float s,float le,float ln){return fbm_core(p,o,fr,pe,s,le,ln,1);}
+float fbm2(vec2 p,int o,float fr,float pe,float s,float le,float ln){return fbm_core(p,o,fr,pe,s,le,ln,2);}
+float fbm3(vec2 p,int o,float fr,float pe,float s,float le,float ln){return fbm_core(p,o,fr,pe,s,le,ln,3);}
+
+// 行亮度
 float rowBrightness(float worldY){
   float segmentHeight=200.0, groupSize=100.0, offsetRange=0.10;
   float blockIndex=floor(worldY/segmentHeight);
@@ -158,10 +128,9 @@ float rowBrightness(float worldY){
   return mirrored*stepv;
 }
 
-// ========= 无数组调色板选色（branchless）=========
+// 无数组调色板选色（branchless）
 vec3 pickPalette(int idx){
   float fi = float(idx);
-  // |fi - k| < 0.5 → 选中 k
   float w0 = 1.0 - step(0.5, abs(fi - 0.0));
   float w1 = 1.0 - step(0.5, abs(fi - 1.0));
   float w2 = 1.0 - step(0.5, abs(fi - 2.0));
@@ -177,7 +146,7 @@ void main(){
   vec2 frag = FlutterFragCoord().xy;
 
   float pxPerWorld = max(uScale, 1e-6);
-  vec2  world      = uWorldTopLeft + frag / pxPerWorld;
+  vec2  world      = uWorldTopLeft + frag / pxPerWorld; // ✅ 只用“局部”世界
 
   if (uDebug > 0.5 && uDebug < 1.5) {
     vec2 n = fract(world * 0.01);
@@ -191,15 +160,16 @@ void main(){
   float lodEnable  = (uLodEnable  > 0.5) ? 1.0 : 0.0;
   float lodNyquist = max(uLodNyquist, 1e-6);
 
-  float h1 = (fbm1(world,                         oct, f, per, pxPerWorld, lodEnable, lodNyquist) + 1.0) * 0.5;
-  float h2 = (fbm2(world + vec2(SAFE_SHIFT),      oct, f, per, pxPerWorld, lodEnable, lodNyquist) + 1.0) * 0.5;
-  float h3 = (fbm3(world - vec2(SAFE_SHIFT),      oct, f, per, pxPerWorld, lodEnable, lodNyquist) + 1.0) * 0.5;
+  // 三通道（SAFE_SHIFT 只做通道去相关，跟基准相加在 fbm_core 内部）
+  float h1 = (fbm1(world,                    oct, f, per, pxPerWorld, lodEnable, lodNyquist) + 1.0) * 0.5;
+  float h2 = (fbm2(world + vec2(SAFE_SHIFT), oct, f, per, pxPerWorld, lodEnable, lodNyquist) + 1.0) * 0.5;
+  float h3 = (fbm3(world - vec2(SAFE_SHIFT), oct, f, per, pxPerWorld, lodEnable, lodNyquist) + 1.0) * 0.5;
 
   float mixed = clamp(h1*0.4 + h2*0.3 + h3*0.3, 0.0, 1.0);
 
   int idx;
   if (mixed < 0.40 || mixed > 0.60) {
-    idx = 5; // shallow_ocean
+    idx = 5;
   } else {
     float norm = (mixed - 0.40) / 0.20;
     idx = int(clamp(floor(norm * 8.0), 0.0, 7.0));

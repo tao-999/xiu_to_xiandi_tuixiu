@@ -279,32 +279,57 @@ class NoiseTileMapGenerator extends PositionComponent {
 
   // ============= 地形采样（缓存）=============
   int _getTerrainIndex(double nx, double ny) {
-    // 以 smallTileSize 量化到网格整点，确保同一点命中缓存
-    final ix = (nx / smallTileSize).floor();
-    final iy = (ny / smallTileSize).floor();
-    final key = _packKey(ix, iy);
+    // 1) 入参消毒：防 NaN/Inf
+    if (!nx.isFinite || !ny.isFinite) {
+      nx = 0.0;
+      ny = 0.0;
+    }
 
+    // 2) smallTileSize 兜底
+    double s = smallTileSize;
+    if (!s.isFinite || s <= 0) s = 1.0;
+
+    // 3) 超大坐标按 Perlin 基础周期折叠（保持噪声不变）
+    //    基础周期 = 256 / frequency（与 GPU/CPU 周期一致）
+    const double BIG = 1e9; // 只有非常非常夸张才会触发
+    double f = frequency.abs();
+    if (f < 1e-12) f = 1e-12;            // 防 0 或超小频率
+    final double period = 256.0 / f;
+
+    if (nx.abs() > BIG) nx = nx % period;
+    if (ny.abs() > BIG) ny = ny % period;
+
+    // 4) 量化到采样网格 → key
+    final int ix = (nx / s).floor();
+    final int iy = (ny / s).floor();
+    final int key = _packKey(ix, iy);
+
+    // 5) 命中缓存
     final cached = _sampleCache[key];
     if (cached != null) return cached.index;
 
-    // 三通道噪声取样（也缓存）
-    final hk = key; // 同一 key
-    final uk = key ^ 0x9E3779B97F4A7C15; // 不同扰动，避免 Map 退化
-    final tk = key ^ 0xC2B2AE3D27D4EB4F;
-
+    // 6) 三通道噪声（与原逻辑一致）
     const double SAFE_SHIFT = 1048576.0; // 2^20
-    final h1 = _hCache[hk] ??= (_noiseHeight.fbm(nx, ny, octaves, frequency, persistence) + 1) / 2;
-    final h2 = _uCache[uk] ??= (_noiseHumidity.fbm(nx + SAFE_SHIFT, ny + SAFE_SHIFT, octaves, frequency, persistence) + 1) / 2;
-    final h3 = _tCache[tk] ??= (_noiseTemperature.fbm(nx - SAFE_SHIFT, ny - SAFE_SHIFT, octaves, frequency, persistence) + 1) / 2;
+    final int hk = key;
+    final int uk = key ^ 0x9E3779B97F4A7C15; // 避免 Map 冲突
+    final int tk = key ^ 0xC2B2AE3D27D4EB4F;
 
-    final mixed = (h1 * 0.4 + h2 * 0.3 + h3 * 0.3).clamp(0.0, 1.0);
+    final double h1 = _hCache[hk] ??=
+        (_noiseHeight.fbm(nx, ny, octaves, f, persistence) + 1) / 2;
+    final double h2 = _uCache[uk] ??=
+        (_noiseHumidity.fbm(nx + SAFE_SHIFT, ny + SAFE_SHIFT, octaves, f, persistence) + 1) / 2;
+    final double h3 = _tCache[tk] ??=
+        (_noiseTemperature.fbm(nx - SAFE_SHIFT, ny - SAFE_SHIFT, octaves, f, persistence) + 1) / 2;
+
+    final double mixed = (h1 * 0.4 + h2 * 0.3 + h3 * 0.3).clamp(0.0, 1.0);
     int idx;
-    if (mixed < 0.4 || mixed > 0.6) {
-      // 保持与原逻辑一致：极端都归为 shallow_ocean（索引=5）
-      idx = 5;
+    if (mixed < 0.40 || mixed > 0.60) {
+      idx = 5; // shallow_ocean
     } else {
-      final normalized = (mixed - 0.4) / 0.2;
-      idx = (normalized * _terrainDefs.length).floor().clamp(0, _terrainDefs.length - 1);
+      final double normalized = (mixed - 0.40) / 0.20;
+      idx = (normalized * _terrainDefs.length)
+          .floor()
+          .clamp(0, _terrainDefs.length - 1);
     }
 
     _sampleCache[key] = _TerrainSample(index: idx);

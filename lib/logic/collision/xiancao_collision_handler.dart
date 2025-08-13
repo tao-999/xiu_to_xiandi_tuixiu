@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../data/all_pill_recipes.dart'; // 提供 levelMaterials
 import '../../services/collected_xiancao_storage.dart';
 import '../../services/herb_material_service.dart';
+import '../../utils/global_distance.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_text_component.dart';
@@ -83,7 +84,8 @@ class XiancaoCollisionHandler {
     if (xiancao.isDead || xiancao.collisionCooldown > 0) return;
     xiancao.collisionCooldown = double.infinity;
 
-    final distance = xiancao.logicalPosition.length;
+    final game = xiancao.findGame()!;
+    final double distance = computeGlobalDistancePx(comp: xiancao, game: game);
 
     // ✅ 获取最大阶（根据距离）
     int maxLevel = _levelBounds.indexWhere((b) => distance < b);
@@ -105,7 +107,6 @@ class XiancaoCollisionHandler {
     HerbMaterialService.add(name, 1);
 
     // ✅ 弹窗提示
-    final game = xiancao.findGame();
     if (game != null) {
       final rewardText = '采集到【$name】×1';
       final centerPos = game.size / 2;

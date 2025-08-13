@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/resources_storage.dart';
 import '../../services/treasure_chest_storage.dart';
+import '../../utils/global_distance.dart';
 import '../../utils/lingshi_util.dart';
 import '../../widgets/components/floating_island_static_decoration_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
@@ -43,7 +44,7 @@ class Baoxiang1CollisionHandler {
     print('🛑 [Baoxiang1] 玩家停止移动');
 
     // ✅ 距离决定奖励
-    final distance = chest.worldPosition.length;
+    final double distance = computeGlobalDistancePx(comp: chest, game: game);
     final rand = Random();
 
     final count = distance > 10_000_000

@@ -18,12 +18,15 @@ import 'dynamic_sprite_entry.dart';
 import 'floating_island_dynamic_mover_component.dart';
 import 'noise_tile_map_generator.dart';
 
-class FloatingIslandDynamicSpawnerComponent extends Component {
+class FloatingIslandDynamicSpawnerComponent extends Component
+    with HasGameReference {
   final Component grid;
   final Vector2 Function() getLogicalOffset;
   final Vector2 Function() getViewSize;
   final String Function(Vector2) getTerrainType;
   final NoiseTileMapGenerator? noiseMapGenerator;
+
+  // ❌ 移除 getWorldBase；直接从 game 读
 
   final Map<String, List<DynamicSpriteEntry>> dynamicSpritesMap;
   final Set<String> allowedTerrains;
@@ -49,18 +52,16 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
   final Map<String, Sprite> _spriteCache = {};
   final List<_PendingTile> _pendingTiles = [];
 
-  // ====== 🔧 新增：运行期索引 & GC/限流配置 ======
-  // tileKey -> movers
+  // 运行期索引 & GC/限流
   final Map<String, List<FloatingIslandDynamicMoverComponent>> _tileActors = {};
-  // "tx_ty" -> {tileKey, ...}
   final Map<String, Set<String>> _tileCoordToKeys = {};
 
   double _gcTicker = 0.0;
 
-  static const double _gcIntervalSec   = 0.6;  // 定期离屏回收周期
-  static const int    _maxActiveMovers = 260;  // 全局活跃上限
-  static const int    _maxPerTile      = 6;    // 单 tile 活跃上限
-  static const int    _unloadPadTiles  = 3;    // 卸载缓冲（视野外 N 个 tile）
+  static const double _gcIntervalSec = 0.6;
+  static const int _maxActiveMovers = 260;
+  static const int _maxPerTile = 6;
+  static const int _unloadPadTiles = 3;
 
   FloatingIslandDynamicSpawnerComponent({
     required this.grid,
@@ -83,10 +84,19 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
   // 🧰 小工具
   String _coordKey(int tx, int ty) => '${tx}_${ty}';
-  int _countActiveMovers() =>
-      _tileActors.values.fold(0, (s, lst) => s + lst.length);
+  int _countActiveMovers() => _tileActors.values.fold(0, (s, lst) => s + lst.length);
 
-  /// 🧠 Sprite 资源预加载
+  /// 从 game 里安全读取 worldBase（避免循环依赖，用 dynamic）
+  Vector2 _readWorldBaseSafe() {
+    try {
+      final dynamic g = game;
+      final base = g.worldBase;
+      if (base is Vector2) return base;
+    } catch (_) {}
+    return Vector2.zero();
+  }
+
+  /// 🧠 Sprite 预加载
   @override
   Future<void> onLoad() async {
     for (final entries in dynamicSpritesMap.values) {
@@ -110,15 +120,12 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     const int tilesPerFrame = 1;
     int spawned = 0;
     while (_pendingTiles.isNotEmpty && spawned < tilesPerFrame) {
-      // ✋ 全局限流：达上限则暂停生成
       if (_countActiveMovers() >= _maxActiveMovers) break;
-
       final tile = _pendingTiles.removeAt(0);
       _spawnDynamicComponentsForTile(tile.tx, tile.ty, tile.terrain);
       spawned++;
     }
 
-    // 🧹 定期离屏回收（清理视野 ±N tiles 之外的 mover）
     _gcTicker += dt;
     if (_gcTicker >= _gcIntervalSec) {
       _gcTicker = 0;
@@ -126,16 +133,15 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     }
   }
 
-  /// 🌍 查找附近合法地形坐标（多点采样+安全边距+可选边界）
+  /// 🌍 找附近稳固地形
   Vector2? findNearbyValidTile({
     required Vector2 center,
     double minRadius = 100,
     double maxRadius = 500,
     int maxAttempts = 30,
     Rect? preferredWithin,
-    double safeMargin = 16.0, // ✅ 安全边距（像素）
+    double safeMargin = 16.0,
   }) {
-    // 统一地形判定口径（使用噪声生成器优先）
     String classify(Vector2 p) {
       if (noiseMapGenerator != null) {
         return noiseMapGenerator!.getTerrainTypeAtPosition(p);
@@ -144,7 +150,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     }
 
     bool isRobustAllowed(Vector2 p) {
-      // 十字+对角 9 点采样，确保不是贴边
       const offsets = [
         Offset(0, 0),
         Offset(1, 0),
@@ -161,7 +166,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
         final q = Vector2(p.x + o.dx * safeMargin, p.y + o.dy * safeMargin);
         if (allowedTerrains.contains(classify(q))) ok++;
       }
-      // 9 点里至少 7 点合法，才算“稳固”
       return ok >= 7;
     }
 
@@ -171,7 +175,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
       final rect = preferredWithin!;
       final w = rect.width;
       final h = rect.height;
-
       if (w <= 0 || h <= 0) return p;
 
       double mx = min(safeMargin, w / 2 - 0.5);
@@ -199,7 +202,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     }
 
     final rand = Random();
-    // 黄金角+扩展环均匀撒点
     const golden = 2.39996322972865332;
     final rings = max(4, (maxAttempts / 8).floor());
     final basePerRing = max(8, (maxAttempts / rings).ceil());
@@ -210,7 +212,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
       final samples = basePerRing + r * 2;
       for (int i = 0; i < samples; i++) {
-        final angle = i * golden + r * 0.31 + rand.nextDouble() * 0.05; // 微扰
+        final angle = i * golden + r * 0.31 + rand.nextDouble() * 0.05;
         final candidate = Vector2(
           center.x + cos(angle) * radius,
           center.y + sin(angle) * radius,
@@ -264,17 +266,15 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     _pendingTiles.addAll(newlyFound);
   }
 
-  /// 🧬 核心组件生成逻辑
+  /// 🧬 核心组件生成
   Future<void> _spawnDynamicComponentsForTile(int tx, int ty, String terrain) async {
     final entries = dynamicSpritesMap[terrain] ?? [];
     if (entries.isEmpty) return;
 
-    // 单 tile 限流（横跨所有 type 的活跃总数）
     final coordKey = _coordKey(tx, ty);
     final activeKeys = _tileCoordToKeys[coordKey];
-    final activeCount = activeKeys == null
-        ? 0
-        : activeKeys.fold<int>(0, (s, k) => s + (_tileActors[k]?.length ?? 0));
+    final activeCount =
+    activeKeys == null ? 0 : activeKeys.fold<int>(0, (s, k) => s + (_tileActors[k]?.length ?? 0));
     if (activeCount >= _maxPerTile) return;
 
     final rand = Random(seed + tx * 92821 + ty * 53987 + 2);
@@ -293,33 +293,25 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     final count = rand.nextInt(maxCount - minCount + 1) + minCount;
 
     for (int i = 0; i < count; i++) {
-      // ✋ 全局限流：动态检查
       if (_countActiveMovers() >= _maxActiveMovers) break;
 
       final mover = await _createMover(rand, selected, tx, ty, i, type, terrain, tileKey);
       if (mover != null) {
-        // 登记：tileKey -> list
-        _tileActors.putIfAbsent(tileKey, () => <FloatingIslandDynamicMoverComponent>[]);
-        _tileActors[tileKey]!.add(mover);
-
-        // 登记：(tx_ty) -> {tileKey}
+        _tileActors.putIfAbsent(tileKey, () => <FloatingIslandDynamicMoverComponent>[]).add(mover);
         _tileCoordToKeys.putIfAbsent(coordKey, () => <String>{}).add(tileKey);
 
         print('✨ 生成 Mover: type=$type tileKey=$tileKey worldPos=${mover.position}');
         onDynamicComponentCreated?.call(mover, terrain);
 
-        // 统一清理挂钩：remove 时同步回收索引 & 允许重刷
         final prevOnRemove = mover.onRemoveCallback;
         mover.onRemoveCallback = () {
-          // 先调原回调（若有）
           try { prevOnRemove?.call(); } catch (_) {}
 
-          // 再做索引清理
           final list = _tileActors[tileKey];
           list?.remove(mover);
           if (list != null && list.isEmpty) {
             _tileActors.remove(tileKey);
-            _loadedDynamicTiles.remove(tileKey); // 允许回头再生
+            _loadedDynamicTiles.remove(tileKey);
             final set = _tileCoordToKeys[coordKey];
             set?.remove(tileKey);
             if (set != null && set.isEmpty) _tileCoordToKeys.remove(coordKey);
@@ -333,7 +325,22 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     }
   }
 
-  /// ⚙️ 创建单个组件
+  static const double _kMaxScaleDistancePx = 1e12;
+
+  double _capDistancePx(double d, {double cap = _kMaxScaleDistancePx}) {
+    if (d.isNaN || d.isInfinite) return cap;
+    if (d > cap) return cap;
+    if (d < 0.0) return 0.0;
+    return d;
+  }
+
+  double _globalDistanceFromPos(Vector2 worldPos, {double cap = _kMaxScaleDistancePx}) {
+    final game = findGame(); // 组件方法，拿到当前 FlameGame
+    final Vector2 base = (game as dynamic).worldBase as Vector2? ?? Vector2.zero();
+    final double d = (base + worldPos).length;
+    return _capDistancePx(d, cap: cap);
+  }
+  /// ⚙️ 创建单个组件（💥 用“全局距离”：worldBase + local）
   Future<FloatingIslandDynamicMoverComponent?> _createMover(
       Random rand,
       DynamicSpriteEntry selected,
@@ -383,10 +390,11 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     )
         : selected.labelText;
 
-    final dist = worldPos.length;
-    final hp = selected.hp != null ? selected.hp! + dist / 10 : null;
-    final atk = selected.atk != null ? selected.atk! + dist / 50 : null;
-    final def = selected.def != null ? selected.def! + dist / 80 : null;
+    // ✅ 关键：全局距离，重基不归零
+    final double safeDist = _globalDistanceFromPos(worldPos); // NaN/∞ → 上限；正常也封顶
+    final hp  = selected.hp  != null ? selected.hp!  + safeDist / 2  : null;
+    final atk = selected.atk != null ? selected.atk! + safeDist / 20  : null;
+    final def = selected.def != null ? selected.def! + safeDist / 10  : null;
 
     return FloatingIslandDynamicMoverComponent(
       spawner: this,
@@ -416,7 +424,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     );
   }
 
-  /// 🎲 权重随机选择
+  /// 🎲 权重随机
   DynamicSpriteEntry _pickDynamicByWeight(List<DynamicSpriteEntry> entries, Random rand) {
     final total = entries.fold<int>(0, (sum, e) => sum + e.weight);
     int roll = rand.nextInt(total);
@@ -428,7 +436,7 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     return entries.first;
   }
 
-  /// ✅ 资源判重封装（更清晰）
+  /// ✅ 资源判重封装
   Future<bool> _shouldSkipByCollection(String type, String tileKey) async {
     if (type == 'danyao') return await CollectedPillStorage.isCollected(tileKey);
     if (type == 'gongfa_1') return await GongfaCollectedStorage.isCollected(tileKey);
@@ -441,21 +449,18 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
     return false;
   }
 
-  /// 🧹 卸载视野外的 tile 上的 movers
+  /// 🧹 卸载视野外 tiles
   void _despawnFarTiles(Vector2 topLeft, Vector2 bottomRight) {
-    // 当前可见 tile 范围
     final minTx = (topLeft.x / dynamicTileSize).floor();
     final minTy = (topLeft.y / dynamicTileSize).floor();
     final maxTx = (bottomRight.x / dynamicTileSize).ceil();
     final maxTy = (bottomRight.y / dynamicTileSize).ceil();
 
-    // 保留范围（加缓冲）
     final keepMinTx = minTx - _unloadPadTiles;
     final keepMinTy = minTy - _unloadPadTiles;
     final keepMaxTx = maxTx + _unloadPadTiles;
     final keepMaxTy = maxTy + _unloadPadTiles;
 
-    // 找出需要卸载的 (tx_ty)
     final toDropCoords = <String>[];
     for (final ck in _tileCoordToKeys.keys) {
       final sp = ck.split('_');
@@ -468,7 +473,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
 
     if (toDropCoords.isEmpty) return;
 
-    // 卸载这些 tile 上的所有 movers（触发 onRemoveCallback 自动清索引）
     for (final ck in toDropCoords) {
       final keys = _tileCoordToKeys[ck];
       if (keys == null) continue;
@@ -486,7 +490,6 @@ class FloatingIslandDynamicSpawnerComponent extends Component {
   }
 }
 
-/// 🧱 内部 tile 定义类
 class _PendingTile {
   final int tx;
   final int ty;

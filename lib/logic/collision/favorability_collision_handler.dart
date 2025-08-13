@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../../data/favorability_data.dart';
 import '../../services/collected_favorability_storage.dart';
 import '../../services/favorability_material_service.dart';
+import '../../utils/global_distance.dart';
 import '../../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../../widgets/components/floating_island_player_component.dart';
 import '../../widgets/components/floating_text_component.dart';
@@ -80,7 +81,8 @@ class FavorabilityCollisionHandler {
     if (favorItem.isDead || favorItem.collisionCooldown > 0) return;
     favorItem.collisionCooldown = double.infinity;
 
-    final distance = favorItem.logicalPosition.length;
+    final game = favorItem.findGame()!;
+    final double distance = computeGlobalDistancePx(comp: favorItem, game: game);
 
     // ✅ 获取最大阶（根据距离）
     int maxLevel = _levelBounds.indexWhere((b) => distance < b);
@@ -101,7 +103,6 @@ class FavorabilityCollisionHandler {
     FavorabilityMaterialService.addMaterial(materialIndex, 1);
 
     // ✅ 弹窗提示
-    final game = favorItem.findGame();
     if (game != null) {
       final favorItemData = FavorabilityData.getByIndex(materialIndex);
       final rewardText = '获得【${favorItemData.name}】×1';

@@ -105,13 +105,13 @@ class FlowerFieldDecorator extends Component {
         allowedTerrains: {'flower_field'},
         dynamicSpritesMap: {
           'flower_field': [
-            DynamicSpriteEntry('floating_island/zhuque.png', 1, priority: 9999, type: 'boss_3', labelText: '上古朱雀', labelColor:  Color(0xFFFF3B00), hp: 10000, atk: 2000, def: 1000),
+            DynamicSpriteEntry('floating_island/zhuque.png', 1, priority: 9999, type: 'boss_3', labelText: '上古朱雀', labelColor:  Color(0xFFFF3B00), hp: 100000, atk: 4000, def: 2000, autoChaseRange: 300, enableAutoChase: true),
           ],
         },
-        dynamicTileSize: 1234.0,
+        dynamicTileSize: 734.0,
         seed: seed,
-        minDynamicObjectSize: 100.0,
-        maxDynamicObjectSize: 150.0,
+        minDynamicObjectSize: 60.0,
+        maxDynamicObjectSize: 100.0,
         minSpeed: 50.0,
         maxSpeed: 75.0,
       ),
@@ -127,7 +127,7 @@ class FlowerFieldDecorator extends Component {
         allowedTerrains: {'flower_field'},
         dynamicSpritesMap: {
           'flower_field': [
-            DynamicSpriteEntry('gongfa/gongfa.png', 1, type: 'gongfa_1', labelText: '神秘功法', labelColor:  Color(0xFF000000)),
+            DynamicSpriteEntry('gongfa/gongfa.png', 1, type: 'gongfa_1', labelText: '神秘功法', labelColor:  Color(0xFF000000))
           ],
         },
         dynamicTileSize: 640.0,
