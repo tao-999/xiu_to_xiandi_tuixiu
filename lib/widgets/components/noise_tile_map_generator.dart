@@ -1,3 +1,4 @@
+// 📄 lib/widgets/components/noise_tile_map_generator.dart
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -14,6 +15,10 @@ class NoiseTileMapGenerator extends PositionComponent {
   final int octaves;
   final double persistence;
   final int chunkPixelSize;
+
+  /// ✅ 新增：读取 worldBase（重基累计偏移）。默认返回 (0,0)
+  final Vector2 Function() getWorldBase;
+  static Vector2 _zeroBase() => Vector2.zero();
 
   double viewScale = 1.0;
   Vector2 viewSize = Vector2.zero();
@@ -32,13 +37,12 @@ class NoiseTileMapGenerator extends PositionComponent {
   Vector2? _lastEnsureExtra;
 
   // ========= 性能缓存 =========
-  // 每个 chunk 生成阶段：采样缓存（按 smallTileSize 量化到整点）
   final Map<int, _TerrainSample> _sampleCache = {};
   final Map<int, double> _hCache = {};
   final Map<int, double> _uCache = {};
   final Map<int, double> _tCache = {};
   final Map<int, double> _brightnessRowCache = {};
-  // 预计算地形表
+
   static const List<(String type, ui.Color base)> _terrainDefs = [
     ('snow', ui.Color(0xFFEFEFEF)),
     ('grass', ui.Color(0xFF9BCB75)),
@@ -49,11 +53,9 @@ class NoiseTileMapGenerator extends PositionComponent {
     ('beach', ui.Color(0xFFEAD7B6)),
     ('volcanic', ui.Color(0xFF7E3B3B)),
   ];
-  // 预计算 HSL，减少每像素转换
   static final List<HSLColor> _terrainBaseHSL =
   _terrainDefs.map((e) => HSLColor.fromColor(Color(e.$2.value))).toList(growable: false);
 
-  // 复用画笔
   final ui.Paint _chunkPaint = ui.Paint()
     ..isAntiAlias = false
     ..filterQuality = ui.FilterQuality.none;
@@ -68,7 +70,8 @@ class NoiseTileMapGenerator extends PositionComponent {
     this.octaves = 4,
     this.persistence = 0.5,
     this.chunkPixelSize = 256,
-  }) {
+    Vector2 Function()? getWorldBase,
+  }) : getWorldBase = getWorldBase ?? _zeroBase {
     _noiseHeight = NoiseUtils(seed);
     _noiseHumidity = NoiseUtils(seed + 999);
     _noiseTemperature = NoiseUtils(seed - 999);
@@ -115,7 +118,6 @@ class NoiseTileMapGenerator extends PositionComponent {
     super.update(dt);
 
     _chunksGeneratedThisFrame = 0;
-    // 优先生成靠近视野中心的（ensure 已排序）
     final pending = List<_PendingChunk>.from(_pendingChunks);
     for (final p in pending) {
       if (_chunksGeneratedThisFrame >= 2) break;
@@ -131,7 +133,6 @@ class NoiseTileMapGenerator extends PositionComponent {
   }
 
   Future<ui.Image> _generateChunkImage(int cx, int cy) async {
-    // 每个 chunk 开始：清空缓存（只对生成阶段有效）
     _sampleCache.clear();
     _hCache.clear();
     _uCache.clear();
@@ -150,11 +151,9 @@ class NoiseTileMapGenerator extends PositionComponent {
     final originX = cx * chunkPixelSize.toDouble();
     final originY = cy * chunkPixelSize.toDouble();
 
-    // 步进常量化，避免在循环里反复做成员访问
     final step = tileSize;
     final localOffset = Offset(-originX, -originY);
 
-    // 行级 brightness 预热：按 smallTileSize 量化的 y
     for (double y = startY; y < endY; y += smallTileSize) {
       final nyInt = (originY + y).floor();
       _brightnessRowCache[_packRowKey(nyInt)] = _getBrightnessOffsetForY(nyInt.toDouble());
@@ -177,14 +176,12 @@ class NoiseTileMapGenerator extends PositionComponent {
   }
 
   void _renderAdaptiveTile(ui.Canvas canvas, double wx, double wy, double size, Offset localOffset) {
-    // 取四角+中心的地形索引（使用缓存，避免重复计算）
     final idx00 = _getTerrainIndex(wx, wy);
     final idx10 = _getTerrainIndex(wx + size, wy);
     final idx01 = _getTerrainIndex(wx, wy + size);
     final idx11 = _getTerrainIndex(wx + size, wy + size);
     final idxC  = _getTerrainIndex(wx + size / 2, wy + size / 2);
 
-    // 判断是否同一种类型（避免 Set 分配）
     if (idx00 == idx10 && idx00 == idx01 && idx00 == idx11 && idx00 == idxC || size <= smallTileSize) {
       final color = _getTerrainColorForIndex(idxC, wy + size / 2);
       final dx = (wx + localOffset.dx).floorToDouble();
@@ -246,7 +243,6 @@ class NoiseTileMapGenerator extends PositionComponent {
       }
     }
 
-    // ✅ 距离中心排序，优先近处
     candidates.sort((a, b) {
       final acx = a.cx * chunkPixelSize + chunkPixelSize / 2;
       final acy = a.cy * chunkPixelSize + chunkPixelSize / 2;
@@ -277,49 +273,51 @@ class NoiseTileMapGenerator extends PositionComponent {
     }
   }
 
-  // ============= 地形采样（缓存）=============
-  int _getTerrainIndex(double nx, double ny) {
-    // 1) 入参消毒：防 NaN/Inf
-    if (!nx.isFinite || !ny.isFinite) {
-      nx = 0.0;
-      ny = 0.0;
-    }
+  // ===== 工具：安全浮点取模（兼容负数/非有限）
+  double _fmod(double a, double m) {
+    if (!a.isFinite || !m.isFinite || m == 0) return 0.0;
+    final q = (a / m).floorToDouble();
+    return a - q * m;
+  }
 
-    // 2) smallTileSize 兜底
+  // ============= 地形采样（✅ 重基无缝）=============
+  int _getTerrainIndex(double nx, double ny) {
+    // 1) 入参消毒
+    if (!nx.isFinite || !ny.isFinite) { nx = 0.0; ny = 0.0; }
+
+    // 2) 频率/步长兜底
+    double f = frequency.abs();
+    if (f < 1e-12) f = 1e-12;
     double s = smallTileSize;
     if (!s.isFinite || s <= 0) s = 1.0;
 
-    // 3) 超大坐标按 Perlin 基础周期折叠（保持噪声不变）
-    //    基础周期 = 256 / frequency（与 GPU/CPU 周期一致）
-    const double BIG = 1e9; // 只有非常非常夸张才会触发
-    double f = frequency.abs();
-    if (f < 1e-12) f = 1e-12;            // 防 0 或超小频率
+    // 3) 基础周期（与 Shader 一致）+ worldBase 取模
     final double period = 256.0 / f;
+    final base = getWorldBase();
+    final double bx = _fmod(base.x, period);
+    final double by = _fmod(base.y, period);
 
-    if (nx.abs() > BIG) nx = nx % period;
-    if (ny.abs() > BIG) ny = ny % period;
+    // 4) 有效采样坐标 = 局部 + 已取模的 worldBase
+    final double px = nx + bx;
+    final double py = ny + by;
 
-    // 4) 量化到采样网格 → key
-    final int ix = (nx / s).floor();
-    final int iy = (ny / s).floor();
+    // 5) 量化后的 key（让缓存跟着“有效坐标”走，重基也命中）
+    final int ix = (px / s).floor();
+    final int iy = (py / s).floor();
     final int key = _packKey(ix, iy);
 
-    // 5) 命中缓存
     final cached = _sampleCache[key];
     if (cached != null) return cached.index;
 
-    // 6) 三通道噪声（与原逻辑一致）
+    // 6) 三通道 fBm（与 Shader 通道去相关一致）
     const double SAFE_SHIFT = 1048576.0; // 2^20
     final int hk = key;
-    final int uk = key ^ 0x9E3779B97F4A7C15; // 避免 Map 冲突
+    final int uk = key ^ 0x9E3779B97F4A7C15;
     final int tk = key ^ 0xC2B2AE3D27D4EB4F;
 
-    final double h1 = _hCache[hk] ??=
-        (_noiseHeight.fbm(nx, ny, octaves, f, persistence) + 1) / 2;
-    final double h2 = _uCache[uk] ??=
-        (_noiseHumidity.fbm(nx + SAFE_SHIFT, ny + SAFE_SHIFT, octaves, f, persistence) + 1) / 2;
-    final double h3 = _tCache[tk] ??=
-        (_noiseTemperature.fbm(nx - SAFE_SHIFT, ny - SAFE_SHIFT, octaves, f, persistence) + 1) / 2;
+    final double h1 = _hCache[hk] ??= (_noiseHeight.fbm(px, py, octaves, f, persistence) + 1) / 2;
+    final double h2 = _uCache[uk] ??= (_noiseHumidity.fbm(px + SAFE_SHIFT, py + SAFE_SHIFT, octaves, f, persistence) + 1) / 2;
+    final double h3 = _tCache[tk] ??= (_noiseTemperature.fbm(px - SAFE_SHIFT, py - SAFE_SHIFT, octaves, f, persistence) + 1) / 2;
 
     final double mixed = (h1 * 0.4 + h2 * 0.3 + h3 * 0.3).clamp(0.0, 1.0);
     int idx;
@@ -327,9 +325,7 @@ class NoiseTileMapGenerator extends PositionComponent {
       idx = 5; // shallow_ocean
     } else {
       final double normalized = (mixed - 0.40) / 0.20;
-      idx = (normalized * _terrainDefs.length)
-          .floor()
-          .clamp(0, _terrainDefs.length - 1);
+      idx = (normalized * _terrainDefs.length).floor().clamp(0, _terrainDefs.length - 1);
     }
 
     _sampleCache[key] = _TerrainSample(index: idx);
@@ -337,7 +333,6 @@ class NoiseTileMapGenerator extends PositionComponent {
   }
 
   ui.Color _getTerrainColorForIndex(int idx, double ny) {
-    // 行级亮度缓存（ny 行）
     final nyInt = ny.floor();
     final rowKey = _packRowKey(nyInt);
     final brightnessOffset = _brightnessRowCache[rowKey] ??= _getBrightnessOffsetForY(nyInt.toDouble());
@@ -347,13 +342,12 @@ class NoiseTileMapGenerator extends PositionComponent {
     return adjusted.toColor();
   }
 
-  // ========= 与旧 API 保持一致 =========
   String getTerrainTypeAtPosition(Vector2 worldPos) {
     final idx = _getTerrainIndex(worldPos.x, worldPos.y);
     return _terrainDefs[idx].$1;
+    // ⚠️ 这里有意不把 brightness 带入逻辑判定，只用于渲染色调。
   }
 
-  // ========= 原亮度函数（未改语义）=========
   double _getBrightnessOffsetForY(double ny) {
     const segmentHeight = 200;
     const groupSize = 100;
@@ -373,10 +367,8 @@ class NoiseTileMapGenerator extends PositionComponent {
     return offset;
   }
 
-  // ========= Key 打包 =========
   static int _packKey(int ix, int iy) => (ix.toUnsigned(32) << 32) | (iy.toUnsigned(32));
   static int _packRowKey(int iy) => iy.toUnsigned(32);
-
 }
 
 class _PendingChunk {

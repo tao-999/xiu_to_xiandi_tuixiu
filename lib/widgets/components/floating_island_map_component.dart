@@ -19,6 +19,9 @@ import 'floating_island_static_spawner_component.dart';
 import 'noise_tile_map_generator.dart';
 import 'resource_bar.dart';
 
+// ✅ 补这行：重基时要平移静态装饰的 worldPosition
+import 'floating_island_static_decoration_component.dart';
+
 // Boss奖励路由注册
 import 'package:xiu_to_xiandi_tuixiu/logic/combat/boss_reward_registry.dart';
 import 'package:xiu_to_xiandi_tuixiu/logic/collision/boss1_collision_handler.dart';
@@ -126,9 +129,22 @@ class FloatingIslandMapComponent extends FlameGame
     logicalOffset -= shift;                // 相机保持画面不跳
     player?.logicalPosition -= shift;
 
+    // 2.1 动态体（怪/Boss）
     for (final mover in _worldLayer.children.whereType<FloatingIslandDynamicMoverComponent>()) {
       mover.logicalPosition -= shift;
       mover.updateVisualPosition(logicalOffset);
+    }
+
+    // 2.2 ✅ 静态装饰：worldPosition 也要一起回缩
+    for (final deco in _worldLayer.children.whereType<FloatingIslandStaticDecorationComponent>()) {
+      deco.worldPosition -= shift;
+      deco.updateVisualPosition(logicalOffset);
+    }
+
+    // 2.3 ✅ 通知所有静态刷子按新的相机偏移重刷（避免 _lastLogicalOffset 早退）
+    for (final sp in descendants().whereType<FloatingIslandStaticSpawnerComponent>()) {
+      sp.syncLogicalOffset(logicalOffset);
+      sp.forceRefresh();
     }
 
     debugPrint('[FloatingOrigin] Rebased by $shift; base now = $_worldBase');
@@ -163,6 +179,7 @@ class FloatingIslandMapComponent extends FlameGame
       frequency: 0.00005,
       octaves: 10,
       persistence: 0.7,
+      getWorldBase: () => worldBase,
     );
 
     // 👉 用频率计算“基础周期”作为重基单位（CPU/GPU 完全对齐）
@@ -179,8 +196,7 @@ class FloatingIslandMapComponent extends FlameGame
       getViewSize: () => size,                 // 屏幕像素
       getViewScale: () => 1.0,                 // 如有缩放改这里
       getLogicalOffset: () => logicalOffset,   // 世界相机中心（局部）
-      // 注意：我们不会在 Shader 里使用 worldBase 偏移（保证和 CPU 对齐）
-      getWorldBase: () => Vector2.zero(),      // 👈 传 0，保证 GPU 只看局部世界
+      getWorldBase: () => worldBase,
       frequency: ng.frequency,
       octaves: clampedOct,
       persistence: ng.persistence,
@@ -328,6 +344,10 @@ class FloatingIslandMapComponent extends FlameGame
     final movers = _worldLayer.children.whereType<FloatingIslandDynamicMoverComponent>();
     for (final mover in movers) {
       mover.updateVisualPosition(logicalOffset);
+    }
+    // 静态装饰也同步一下视觉位
+    for (final deco in _worldLayer.children.whereType<FloatingIslandStaticDecorationComponent>()) {
+      deco.updateVisualPosition(logicalOffset);
     }
   }
 
