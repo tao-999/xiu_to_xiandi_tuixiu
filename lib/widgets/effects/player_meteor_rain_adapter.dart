@@ -1,3 +1,4 @@
+// 📄 lib/widgets/effects/player_meteor_rain_adapter.dart
 import 'dart:async';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart' hide Image;
@@ -57,34 +58,44 @@ class PlayerMeteorRainAdapter {
     return dmg.clamp(1.0, 1e9);
   }
 
-  /// 释放流星坠
+  /// 读取功法等级（拿不到就按 1）
+  int _levelOf(Gongfa? skill) {
+    try {
+      final v = (skill as dynamic).level;
+      if (v is num) return v.toInt().clamp(1, 999999);
+    } catch (_) {}
+    return 1;
+  }
+
+  /// 释放流星坠：数量 = 功法 level（完全相等）
   Future<void> castRain({
     required Vector2 centerWorld,
-    int count = 7,
-    double spreadRadius = 140,     // 随机散布半径
-    double warnTime = 0.35,        // 落点预告时间
-    double interval = 0.08,        // 连续落下的间隔
-    double fallHeight = 420,       // 高空初始高度（视觉）
-    double fallSpeed = 920,        // 下落速度（像素/秒）
-    double explosionRadius = 68,   // AoE 半径
+    // 其余视觉参数照旧
+    double spreadRadius = 140,
+    double warnTime = 0.35,
+    double interval = 0.08,
+    double fallHeight = 420,
+    double fallSpeed = 920,
+    double explosionRadius = 68,
   }) async {
     // 1) 读玩家 ATK
     final p = await PlayerStorage.getPlayer();
     final double atk = (p != null ? PlayerStorage.getAtk(p) : 10).toDouble();
 
-    // 2) 读已装备的攻击功法，拿 atkBoost
+    // 2) 读已装备的攻击功法（拿 level/atkBoost）
     final Gongfa? skill =
     p != null ? await AttackGongfaEquipStorage.loadEquippedAttackBy(p.id) : null;
 
-    // 3) 计算伤害（每颗同伤）
+    // 3) 计算伤害 & 读等级
     final damage = _calcDamage(atk, skill);
+    final countByLevel = _levelOf(skill); // ⭐ 数量=level
 
     // 4) 丢到效果层
     _layer.add(
       VfxMeteorRain(
         owner: host,
         centerWorld: centerWorld,
-        count: count,
+        count: countByLevel,                 // ← 就这个
         spreadRadius: spreadRadius,
         warnTime: warnTime,
         interval: interval,

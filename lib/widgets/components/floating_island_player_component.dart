@@ -11,12 +11,15 @@ import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
 import '../../utils/collision_logic_handler.dart';
 import '../../utils/terrain_event_util.dart';
 
-// 🔥/⚡ 统一热键控制器 + 两个适配器（都在 widgets/effects/）
+// 🔥/⚡ 统一热键控制器 + 三个适配器（都在 widgets/effects/）
 import '../effects/attack_hotkey_controller.dart';
 import '../effects/fireball_player_adapter.dart';
 import '../effects/player_lightning_chain_adapter.dart';
-
 import '../effects/player_meteor_rain_adapter.dart';
+
+// 🥷 新增：激光适配器
+import '../effects/player_laser_adapter.dart';
+
 import 'floating_island_static_decoration_component.dart';
 import 'floating_island_dynamic_mover_component.dart'; // ✅ 用于筛 boss / 怪
 import 'resource_bar.dart';
@@ -56,10 +59,11 @@ class FloatingIslandPlayerComponent extends SpriteComponent
   // —— 气流特效适配器 —— //
   late PlayerAirflowAdapter _airflowAdapter;
 
-  // —— 火球 / 雷链 适配器 —— //
+  // —— 火球 / 雷链 / 陨石雨 / 激光 适配器 —— //
   late PlayerFireballAdapter _fireball;
   late PlayerLightningChainAdapter _lightning;
   late PlayerMeteorRainAdapter _meteor;
+  late PlayerLaserAdapter _laser; // 👈 新增
 
   // —— 对外方法 —— //
   void moveTo(Vector2 target) => _targetPosition = target;
@@ -131,13 +135,14 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       logicalPosition: () => logicalPosition,
     );
 
-    // ===== 适配器：火球 & 雷链（渲染层与火球一致） =====
+    // ===== 适配器：火球 & 雷链 & 陨石雨（渲染层与火球一致） =====
     _fireball = PlayerFireballAdapter.attach(
       host: this,
       layer: parent, // 或者你希望渲染在哪一层
       getLogicalOffset: () => (game as dynamic).logicalOffset as Vector2, // 你的 MapComponent 有这个字段
       resourceBarKey: resourceBarKey,
     );
+
     _lightning = PlayerLightningChainAdapter.attach(
       host: this,
       layer: parent, // 与火球同层渲染
@@ -153,20 +158,30 @@ class FloatingIslandPlayerComponent extends SpriteComponent
       candidatesProvider: _scanAllMovers, // 复用你的扫描
     );
 
-// 3) 统一热键 attach 时传入 meteor（其余参数保留原样）
+    // 🥷 新增：激光适配器（和火球同层）
+    _laser = PlayerLaserAdapter.attach(
+      host: this,
+      layer: parent,
+      getLogicalOffset: () => (game as dynamic).logicalOffset as Vector2,
+      resourceBarKey: resourceBarKey,
+    );
+
+    // 统一热键控制器（保持你现有参数）
     AttackHotkeyController.attach(
       host: this,
       fireball: _fireball,
       lightning: _lightning,
-      meteor: _meteor,                      // 👈 新增
+      meteor: _meteor,
+      laser: _laser,
       candidatesProvider: _scanAllMovers,
       hotkeys: { LogicalKeyboardKey.keyQ },
       cooldown: 0.8,
-      castRange: 320, jumpRange: 240, maxJumps: 6,
+      castRange: 320,
+      jumpRange: 240,
+      maxJumps: 6,
       projectileSpeed: 420.0,
       // 可选：覆盖流星参数
-      meteorCount: 7,
-      meteorSpread: 140,
+      meteorSpread: 240,
       meteorWarn: 0.35,
       meteorInterval: 0.08,
       meteorExplosionRadius: 68,
@@ -263,8 +278,7 @@ class FloatingIslandPlayerComponent extends SpriteComponent
 
     // —— 触发地形事件（异步微任务） —— //
     final noiseGenerator = mapGame.noiseMapGenerator;
-    final currentTerrain =
-    noiseGenerator.getTerrainTypeAtPosition(logicalPosition);
+    final currentTerrain = noiseGenerator.getTerrainTypeAtPosition(logicalPosition);
     Future.microtask(() async {
       final triggered = await TerrainEventUtil.checkAndTrigger(
         currentTerrain,

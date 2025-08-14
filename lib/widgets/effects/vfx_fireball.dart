@@ -1,13 +1,7 @@
 // 📄 lib/widgets/effects/vfx_fireball.dart
-// 火球术 VFX（直飞/可转向追踪 + 中心命中判定 + 最大飞行距离）
-//
-// ✅ 逻辑：
-// - 碰到 Boss 外圈 → 只“锁定目标”，继续飞向 Boss.center
-// - 进入“中心半径”才结算伤害 + 爆闪
-// - 有最大飞行距离 maxDistance：超过就到点爆散（不造成伤害）
-// - 玩家是否能释放与射程无关（只看是否装备和冷却）
-
+// 火球术 VFX —— 直飞/追踪 + 波形轨迹 + “进入 mover 区域即爆”(线段vsAABB) + 射程上限
 import 'dart:math';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
@@ -18,28 +12,38 @@ import '../components/floating_island_dynamic_mover_component.dart';
 import '../components/floating_island_player_component.dart';
 import '../components/resource_bar.dart';
 
+enum FireballRoute { straight, sine, wobble, arcLeft, arcRight }
+
 class FireballVfx extends PositionComponent
     with HasGameReference, CollisionCallbacks {
   // ===== 外部参数 =====
-  final Vector2 from;               // 父层本地（适配器已做绝对->本地）
+  final Vector2 from;               // 父层本地
   final Vector2 to;                 // 父层本地（直飞 fallback）
   final double speed;               // px/s
   final double radius;              // 可视半径
-  final double trailFreq;           // 拖尾生成频率（次/秒）
+  final double trailFreq;           // 拖尾频率（次/秒）
   final double lifeAfterHit;        // 爆闪时长
   final PositionComponent? follow;  // 追踪目标（世界组件，可选）
   final double turnRateDegPerSec;   // >0 追踪；<=0 直飞
-  final double? hitRadius;          // 锁定触发半径（外圈）
-  final double damage;              // 入射伤害 = ATK * (1 + atkBoost)
+  final double? hitRadius;          // 触发半径（仅用于“首碰锁定”）
+  final double damage;              // 入射伤害
 
-  // ✅ 飞行距离限制（单位：px）
-  final double maxDistance;         // 最大飞行距离
-  final bool explodeOnTimeout;      // 距离耗尽是否播放爆散（不伤害）
+  // ✅ 飞行距离限制
+  final double maxDistance;
+  final bool explodeOnTimeout;
 
-  // ✅ 伤害结算上下文（统一走 applyDamage）
+  // ✅ 伤害结算上下文
   final FloatingIslandPlayerComponent owner;
   final Vector2 Function() getLogicalOffset;
   final GlobalKey<ResourceBarState> resourceBarKey;
+
+  // 轨迹参数
+  final double initialAngleOffsetDeg; // 起飞偏角（扇形）
+  final FireballRoute route;          // 路线类型
+  final double routeAmpPx;            // 侧向幅度（像素）
+  final double routeFreqHz;           // 频率（Hz）
+  final double routePhase;            // 相位
+  final double routeDecay;            // 幅度衰减（0~1）
 
   // 命中后移除 hitbox 防多次结算
   final bool destroyHitboxOnHit;
@@ -52,40 +56,47 @@ class FireballVfx extends PositionComponent
     this.trailFreq = 40.0,
     this.lifeAfterHit = 0.18,
     this.follow,
-    this.turnRateDegPerSec = 0.0,   // 默认直飞
+    this.turnRateDegPerSec = 0.0,
     this.hitRadius,
     required this.damage,
     required this.owner,
     required this.getLogicalOffset,
     required this.resourceBarKey,
-    this.maxDistance = 360.0,       // ← 默认射程，按需覆盖
-    this.explodeOnTimeout = true,   // ← 超程时播放小爆散
+    this.maxDistance = 360.0,
+    this.explodeOnTimeout = true,
     this.destroyHitboxOnHit = true,
     int? priority,
+
+    this.initialAngleOffsetDeg = 0.0,
+    this.route = FireballRoute.straight,
+    this.routeAmpPx = 0.0,
+    this.routeFreqHz = 1.2,
+    this.routePhase = 0.0,
+    this.routeDecay = 0.9,
   }) {
     anchor = Anchor.center;
-    position = from.clone();
+    position = from.clone();   // 可视+碰撞位置（父层本地）
     size = Vector2.all(radius * 2);
     if (priority != null) this.priority = priority;
   }
 
   // ===== 内部状态 =====
-  late Vector2 _vel;        // 速度向量（长度 = speed）
+  late Vector2 _vel;            // 速度向量（长度 = speed）
+  late Vector2 _corePos;        // 直线“核心点”，视觉=核心+侧向
+  late Vector2 _prevPos;        // 上一帧“视觉位置”（做线段检测）
   double _trailAcc = 0;
   bool _exploding = false;
   double _explodeT = 0;
-  late double _hitR;        // 锁定外圈半径
+  late double _hitR;
   bool _dealtDamage = false;
   CircleHitbox? _hitbox;
 
-  // 🔒 被锁定、等待中心命中的 Boss
-  FloatingIslandDynamicMoverComponent? _pendingBoss;
-  bool _waitCenter = false;
+  FloatingIslandDynamicMoverComponent? _lockedMover; // 首次碰撞后锁定
+  bool _waitCenter = false;                          // 进入区域才爆（不再用点半径）
 
-  // 📏 飞行距离累计
-  double _travel = 0.0;
+  double _travel = 0.0;     // 直线位移累计
+  double _t = 0.0;          // 累计时间（波形用）
 
-  // 画笔缓存
   final Paint _glowPaint = Paint()
     ..blendMode = BlendMode.plus
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
@@ -107,15 +118,25 @@ class FireballVfx extends PositionComponent
       ..anchor = Anchor.center;
     add(_hitbox!);
 
+    _corePos = from.clone();
+    _prevPos = position.clone();
+
     final tgt = _currentLocalTarget();
     final dir = (tgt - from);
     _vel = dir.length2 == 0 ? Vector2(1, 0) * speed : dir.normalized() * speed;
+
+    // 起飞角度偏转（扇形展开）
+    final ang = initialAngleOffsetDeg * pi / 180.0;
+    if (ang.abs() > 1e-6) {
+      _vel.rotate(ang);
+    }
   }
 
   void triggerHit() {
     if (_exploding) return;
     _exploding = true;
     _explodeT = 0;
+    _vel.setZero(); // 命中后立刻停下，进入爆闪
     if (destroyHitboxOnHit) {
       _hitbox?.removeFromParent();
       _hitbox = null;
@@ -125,59 +146,89 @@ class FireballVfx extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
+
+    // 目标在途中被移除/卸载 → 立刻处理
+    if (_waitCenter && (_lockedMover == null || !_lockedMover!.isMounted)) {
+      if (explodeOnTimeout) triggerHit();
+      else removeFromParent();
+    }
+
     if (_exploding) {
       _explodeT += dt;
       if (_explodeT >= lifeAfterHit) removeFromParent();
       return;
     }
 
-    final tgt = _currentLocalTarget();
-    final toTarget = tgt - position;
-    final dist = toTarget.length;
+    _t += dt;
 
-    // 🌕 等待“中心命中”的流程
-    if (_waitCenter && _pendingBoss != null && _pendingBoss!.isMounted) {
-      final centerR = _centerExplodeRadius(_pendingBoss!);
-      if (dist <= centerR) {
-        _pendingBoss!.applyDamage(
-          amount: damage,
-          killer: owner,
-          logicalOffset: getLogicalOffset(),
-          resourceBarKey: resourceBarKey,
-        );
-        _dealtDamage = true;
-        triggerHit();
-        return;
-      }
-      // 引导速度朝向中心（即便最初为直飞）
-      if (toTarget.length2 > 0) {
-        final maxTurn = (max(turnRateDegPerSec, 720) * pi / 180.0) * dt;
-        final ang = _angleBetween(_vel, toTarget);
+    // 追踪/锁定：用视觉位置判断方向
+    final tgt = _currentLocalTarget();
+    final toTargetVisual = tgt - position;
+
+    if (_waitCenter && _lockedMover != null && _lockedMover!.isMounted) {
+      // 强制最低转向，确保能拐进目标
+      if (toTargetVisual.length2 > 0) {
+        final turnDeg = max(turnRateDegPerSec, 720);
+        final maxTurn = (turnDeg * pi / 180.0) * dt;
+        final ang = _angleBetween(_vel, toTargetVisual);
         final clamped = ang.clamp(-maxTurn, maxTurn);
         _vel.rotate(clamped);
         _vel.setFrom(_vel.normalized() * speed);
       }
     } else {
-      // 未锁定时不提前爆（统一走中心命中）
+      // 常规追踪（可选）
+      if (follow != null && turnRateDegPerSec > 0 && toTargetVisual.length2 > 0) {
+        final maxTurn = (turnRateDegPerSec * pi / 180.0) * dt;
+        final ang = _angleBetween(_vel, toTargetVisual);
+        final clamped = ang.clamp(-maxTurn, maxTurn);
+        _vel.rotate(clamped);
+        _vel.setFrom(_vel.normalized() * speed);
+      }
     }
 
-    // ====== 位移 & 射程限制 ======
+    // ====== 位移（移动 _corePos，视觉=核心+侧向） ======
     final dirUnit = _vel.length2 == 0 ? Vector2(1, 0) : _vel.normalized();
     final stepLen = speed * dt;
     final remaining = max(0.0, maxDistance - _travel);
     final moveLen = min(stepLen, remaining);
 
-    // 到点就地爆散（不伤害）
     if (moveLen <= 0.0) {
       if (explodeOnTimeout) triggerHit();
       else removeFromParent();
       return;
     }
 
-    position += dirUnit * moveLen;
+    _corePos += dirUnit * moveLen;
     _travel += moveLen;
 
-    // 拖尾
+    // —— 计算视觉位置
+    _prevPos.setFrom(position); // 记录上一帧视觉位置
+    position = _corePos + _lateralOffset(dirUnit);
+
+    // ====== 🧱 “进入就爆” —— 线段 vs 扩展AABB 检测 ======
+    if (_waitCenter && _lockedMover != null && _lockedMover!.isMounted) {
+      final Rect aabb = _moverAabbLocal(_lockedMover!);
+      if (_segmentIntersectsAabb(_prevPos, position, _expandRect(aabb, radius))) {
+        // 命中（进入 mover 范围）
+        if (!_dealtDamage) {
+          _lockedMover!.applyDamage(
+            amount: damage,
+            killer: owner,
+            logicalOffset: getLogicalOffset(),
+            resourceBarKey: resourceBarKey,
+          );
+          _dealtDamage = true;
+        }
+        triggerHit();
+        return;
+      }
+    }
+
+    _emitTrail(dt);
+  }
+
+  // 拖尾
+  void _emitTrail(double dt) {
     _trailAcc += dt * trailFreq;
     while (_trailAcc >= 1) {
       _trailAcc -= 1;
@@ -190,6 +241,133 @@ class FireballVfx extends PositionComponent
         life: 0.22 + _rng.nextDouble() * 0.1,
       )..priority = (priority ?? 0) + 1);
     }
+  }
+
+  // ===== 碰撞回调：只做“锁定”，不在这里爆炸 =====
+  @override
+  void onCollision(Set<Vector2> points, PositionComponent other) {
+    super.onCollision(points, other);
+
+    // 已锁定/已结算就忽略，防止“换目标”
+    if (_waitCenter || _dealtDamage) return;
+    if (other is! FloatingIslandDynamicMoverComponent) return;
+
+    _lockedMover = other;
+    _waitCenter = true;
+
+    // 彻底移除自身 hitbox，杜绝后续 onCollision
+    _hitbox?.removeFromParent();
+    _hitbox = null;
+
+    // 初次锁定时，把速度对准中心
+    final tgt = _absToLocal(other.absoluteCenter);
+    final dir = (tgt - position);
+    if (dir.length2 > 0) {
+      _vel = dir.normalized() * speed;
+    }
+  }
+
+  // ===== 轨迹：法向侧向位移 =====
+  Vector2 _lateralOffset(Vector2 dirUnit) {
+    if (route == FireballRoute.straight || routeAmpPx.abs() < 1e-3) {
+      return Vector2.zero();
+    }
+    final n = Vector2(-dirUnit.y, dirUnit.x); // 左手法向
+    final prog = (_travel / max(1e-6, maxDistance)).clamp(0.0, 1.0);
+    final amp = routeAmpPx * pow(routeDecay.clamp(0.0, 1.0), prog * 1.0);
+
+    double k = 0.0;
+    switch (route) {
+      case FireballRoute.sine:
+        k = sin(2 * pi * routeFreqHz * _t + routePhase);
+        break;
+      case FireballRoute.wobble:
+        k = 0.7 * sin(2 * pi * routeFreqHz * _t + routePhase)
+            + 0.3 * sin(4 * pi * routeFreqHz * _t + routePhase * 1.7);
+        break;
+      case FireballRoute.arcLeft:
+      case FireballRoute.arcRight:
+        final s = math.sin(prog * math.pi * 0.9);
+        final dir = (route == FireballRoute.arcLeft) ? 1.0 : -1.0;
+        k = dir * s;
+        break;
+      case FireballRoute.straight:
+        k = 0.0;
+    }
+    return n * (amp * k);
+  }
+
+  // ===== 工具函数 =====
+  Vector2 _currentLocalTarget() {
+    final target = (_lockedMover ?? follow);
+    if (target != null && target.isMounted) {
+      return _absToLocal(target.absoluteCenter);
+    }
+    return to;
+  }
+
+  Vector2 _absToLocal(Vector2 world) {
+    final lp = _layerPC;
+    if (lp != null) return lp.absoluteToLocal(world);
+    return world;
+  }
+
+  Rect _moverAabbLocal(FloatingIslandDynamicMoverComponent m) {
+    // 假设 mover.anchor = center（你的 mover 默认就是 center）
+    final c = _absToLocal(m.absoluteCenter);
+    final half = m.size / 2;
+    return Rect.fromLTWH(c.x - half.x, c.y - half.y, m.size.x, m.size.y);
+  }
+
+  Rect _expandRect(Rect r, double pad) =>
+      Rect.fromLTWH(r.left - pad, r.top - pad, r.width + pad * 2, r.height + pad * 2);
+
+  // 线段 [p0,p1] 与 AABB 相交（slab 法），AABB 已按子弹半径外扩
+  bool _segmentIntersectsAabb(Vector2 p0, Vector2 p1, Rect aabb) {
+    final dx = p1.x - p0.x;
+    final dy = p1.y - p0.y;
+
+    double tMin = 0.0, tMax = 1.0;
+
+    bool update(double p, double q) {
+      if (p == 0) return q >= 0;        // 平行且在范围内
+      final t = q / p;
+      if (p < 0) {
+        if (t > tMax) return false;
+        if (t > tMin) tMin = t;
+      } else {
+        if (t < tMin) return false;
+        if (t < tMax) tMax = t;
+      }
+      return true;
+    }
+
+    // x 轴裁剪
+    if (!update(-dx, p0.x - aabb.left)) return false;
+    if (!update( dx, aabb.right - p0.x)) return false;
+
+    // y 轴裁剪
+    if (!update(-dy, p0.y - aabb.top)) return false;
+    if (!update( dy, aabb.bottom - p0.y)) return false;
+
+    return tMax >= tMin; // 有重叠区间 → 相交
+  }
+
+  double _estimateLockRadius() {
+    final target = (_lockedMover ?? follow);
+    if (target != null && target.isMounted) {
+      final sz = target.size;
+      return max(radius * 0.9, (sz.x + sz.y) * 0.25 + radius * 0.4);
+    }
+    return radius * 1.2;
+  }
+
+  double _angleBetween(Vector2 a, Vector2 b) {
+    final na = a.normalized();
+    final nb = b.normalized();
+    final cross = na.cross(nb);
+    final dot = na.dot(nb).clamp(-1.0, 1.0);
+    return atan2(cross, dot);
   }
 
   @override
@@ -207,82 +385,19 @@ class FireballVfx extends PositionComponent
     _drawBall(canvas, radius, 1.0);
   }
 
-  // ===== 碰撞回调：只做“锁定中心”，不在这里爆炸 =====
-  @override
-  void onCollision(Set<Vector2> points, PositionComponent other) {
-    super.onCollision(points, other);
-    if (_dealtDamage) return;
-
-    if (other is! FloatingIslandDynamicMoverComponent) return;
-    final t = other.type?.toLowerCase() ?? '';
-    if (!t.contains('boss')) return;
-
-    // ✅ 锁定目标，等待中心命中
-    _pendingBoss = other;
-    _waitCenter = true;
-
-    // 后续不再触发碰撞；命中改由“中心判定”决定
-    _hitbox?.collisionType = CollisionType.inactive;
-
-    // 初次锁定时，把速度立即对准中心，避免绕圈
-    final tgt = _currentLocalTarget();
-    final dir = (tgt - position);
-    if (dir.length2 > 0) {
-      _vel = dir.normalized() * speed;
-    }
-  }
-
-  // ===== 工具函数 =====
-  Vector2 _currentLocalTarget() {
-    // 优先瞄准“已锁定的 Boss”，否则按 follow/直飞 to
-    final target = (_pendingBoss ?? follow);
-    if (target != null && target.isMounted) {
-      final world = target.absoluteCenter;
-      final lp = _layerPC;
-      if (lp != null) return lp.absoluteToLocal(world);
-    }
-    return to;
-  }
-
-  // 首次锁定用的“外圈”半径（较松）
-  double _estimateLockRadius() {
-    final target = (_pendingBoss ?? follow);
-    if (target != null && target.isMounted) {
-      final sz = target.size;
-      return max(radius * 0.9, (sz.x + sz.y) * 0.25 + radius * 0.4);
-    }
-    return radius * 1.2;
-  }
-
-  // 真正爆炸的“中心命中半径”（较紧）
-  double _centerExplodeRadius(FloatingIslandDynamicMoverComponent boss) {
-    final avg = (boss.size.x + boss.size.y) * 0.25; // 近似半径
-    return max(6.0, avg * 0.35);                    // 手感参数：越小越“贴脸”
-  }
-
-  double _angleBetween(Vector2 a, Vector2 b) {
-    final na = a.normalized();
-    final nb = b.normalized();
-    final cross = na.cross(nb);
-    final dot = na.dot(nb).clamp(-1.0, 1.0);
-    return atan2(cross, dot);
-  }
-
   void _drawBall(Canvas c, double r, double opacity) {
-    // 1) 先铺一层“身体”——深橙填充，给颜色厚度（非叠加，避免被冲淡）
     final base = Paint()
-      ..color = const Color(0xFFE65100).withOpacity(0.95 * opacity) // 深橙
+      ..color = const Color(0xFFE65100).withOpacity(0.95 * opacity)
       ..blendMode = BlendMode.srcOver;
     c.drawCircle(Offset.zero, r * 0.98, base);
 
-    // 2) 中圈径向渐变：白热 → 柠黄 → 亮橙 → 暗橙红（更接近 emoji 火焰）
     final shader = ui.Gradient.radial(
       Offset.zero, r,
       [
-        const Color(0xFFFFFFFF), // 核心白热
-        const Color(0xFFFFF176), // 柠黄
-        const Color(0xFFFFA000), // 亮橙
-        const Color(0xFFE65100), // 暗橙红
+        const Color(0xFFFFFFFF),
+        const Color(0xFFFFF176),
+        const Color(0xFFFFA000),
+        const Color(0xFFE65100),
       ],
       const [0.0, 0.25, 0.60, 1.0],
     );
@@ -292,7 +407,6 @@ class FireballVfx extends PositionComponent
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
     c.drawCircle(Offset.zero, r, mid);
 
-    // 3) 热边亮环（让轮廓更“燥”）
     final hotRing = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = (r * 0.14).clamp(2.0, 5.0)
@@ -300,25 +414,21 @@ class FireballVfx extends PositionComponent
       ..color = const Color(0xFFFFC107).withOpacity(0.90 * opacity);
     c.drawCircle(Offset.zero, r * 0.92, hotRing);
 
-    // 4) 外圈暗红描边（类似 emoji 的黑/深边，但不完全黑以免脏）
     final rim = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = (r * 0.18).clamp(2.0, 6.0)
       ..blendMode = BlendMode.srcOver
-      ..color = const Color(0xFFBF360C).withOpacity(0.80 * opacity); // 暗红
+      ..color = const Color(0xFFBF360C).withOpacity(0.80 * opacity);
     c.drawCircle(Offset.zero, r * 1.02, rim);
 
-    // 5) 外部深红光晕（更浓）
     _glowPaint
       ..color = const Color(0xFFBF360C).withOpacity(0.85 * opacity)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
     c.drawCircle(Offset.zero, r * 1.55, _glowPaint);
 
-    // 6) 中心白炽点稍大一点
     _corePaint.color = Colors.white.withOpacity(1.0 * opacity);
     c.drawCircle(Offset.zero, r * 0.50, _corePaint);
   }
-
 }
 
 // 🔸 拖尾小光点

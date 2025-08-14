@@ -54,25 +54,25 @@ class AttackGongfaData {
     ],
   );
 
-  /// ☄️ 流星坠（Meteor Rain）
-  static const AttackGongfaTemplate meteorRain = AttackGongfaTemplate(
-    name: '流星坠',
-    description: '引星坠地，烈焰轰鸣，冲击波席卷四野。',
-    atkBoost: 1.15, // 范围AoE，介于火球与雷链之间
-    iconPath: 'gongfa/meteor_rain.png',
+  /// 🔫 激光（Laser Beam）
+  static const AttackGongfaTemplate laserBeam = AttackGongfaTemplate(
+    name: '激光',
+    description: '汇聚灵能成束，一线贯穿，所指无不破。',
+    atkBoost: 1.18, // 介于火球与雷链之间；DPS 在适配器里再乘系数
+    iconPath: 'gongfa/laser_beam.png',
     palette: [
-      Color(0xFFFFFDE7), // 微黄高光
-      Color(0xFFFFE082), // 金黄
-      Color(0xFFFFB74D), // 橙火
-      Color(0xFFFF8A65), // 橙红
-      Color(0xFF8D6E63), // 烟尘棕
+      Color(0xFFFFFFFF), // 核心纯白（极高亮）
+      Color(0xFFFFE082), // 淡金辉光（热量外散）
+      Color(0xFFFF7043), // 明亮橙红（火焰边缘）
+      Color(0xFFFF1744), // 鲜红主色（主要光束色）
+      Color(0xFFD50000), // 深红外晕（渐变到黑）
     ],
   );
 
   static const List<AttackGongfaTemplate> all = [
     fireball,
     chainLightning,
-    meteorRain, // 👈 新增
+    laserBeam, // ✅ 用激光替换原来的流星坠
   ];
 
   static AttackGongfaTemplate? byName(String name) {
