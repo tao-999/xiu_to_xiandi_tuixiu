@@ -42,6 +42,22 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
     return p.startsWith(prefix) ? p : '$prefix$p';
   }
 
+  // === 辅助：读取 atkBoost 并转百分比文本（1.18 -> +118%） ===
+  double _getAtkBoost(Gongfa g) {
+    try {
+      final dyn = g as dynamic;
+      final v = dyn.atkBoost;
+      if (v is num) return v.toDouble();
+    } catch (_) {}
+    return 0.0;
+  }
+
+  String _atkBoostPercentText(Gongfa g) {
+    final pct = (_getAtkBoost(g) * 100);
+    // 显示为整数百分比
+    return '+${pct.toStringAsFixed(0)}%';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -160,6 +176,7 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
               itemBuilder: (context, i) {
                 final item = items[i];
                 final isEquipped = (equipped?.id == item.id);
+                final atkText = _atkBoostPercentText(item);
 
                 return InkWell(
                   onTap: isEquipped
@@ -180,7 +197,7 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
                             Text(
                               isMovement
                                   ? '移动速度 +${(item.moveSpeedBoost * 100).toStringAsFixed(0)}%（Lv.${item.level}）'
-                                  : '主动技能（Lv.${item.level}）',
+                                  : '主动技能 伤害${atkText}（Lv.${item.level}）',
                               style: const TextStyle(fontSize: 11, color: Colors.black54),
                             ),
                           ],
@@ -299,14 +316,17 @@ class _GongfaDualEquipPanelState extends State<GongfaDualEquipPanel> {
           equipped: _equippedAttack,
           onTap: () => _openDialog(isMovement: false),
           onLongPressRemove: _unequipAttack,
-          cornerBuilder: (g) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
-            color: const Color(0xCC000000),
-            child: Text(
-              'Lv.${g.level}',
-              style: const TextStyle(fontSize: 9, color: Colors.white, height: 1),
-            ),
-          ),
+          cornerBuilder: (g) {
+            final atkText = _atkBoostPercentText(g); // 伤害倍率百分比
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+              color: const Color(0xCC000000),
+              child: Text(
+                'Lv.${g.level} · $atkText',
+                style: const TextStyle(fontSize: 9, color: Colors.white, height: 1),
+              ),
+            );
+          },
         ),
       ],
     );

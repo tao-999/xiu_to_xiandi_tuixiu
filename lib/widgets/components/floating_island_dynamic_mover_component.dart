@@ -74,7 +74,6 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   double _autoResumeCooldown = 0.0;  // 自动检测冷却
   static const double _autoResumeCheckInterval = 0.5; // 每0.5s检测一次
 
-  // 注意：这里不再把“世界坐标”传给 super(position)
   FloatingIslandDynamicMoverComponent({
     required this.dynamicTileSize,
     required this.spawnedTileKey,
@@ -114,7 +113,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   Future<void> onLoad() async {
     await super.onLoad();
 
-    // ✅ 首帧立即按相机偏移对齐一次视觉坐标（position/label/hpBar 都用这个坐标）
+    // ✅ 首帧：把视觉坐标与相机对齐
     final off = (game as dynamic).logicalOffset as Vector2? ?? Vector2.zero();
     updateVisualPosition(off);
 
@@ -127,7 +126,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       }
     });
 
-    // ✅ 用已对齐的 position 来放 label/hpBar（首帧不抖）
+    // ✅ HUD（名字/血条）放到与我同层的 parent；坐标完全用我的 position 推导
     if (labelText != null && labelText!.isNotEmpty) {
       label = TextComponent(
         text: labelText!,
@@ -145,13 +144,12 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     }
 
     if (hp != null && atk != null && def != null) {
-      hpBar = HpBarWrapper()
-        ..anchor = Anchor.bottomCenter
-        ..position = position - Vector2(0, size.y + 24)
+      hpBar = HpBarWrapper() // ⚠️ HpBarWrapper 内部 anchor = topLeft
         ..priority = 9998;
       parent?.add(hpBar!);
 
-      // 异步刷新数值
+      // 立刻同步一次位置 + 数值
+      _updateHudPositions();
       Future.delayed(Duration.zero, () {
         hpBar?.setStats(
           currentHp: currentHp.toInt(),
@@ -167,8 +165,17 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     _startTargetTimer();
   }
 
+  // ================== 统一卸载 HUD ==================
+  void _detachHud() {
+    try { hpBar?..removeFromParent(); } catch (_) {}
+    hpBar = null;
+    try { label?..removeFromParent(); } catch (_) {}
+    label = null;
+  }
+
   @override
   void onRemove() {
+    _detachHud();                 // ✅ 关键：不管谁移除我，都把 HUD 带走
     onRemoveCallback?.call();
     _cancelTargetTimer();
     super.onRemove();
@@ -180,20 +187,20 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
     required FloatingIslandPlayerComponent killer,   // 谁打的
     required Vector2 logicalOffset,                  // 飘字用
     required GlobalKey<ResourceBarState> resourceBarKey,
-    double defPenetration = 0.0,                     // 可选：破甲 0~1（默认无）
+    double defPenetration = 0.0,                     // 可选：破甲 0~1
   }) {
     if (isDead) return;
 
     final double hpMax = (hp ?? 0).toDouble();
     if (hpMax <= 0) return;
 
-    final double defVal   = (def ?? 0).toDouble();
-    final double effDef   = (defVal * (1.0 - defPenetration)).clamp(0.0, 1e9);
-    final double rawIn    = (amount.isNaN ? 0.0 : amount);
-    final double realDmg  = max(1.0, rawIn - effDef);   // 至少 1 点伤害
+    final double defVal  = (def ?? 0).toDouble();
+    final double effDef  = (defVal * (1.0 - defPenetration)).clamp(0.0, 1e9);
+    final double rawIn   = (amount.isNaN ? 0.0 : amount);
+    final double realDmg = max(1.0, rawIn - effDef);   // 至少 1 点伤害
 
-    final double prevHp   = currentHp;
-    currentHp             = max(0.0, min(hpMax, currentHp - realDmg));
+    final double prevHp = currentHp;
+    currentHp           = max(0.0, min(hpMax, currentHp - realDmg));
 
     if (hpBar != null && hp != null) {
       hpBar!.setStats(
@@ -204,7 +211,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       );
     }
 
-    // 飘伤害数字（层级比血条/名字高）
+    // 飘伤害数字
     try {
       final hitPos = logicalPosition - Vector2(0, size.y / 2 + 8);
       final ft = FloatingTextComponent(
@@ -236,8 +243,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
 
       try {
         removeFromParent();
-        hpBar?..removeFromParent(); hpBar = null;
-        label?..removeFromParent(); label = null;
+        _detachHud();            // ✅ 防止残留
       } catch (_) {}
 
       BossRewardRegistry.dispatch(
@@ -271,8 +277,7 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
       isDead = true;
       debugPrint('[Mover][$type] takeDamage() 没有上下文 → 已自移除但未触发奖励。请改用 applyDamage(...)');
       removeFromParent();
-      hpBar?.removeFromParent(); hpBar = null;
-      label?.removeFromParent(); label = null;
+      _detachHud();              // ✅ 防残留
     }
   }
 
@@ -354,187 +359,196 @@ class FloatingIslandDynamicMoverComponent extends SpriteComponent
   @override
   void update(double dt) {
     super.update(dt);
-    if (isDead) return;
+    if (isDead) { _syncVisual(); return; }
 
-    // ===== 冷却计时 =====
-    if (_resumeCooldown > 0) {
-      _resumeCooldown -= dt;
-      if (_resumeCooldown < 0) _resumeCooldown = 0;
-    }
-    if (_autoResumeCooldown > 0) {
-      _autoResumeCooldown -= dt;
-      if (_autoResumeCooldown < 0) _autoResumeCooldown = 0;
-    }
-    if (tauntCooldown > 0) {
-      tauntCooldown -= dt;
-      if (tauntCooldown < 0) tauntCooldown = 0;
-    }
+    try {
+      // ===== 冷却计时 =====
+      if (_resumeCooldown > 0) {
+        _resumeCooldown -= dt;
+        if (_resumeCooldown < 0) _resumeCooldown = 0;
+      }
+      if (_autoResumeCooldown > 0) {
+        _autoResumeCooldown -= dt;
+        if (_autoResumeCooldown < 0) _autoResumeCooldown = 0;
+      }
+      if (tauntCooldown > 0) {
+        tauntCooldown -= dt;
+        if (tauntCooldown < 0) tauntCooldown = 0;
+      }
 
-    // ===== 非法地形：停机 / 自动恢复 =====
-    if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
-      if (!_stoppedByIllegal) {
-        final currentTerrain = spawner.getTerrainType(logicalPosition);
-        final isIllegal = (currentTerrain == 'unknown') ||
-            !spawner.allowedTerrains.contains(currentTerrain);
-        if (isIllegal) {
-          _stopMovement();
-          return;
-        }
-      } else {
-        if (_autoResumeCooldown <= 0) {
-          _autoResumeCooldown = _autoResumeCheckInterval;
-          _autoResumeIfLegal();
+      // ===== 非法地形：停机 / 自动恢复 =====
+      if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
+        if (!_stoppedByIllegal) {
+          final currentTerrain = spawner.getTerrainType(logicalPosition);
+          final isIllegal = (currentTerrain == 'unknown') ||
+              !spawner.allowedTerrains.contains(currentTerrain);
+          if (isIllegal) {
+            _stopMovement();
+            return; // 👈 提前返回也没事，finally 会同步视觉
+          }
+        } else {
+          if (_autoResumeCooldown <= 0) {
+            _autoResumeCooldown = _autoResumeCheckInterval;
+            _autoResumeIfLegal();
+          }
         }
       }
-    }
 
-    if (isMoveLocked) return;
+      if (isMoveLocked) return;
 
-    // ===== 自动追击玩家（镜像修正）=====
-    if (enableAutoChase && autoChaseRange != null) {
-      final player = game
-          .descendants()
-          .whereType<FloatingIslandPlayerComponent>()
-          .firstOrNull;
+      // ===== 自动追击玩家（镜像修正）=====
+      if (enableAutoChase && autoChaseRange != null) {
+        final player = game
+            .descendants()
+            .whereType<FloatingIslandPlayerComponent>()
+            .firstOrNull;
 
-      if (player != null) {
-        final delta = player.logicalPosition - logicalPosition;
-        final distance = delta.length;
+        if (player != null) {
+          final delta = player.logicalPosition - logicalPosition;
+          final distance = delta.length;
 
-        if (distance <= autoChaseRange!) {
-          // 只有同一种允许地形才追
-          if (spawner is FloatingIslandDynamicSpawnerComponent) {
-            final sameTerrain = _sameAllowedTerrainAsPlayer(
-              spawner as FloatingIslandDynamicSpawnerComponent,
-              logicalPosition,
-              player.logicalPosition,
-            );
-            if (!sameTerrain) {
-              // 不追，保持原状态
-            } else {
-              final moveStep = delta.normalized() * speed * dt;
-              final nextPos = logicalPosition + moveStep;
+          if (distance <= autoChaseRange!) {
+            if (spawner is FloatingIslandDynamicSpawnerComponent) {
+              final sameTerrain = _sameAllowedTerrainAsPlayer(
+                spawner as FloatingIslandDynamicSpawnerComponent,
+                logicalPosition,
+                player.logicalPosition,
+              );
+              if (sameTerrain) {
+                final moveStep = delta.normalized() * speed * dt;
+                final nextPos = logicalPosition + moveStep;
 
-              if (!ignoreTerrainInMove) {
-                final nextTerrain = spawner.getTerrainType(nextPos);
-                if (!spawner.allowedTerrains.contains(nextTerrain)) {
-                  // 下一步越界 → 换游走目标
-                  pickNewTarget();
-                  return;
+                if (!ignoreTerrainInMove) {
+                  final nextTerrain = spawner.getTerrainType(nextPos);
+                  if (!spawner.allowedTerrains.contains(nextTerrain)) {
+                    pickNewTarget();
+                    return;
+                  }
                 }
+
+                logicalPosition = nextPos;
+
+                if (enableMirror) {
+                  final facingRight = delta.x > 0;
+                  scale.x = (facingRight == defaultFacingRight) ? 1 : -1;
+                }
+                return;
               }
-
-              logicalPosition = nextPos;
-
-              // ✅ 镜像：与“默认朝向”对齐
-              if (enableMirror) {
-                final facingRight = delta.x > 0;
-                scale.x = (facingRight == defaultFacingRight) ? 1 : -1;
-              }
-
-              return; // 本帧已追击
             }
           }
         }
       }
-    }
 
-    // ===== 外部强制目标（镜像修正）=====
-    if (_externalTarget != null) {
-      final delta = _externalTarget! - logicalPosition;
-      final distance = delta.length;
+      // ===== 外部强制目标 =====
+      if (_externalTarget != null) {
+        final delta = _externalTarget! - logicalPosition;
+        final distance = delta.length;
 
-      if (distance < 2) {
-        logicalPosition = _externalTarget!;
-        _externalTarget = null;
-        isMoveLocked = false;
-      } else {
-        final moveStep = delta.normalized() * speed * dt;
-        final nextPos = logicalPosition + moveStep;
+        if (distance < 2) {
+          logicalPosition = _externalTarget!;
+          _externalTarget = null;
+          isMoveLocked = false;
+        } else {
+          final moveStep = delta.normalized() * speed * dt;
+          final nextPos = logicalPosition + moveStep;
 
-        if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
-          final nextTerrain = spawner.getTerrainType(nextPos);
-          if (!spawner.allowedTerrains.contains(nextTerrain)) {
-            pickNewTarget();
-            _externalTarget = null;
-            isMoveLocked = false;
-            return;
+          if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
+            final nextTerrain = spawner.getTerrainType(nextPos);
+            if (!spawner.allowedTerrains.contains(nextTerrain)) {
+              pickNewTarget();
+              _externalTarget = null;
+              isMoveLocked = false;
+              return;
+            }
+          }
+
+          logicalPosition = nextPos;
+
+          if (enableMirror) {
+            final facingRight = delta.x > 0;
+            scale.x = (facingRight == defaultFacingRight) ? 1 : -1;
           }
         }
-
-        logicalPosition = nextPos;
-
-        // ✅ 镜像：与“默认朝向”对齐
-        if (enableMirror) {
-          final facingRight = delta.x > 0;
-          scale.x = (facingRight == defaultFacingRight) ? 1 : -1;
-        }
-      }
-      return;
-    }
-
-    // ===== 普通游走（镜像每帧刷新）=====
-    final dir = targetPosition - logicalPosition;
-    final distance = dir.length;
-
-    if (distance < 1e-3) {
-      pickNewTarget();
-      return;
-    }
-
-    final moveVec = dir.normalized() * speed * dt;
-    final nextPos = logicalPosition + moveVec;
-
-    // ✅ 镜像：与“默认朝向”对齐（游走中也每帧刷新）
-    if (enableMirror) {
-      final facingRight = dir.x > 0;
-      scale.x = (facingRight == defaultFacingRight) ? 1 : -1;
-    }
-
-    if (moveVec.length >= distance) {
-      logicalPosition = targetPosition.clone();
-      pickNewTarget();
-      return;
-    }
-
-    if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
-      final nextTerrain = spawner.getTerrainType(nextPos);
-      if (!spawner.allowedTerrains.contains(nextTerrain)) {
-        final goingRight = dir.x > 0;
-        pickNewTarget(preferRight: !goingRight);
         return;
       }
-    }
 
-    final actualSpeed = dt > 0 ? moveVec.length / dt : 0;
-    if (actualSpeed < 5) {
-      pickNewTarget();
-      return;
-    }
+      // ===== 普通游走 =====
+      final dir = targetPosition - logicalPosition;
+      final distance = dir.length;
 
-    logicalPosition = nextPos;
+      if (distance < 1e-3) {
+        pickNewTarget();
+        return;
+      }
 
-    // 边界夹取
-    final minX = movementBounds.left + size.x / 2;
-    final maxX = movementBounds.right - size.x / 2;
-    final minY = movementBounds.top + size.y / 2;
-    final maxY = movementBounds.bottom - size.y / 2;
+      final moveVec = dir.normalized() * speed * dt;
+      final nextPos = logicalPosition + moveVec;
 
-    if (minX <= maxX) {
-      logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
+      if (enableMirror) {
+        final facingRight = dir.x > 0;
+        scale.x = (facingRight == defaultFacingRight) ? 1 : -1;
+      }
+
+      if (moveVec.length >= distance) {
+        logicalPosition = targetPosition.clone();
+        pickNewTarget();
+        return;
+      }
+
+      if (!ignoreTerrainInMove && spawner is FloatingIslandDynamicSpawnerComponent) {
+        final nextTerrain = spawner.getTerrainType(nextPos);
+        if (!spawner.allowedTerrains.contains(nextTerrain)) {
+          final goingRight = dir.x > 0;
+          pickNewTarget(preferRight: !goingRight);
+          return;
+        }
+      }
+
+      final actualSpeed = dt > 0 ? moveVec.length / dt : 0;
+      if (actualSpeed < 5) {
+        pickNewTarget();
+        return;
+      }
+
+      logicalPosition = nextPos;
+
+      // 边界夹取
+      final minX = movementBounds.left + size.x / 2;
+      final maxX = movementBounds.right - size.x / 2;
+      final minY = movementBounds.top + size.y / 2;
+      final maxY = movementBounds.bottom - size.y / 2;
+
+      if (minX <= maxX) logicalPosition.x = logicalPosition.x.clamp(minX, maxX);
+      if (minY <= maxY) logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
+
+    } finally {
+      // ✅ 不管中途 return 与否，HUD 都会同步到正确位置
+      _syncVisual();
     }
-    if (minY <= maxY) {
-      logicalPosition.y = logicalPosition.y.clamp(minY, maxY);
-    }
+  }
+
+  // —— 工具：视觉同步 & HUD 定位 —— //
+  void _syncVisual() {
+    final off = (game as dynamic).logicalOffset as Vector2? ?? Vector2.zero();
+    updateVisualPosition(off); // 这里会同时更新 label/hpBar 的位置
   }
 
   // ✅ 视觉同步：相机移动/重基时外部会调用
   void updateVisualPosition(Vector2 logicalOffset) {
     // 视觉坐标 = 逻辑坐标 - 相机中心
     position = logicalPosition - logicalOffset;
-    // 附属 UI 跟随本体
-    label?.position  = position - Vector2(0, size.y + 4);
-    hpBar?.position  = position - Vector2(0, size.y + 24);
+    _updateHudPositions();
+  }
+
+  void _updateHudPositions() {
+    // label 底对齐到头顶
+    label?.position = position - Vector2(0, size.y + 4);
+
+    // HpBarWrapper 是 topLeft，做水平居中
+    if (hpBar != null) {
+      final halfW = (hpBar!.width) * 0.5;
+      hpBar!.position = position - Vector2(halfW, size.y + 24);
+    }
   }
 
   void pickNewTarget({bool? preferRight}) {

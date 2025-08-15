@@ -16,12 +16,13 @@ class HpBarWrapper extends PositionComponent {
   late final TextComponent _atkText;
   late final TextComponent _defText;
 
+  // ✅ 用 topLeft，和内部孩子（全是 topLeft）坐标系一致
   HpBarWrapper({
     this.width = 40,
     this.height = 3,
     this.barColor = Colors.red,
     this.textColor = Colors.white,
-  }) : super(anchor: Anchor.center);
+  }) : super(anchor: Anchor.topLeft);
 
   @override
   Future<void> onLoad() async {
@@ -47,7 +48,7 @@ class HpBarWrapper extends PositionComponent {
     final double totalHeight = lineHeight * 3;
     final double offsetY = (totalHeight - height) / 2;
 
-    _hpText = _buildTextComponent(offsetY: -offsetY + 0);
+    _hpText  = _buildTextComponent(offsetY: -offsetY + 0);
     _atkText = _buildTextComponent(offsetY: -offsetY + lineHeight);
     _defText = _buildTextComponent(offsetY: -offsetY + lineHeight * 2);
 
@@ -75,7 +76,7 @@ class HpBarWrapper extends PositionComponent {
     );
   }
 
-  /// 🌟外部调用此方法更新属性展示
+  /// 🌟 外部调用此方法更新属性展示
   void setStats({
     required int currentHp,
     required int maxHp,
@@ -85,7 +86,7 @@ class HpBarWrapper extends PositionComponent {
     final ratio = maxHp == 0 ? 0.0 : (currentHp / maxHp).clamp(0.0, 1.0);
     _fg.scale.x = ratio;
 
-    _hpText.text = 'HP: ${formatAnyNumber(currentHp)}';
+    _hpText.text  = 'HP: ${formatAnyNumber(currentHp)}';
     _atkText.text = 'ATK: ${formatAnyNumber(atk)}';
     _defText.text = 'DEF: ${formatAnyNumber(def)}';
   }

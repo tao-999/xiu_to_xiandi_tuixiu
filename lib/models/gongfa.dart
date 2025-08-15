@@ -78,12 +78,13 @@ class Gongfa {
     double? atkBoost,
     double? defBoost,
     double? hpBoost,
-    double? attackSpeed, // ← 新增
+    double? attackSpeed,
+    int? level, // ✅ 就补这个
   }) {
     return Gongfa(
       id: id,
       name: name,
-      level: level,
+      level: level ?? this.level,          // ✅ 关键：允许改等级
       type: type,
       description: description,
       atkBoost: atkBoost ?? this.atkBoost,
