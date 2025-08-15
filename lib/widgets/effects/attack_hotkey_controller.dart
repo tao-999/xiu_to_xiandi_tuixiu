@@ -4,13 +4,11 @@ import 'package:flame/components.dart';
 import 'package:flame/timer.dart' as f;
 import 'package:flutter/services.dart';
 
-import 'package:xiu_to_xiandi_tuixiu/widgets/effects/vfx_laser_beam.dart';
-
 // 适配器（都在 widgets/effects/）
 import 'fireball_player_adapter.dart';
 import 'player_lightning_chain_adapter.dart';
 import 'player_meteor_rain_adapter.dart';
-import 'player_laser_adapter.dart'; // ✅ 就是你这份激光适配器
+import 'player_laser_adapter.dart';
 
 // 你的工程服务/模型
 import 'package:xiu_to_xiandi_tuixiu/services/player_storage.dart';
@@ -21,11 +19,9 @@ import 'package:xiu_to_xiandi_tuixiu/models/gongfa.dart';
 // 目标组件类型
 import '../components/floating_island_dynamic_mover_component.dart';
 
-enum _AttackKind { none, fireball, chain, meteor, laser } // ✅ 新增 laser
+enum _AttackKind { none, fireball, chain, meteor, laser }
 
-/// 统一热键控制器：Q 键根据“已装备功法”自动释放
-/// - 火球 / 雷链 / 流星坠 = 点按释放，按下即开 CD
-/// - 激光 = 按住持续、松开停止 → 松开时进入 CD
+/// 统一热键控制器：Q 键点按一次释放一次（激光与其它技能一致），按下即进入 CD
 /// 冷却时间与攻速(APS)绑定：此版本把 attackSpeed 当“冷却秒数”
 class AttackHotkeyController extends Component
     with KeyboardHandler, HasGameReference {
@@ -35,7 +31,7 @@ class AttackHotkeyController extends Component
   final PlayerFireballAdapter fireball;
   final PlayerLightningChainAdapter lightning;
   final PlayerMeteorRainAdapter meteor;
-  final PlayerLaserAdapter laser; // ✅ 用你的适配器
+  final PlayerLaserAdapter laser;
 
   // 候选目标
   final List<PositionComponent> Function() candidatesProvider;
@@ -53,7 +49,7 @@ class AttackHotkeyController extends Component
   final Set<String> _fireballNames;
   final Set<String> _chainNames;
   final Set<String> _meteorNames;
-  final Set<String> _laserNames; // ✅
+  final Set<String> _laserNames;
   final bool requireEquipped;
   final f.Timer _equipPoller;
   _AttackKind _equippedKind = _AttackKind.none;
@@ -76,14 +72,10 @@ class AttackHotkeyController extends Component
   final double meteorExplosionRadius;
   final double meteorCastRange;
 
-  // ===== 激光参数 =====
+  // ===== 激光参数（单发版本） =====
   final double laserMaxRange;     // 自动寻向/默认朝右的最大长度
-  final double laserTickInterval; // 伤害 tick 间隔
-  final double laserHoldMax;      // 按住时最长持续
-  bool _laserActive = false;
-
-  // ✅ 多束管理
-  final List<VfxLaserBeam> _laserBeams = [];
+  final double laserTickInterval; // 兼容字段（适配器里可不用）
+  final double laserHoldMax;      // 兼容字段（不再使用）
 
   static const bool _debug = false;
 
@@ -143,7 +135,7 @@ class AttackHotkeyController extends Component
     required PlayerFireballAdapter fireball,
     required PlayerLightningChainAdapter lightning,
     required PlayerMeteorRainAdapter meteor,
-    required PlayerLaserAdapter laser, // ✅
+    required PlayerLaserAdapter laser,
     required List<PositionComponent> Function() candidatesProvider,
 
     Set<LogicalKeyboardKey> hotkeys = const {},
@@ -173,10 +165,10 @@ class AttackHotkeyController extends Component
     double meteorExplosionRadius = 68,
     double meteorCastRange = 320,
 
-    // 激光
+    // 激光（单发）
     double laserMaxRange = 520,
     double laserTickInterval = 0.06,
-    double laserHoldMax = 6.0, // 防误触最长持续
+    double laserHoldMax = 6.0, // 兼容字段，不使用
   }) {
     final chosenHotkeys =
     hotkeys.isEmpty ? {LogicalKeyboardKey.keyQ} : hotkeys;
@@ -236,32 +228,13 @@ class AttackHotkeyController extends Component
 
   @override
   bool onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
-    final isOurKey = _hotkeys.contains(event.logicalKey);
-    if (!isOurKey) return false;
-
-    // ✅ 激光是“按住/松开”
-    if (_equippedKind == _AttackKind.laser) {
-      if (event is KeyDownEvent) {
-        if (_onCd || _laserActive) return true;
-        if (requireEquipped && _equippedKind == _AttackKind.none) return true;
-        _castLaserStart();
-        return true;
-      }
-      if (event is KeyUpEvent) {
-        if (_laserActive) {
-          _castLaserStop(); // 停止并进入冷却
-          return true;
-        }
-      }
-      return false;
-    }
-
-    // 其它技能：仅响应 KeyDown
+    // ✅ 所有技能统一：仅响应 KeyDown（点按一次释放一次）
     if (event is! KeyDownEvent) return false;
+    if (!_hotkeys.contains(event.logicalKey)) return false;
     if (_onCd) return true;
     if (requireEquipped && _equippedKind == _AttackKind.none) return true;
 
-    _onCd = true;
+    _onCd = true;               // ✅ 按下即进 CD
     _startCooldownByAPS();
 
     switch (_equippedKind) {
@@ -275,6 +248,8 @@ class AttackHotkeyController extends Component
         _castMeteor();
         break;
       case _AttackKind.laser:
+        _castLaserOnce();       // ✅ 单次释放
+        break;
       case _AttackKind.none:
         _onCd = false;
         return true;
@@ -436,8 +411,7 @@ class AttackHotkeyController extends Component
     );
   }
 
-  // ==================== 激光（按住→持续，松开→停止并CD） ====================
-
+  // ==================== 激光（单次点按释放，多束锁定/随机不重叠） ====================
   // 等级 → 束数（两级 +1 束，上限 6）
   int _extractLevelOfEquipped(Gongfa? g) {
     try {
@@ -472,10 +446,7 @@ class AttackHotkeyController extends Component
     return false;
   }
 
-  void _castLaserStart() async {
-    if (_laserActive) return;
-    _laserActive = true;
-
+  void _castLaserOnce() async {
     // 束数
     final count = await _beamCountForLevel();
 
@@ -514,16 +485,15 @@ class AttackHotkeyController extends Component
       final ang = _angleOf(dir);
       usedAngles.add(ang);
 
-      final beam = await laser.cast(
+      await laser.cast(
         to: t.absoluteCenter.clone(),
         follow: t,
-        overrideDuration: laserHoldMax,
-        tickInterval: laserTickInterval,
-        pierceAll: false,                 // ✅ 每束只命中一个
-        priorityOffset: 80 + _laserBeams.length,
-        onlyHit: t,                       // ✅ 只命中该 move
+        overrideDuration: null,             // 用适配器的等级时长
+        tickInterval: laserTickInterval,    // 兼容字段
+        pierceAll: false,                   // ✅ 每束只命中一个
+        priorityOffset: 80,
+        onlyHit: t,                         // ✅ 只命中该 move
       );
-      _laserBeams.add(beam);
     }
 
     // 2) 还需要补束：没有足够目标也要发（360° 随机但不重叠）
@@ -531,8 +501,9 @@ class AttackHotkeyController extends Component
     if (need > 0) {
       final minSep = 12.0 * math.pi / 180.0; // 最小角距 12°
       final rand = math.Random();
+      int added = 0;
       int attempts = 0;
-      while (_laserBeams.length < count && attempts < 256) {
+      while (added < need && attempts < 256) {
         attempts++;
         final a = -math.pi + rand.nextDouble() * (math.pi * 2); // 360°
         if (_angleTooClose(a, usedAngles, minSep)) continue;
@@ -541,31 +512,17 @@ class AttackHotkeyController extends Component
         final dir = Vector2(math.cos(a), math.sin(a));
         final to = origin + dir * laserMaxRange;
 
-        final beam = await laser.cast(
+        await laser.cast(
           to: to,
-          follow: null,                   // 无目标，定向射出
-          overrideDuration: laserHoldMax,
-          tickInterval: laserTickInterval,
-          pierceAll: false,               // ✅ 最多命中一个
-          priorityOffset: 80 + _laserBeams.length,
-          onlyHit: null,                  // ✅ 自动选“最近相交的一个”
+          follow: null,                     // 无目标，定向射出
+          overrideDuration: null,
+          tickInterval: laserTickInterval,  // 兼容字段
+          pierceAll: false,                 // ✅ 最多命中一个
+          priorityOffset: 80,
+          onlyHit: null,                    // ✅ 自动选“最近相交的一个”
         );
-        _laserBeams.add(beam);
+        added++;
       }
-    }
-  }
-
-  void _castLaserStop() {
-    for (final b in _laserBeams) {
-      try { b.removeFromParent(); } catch (_) {}
-    }
-    _laserBeams.clear();
-    _laserActive = false;
-
-    // 松开后再进入冷却
-    if (!_onCd) {
-      _onCd = true;
-      _startCooldownByAPS();
     }
   }
 
@@ -612,7 +569,7 @@ class AttackHotkeyController extends Component
       if (_fireballNames.contains(name)) return _AttackKind.fireball;
       if (_chainNames.contains(name)) return _AttackKind.chain;
       if (_meteorNames.contains(name)) return _AttackKind.meteor;
-      if (_laserNames.contains(name))  return _AttackKind.laser; // ✅
+      if (_laserNames.contains(name))  return _AttackKind.laser;
     }
     return _AttackKind.none;
   }

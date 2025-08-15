@@ -1,5 +1,5 @@
-// 📄 lib/widgets/effects/vfx_laser_beam.dart
 import 'dart:math';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart' hide Image;
@@ -8,127 +8,102 @@ import '../components/floating_island_dynamic_mover_component.dart';
 import '../components/floating_island_player_component.dart';
 import '../components/resource_bar.dart';
 
-/// 激光束（本地坐标渲染）
-/// ✅ 本版支持：
-///   - onceDamage：单次整伤（与火球一致）
-///   - renderLengthPx：只影响“渲染长度”，命中仍用全长 maxLength（hitscan）
-class VfxLaserBeam extends PositionComponent with HasGameReference {
-  // ===== 对外参数 =====
-  final Vector2 Function() getStartLocal;
-  final Vector2 Function() getTargetLocal;
-
-  /// 命中用的最大长度（判定线段：p0→p0+dir*maxLength）
-  final double maxLength;
-
-  /// 仅用于渲染的长度（可选）；不传则=命中长度
-  final double? renderLengthPx;
-
-  final double duration;     // 视觉持续（与子弹感更短）
-  final double width;
-  final double tickInterval; // 兼容字段（单次模式不使用）
-  final double damagePerTick;// 兼容字段（单次模式不使用）
+/// 子弹式“激光弹”(Laser Bullet)
+/// - 从 startLocal 按 dirUnit * speed 飞行；每帧用“前一帧→当前帧”的线段与 AABB 相交检测
+/// - 命中结算一次整伤 onceDamage，播放碎屑 + 球形电弧，随后销毁
+/// - 可限制只命中 onlyHit（每束只打一个 move 场景）
+/// - 渲染为“短尾迹”的子弹曳光：tip 在 pos，尾巴长度 tailLength 像素
+class VfxLaserBullet extends PositionComponent with HasGameReference {
+  // ===== 外部参数 =====
+  final Vector2 startLocal;     // 出膛点（所在渲染层的本地坐标）
+  final Vector2 dirUnit;        // 方向，已归一化
+  final double speed;           // 像素/秒
+  final double maxDistance;     // 最大飞行距离（命中前的上限）
+  final double tailLength;      // 渲染尾迹长度（像素）
+  final double width;           // 可视宽度（像素）
+  final List<Color> palette;    // 从内到外的颜色（≥1）
+  final double onceDamage;      // 单次整伤（与火球一致）
   final FloatingIslandPlayerComponent owner;
   final Vector2 Function() getLogicalOffset;
   final GlobalKey<ResourceBarState> resourceBarKey;
-  final bool pierceAll;      // 兼容
-  final List<Color> palette; // 从内到外
-  final FloatingIslandDynamicMoverComponent? onlyHit; // 只命中这个 mover（可 null）
-
-  /// 单次整伤（与火球一致）：非空即启用一次结算
-  final double? onceDamage;
+  final FloatingIslandDynamicMoverComponent? onlyHit; // 只命中该 mover（可空）
 
   // ===== 内部状态 =====
-  double _age = 0.0;
-  double _tickAcc = 0.0;
-  bool _onceDone = false;
-  Vector2 _p0 = Vector2.zero();
-  Vector2 _p1Hit = Vector2.zero();   // 判定线段末端
-  Vector2 _p1Draw = Vector2.zero();  // 渲染线段末端
-  Vector2 _dirUnit = Vector2(1, 0);
+  Vector2 _pos;         // 子弹头部（tip）位置
+  Vector2 _prev;        // 上一帧位置（用于线段相交）
+  double _traveled = 0; // 已飞行距离
+  bool _done = false;
 
   final Random _rng = Random();
   final Random _rng2 = Random();
 
-  VfxLaserBeam({
-    required this.getStartLocal,
-    required this.getTargetLocal,
-    required this.maxLength,
-    this.renderLengthPx,              // ✅ 新增
-    required this.duration,
+  VfxLaserBullet({
+    required this.startLocal,
+    required this.dirUnit,
+    required this.speed,
+    required this.maxDistance,
+    required this.tailLength,
     required this.width,
-    required this.tickInterval,
-    required this.damagePerTick,
+    required this.palette,
+    required this.onceDamage,
     required this.owner,
     required this.getLogicalOffset,
     required this.resourceBarKey,
-    this.pierceAll = false,
-    required this.palette,
     this.onlyHit,
-    this.onceDamage,                  // ✅ 单次整伤
     int? priority,
-  }) {
-    anchor = Anchor.topLeft;
-    size = Vector2.zero(); // 完全自绘
+  })  : _pos = startLocal.clone(),
+        _prev = startLocal.clone() {
+    anchor = Anchor.center;
+    size = Vector2.zero();
     if (priority != null) this.priority = priority;
+  }
+
+  @override
+  Future<void> onLoad() async {
+    super.onLoad();
+    // 枪口微光（一次性小闪）
+    parent?.add(_MuzzleFlash(
+      position: _pos.clone(),
+      radius: width * 0.9,
+      color: (palette.length >= 2 ? palette[1] : palette.first).withOpacity(0.8),
+    ));
   }
 
   @override
   void update(double dt) {
     super.update(dt);
+    if (_done || dt <= 0) return;
 
-    // 1) 计算起止点
-    _p0 = getStartLocal();
-    final want = getTargetLocal();
-    final dir = want - _p0;
-    final len = dir.length;
-    _dirUnit = len > 1e-6 ? dir / len : Vector2(1, 0);
+    _prev = _pos.clone();
+    final delta = dirUnit * (speed * dt);
+    _pos += delta;
+    _traveled += delta.length;
 
-    final usedHitLen = min(len, max(0.0, maxLength));
-    _p1Hit  = _p0 + _dirUnit * usedHitLen;
-
-    // 渲染长度（子弹短迹线）
-    final drawLen = renderLengthPx != null
-        ? min(usedHitLen, max(0.0, renderLengthPx!))
-        : usedHitLen;
-    _p1Draw = _p0 + _dirUnit * drawLen;
-
-    // 2) 持续
-    _age += dt;
-    if (_age >= duration) { removeFromParent(); return; }
-
-    // 3) 结算
-    if (onceDamage != null) {
-      if (!_onceDone) _dealOnceDamageIfHit();
+    // 到达最大射程：销毁
+    if (_traveled >= maxDistance) {
+      removeFromParent();
       return;
     }
 
-    // 兼容老 tick（当前不走）
-    _tickAcc += dt;
-    if (_tickAcc >= tickInterval) {
-      _tickAcc -= tickInterval;
-      _dealDamageAlongBeam();
-    }
-  }
+    // 命中检测：用“上一帧位置→当前帧位置”的线段与 AABB 相交
+    final parentRoot = parent ?? this;
 
-  // ===== 单次命中结算（只打一个） =====
-  void _dealOnceDamageIfHit() {
-    final dmg = (onceDamage ?? 0);
-    if (!dmg.isFinite || dmg <= 0) return;
-
-    // 限定目标
+    // 1) 若限定目标 → 只测该 mover
     if (onlyHit != null) {
       final m = onlyHit!;
       if (!m.isDead && m.isMounted) {
         final Rect aabb = _moverAabbLocal(m);
         final Rect expand = _expandRect(aabb, width * 0.5);
-        final t = _segmentAabbFirstT(_p0, _p1Hit, expand); // ✅ 判定用 p1Hit
-        if (t != null) _applyOnce(m, t, dmg);
+        final t = _segmentAabbFirstT(_prev, _pos, expand);
+        if (t != null) {
+          _applyHit(m, t);
+          return;
+        }
       }
       return;
     }
 
-    // 自动挑最近相交
-    final parentRoot = parent ?? this;
+    // 2) 否则：扫描所有活着的 mover，取沿线“最先相交”的一个
     final movers = <FloatingIslandDynamicMoverComponent>[];
     void dfs(Component n) {
       for (final c in n.children) {
@@ -145,108 +120,38 @@ class VfxLaserBeam extends PositionComponent with HasGameReference {
     for (final m in movers) {
       final Rect aabb = _moverAabbLocal(m);
       final Rect expand = _expandRect(aabb, width * 0.5);
-      final t = _segmentAabbFirstT(_p0, _p1Hit, expand); // ✅
+      final t = _segmentAabbFirstT(_prev, _pos, expand);
       if (t != null && t < bestT) { bestT = t; best = m; }
     }
-    if (best != null) _applyOnce(best, bestT, dmg);
+    if (best != null) {
+      _applyHit(best, bestT);
+    }
   }
 
-  void _applyOnce(FloatingIslandDynamicMoverComponent m, double tHit, double dmg) {
-    if (_onceDone) return;
-    _onceDone = true;
+  void _applyHit(FloatingIslandDynamicMoverComponent m, double tHit) {
+    if (_done) return;
+    _done = true;
 
+    // 命中点（沿上一帧→当前帧的线段插值）
+    final hit = _prev + (dirUnit * (speed * 0)) + ( _pos - _prev ) * tHit;
+
+    // 结算整伤
+    final dmg = onceDamage.isFinite ? onceDamage.clamp(1.0, 1e12) : 1.0;
     m.applyDamage(
-      amount: dmg, // 单次整伤
+      amount: dmg,
       killer: owner,
       logicalOffset: getLogicalOffset(),
       resourceBarKey: resourceBarKey,
     );
 
-    // 冲击特效
-    final impact = _p0 + (_p1Hit - _p0) * tHit;
-    _spawnDebrisAt(impact);
+    // 命中特效：碎屑 + 球形电弧
+    _spawnDebrisAt(hit);
     _spawnSphericalArcsOnMover(m);
+
+    removeFromParent();
   }
 
-  // =====（保留）老 tick 路径 =====
-  void _dealDamageAlongBeam() {
-    final parentRoot = parent ?? this;
-    final beamHalf = width * 0.5;
-
-    // 收集 mover
-    final movers = <FloatingIslandDynamicMoverComponent>[];
-    void dfs(Component n) {
-      for (final c in n.children) {
-        if (c is FloatingIslandDynamicMoverComponent) {
-          if (!c.isDead && c.isMounted) movers.add(c);
-        }
-        if (c.children.isNotEmpty) dfs(c);
-      }
-    }
-    dfs(parentRoot);
-
-    bool anyHit = false;
-
-    if (onlyHit != null) {
-      final m = onlyHit!;
-      final Rect aabb = _moverAabbLocal(m);
-      final Rect expand = _expandRect(aabb, beamHalf);
-      final t = _segmentAabbFirstT(_p0, _p1Hit, expand); // ✅
-      if (t != null) {
-        anyHit = true;
-        m.applyDamage(
-          amount: damagePerTick,
-          killer: owner,
-          logicalOffset: getLogicalOffset(),
-          resourceBarKey: resourceBarKey,
-        );
-      }
-    } else {
-      double bestT = double.infinity;
-      FloatingIslandDynamicMoverComponent? best;
-      for (final m in movers) {
-        final Rect aabb = _moverAabbLocal(m);
-        final Rect expand = _expandRect(aabb, beamHalf);
-        final t = _segmentAabbFirstT(_p0, _p1Hit, expand); // ✅
-        if (t != null && t < bestT) { bestT = t; best = m; }
-      }
-      if (best != null) {
-        anyHit = true;
-        best.applyDamage(
-          amount: damagePerTick,
-          killer: owner,
-          logicalOffset: getLogicalOffset(),
-          resourceBarKey: resourceBarKey,
-        );
-      } else if (pierceAll) {
-        for (final m in movers) {
-          final Rect aabb = _moverAabbLocal(m);
-          final Rect expand = _expandRect(aabb, beamHalf);
-          final t = _segmentAabbFirstT(_p0, _p1Hit, expand); // ✅
-          if (t != null) {
-            anyHit = true;
-            m.applyDamage(
-              amount: damagePerTick,
-              killer: owner,
-              logicalOffset: getLogicalOffset(),
-              resourceBarKey: resourceBarKey,
-            );
-          }
-        }
-      }
-    }
-
-    // 视觉抖动：作用在渲染端点
-    if (anyHit) {
-      final jitter = 0.6 * beamHalf;
-      _p1Draw += Vector2(
-        (_rng.nextDouble() - 0.5) * jitter,
-        (_rng.nextDouble() - 0.5) * jitter,
-      );
-    }
-  }
-
-  // —— 工具：把 mover 的 AABB 转为与本层同一坐标系的矩形 —— //
+  // —— 工具：把 mover AABB 转成与本层同坐标 —— //
   Rect _moverAabbLocal(FloatingIslandDynamicMoverComponent m) {
     final PositionComponent? lp =
     parent is PositionComponent ? parent as PositionComponent : null;
@@ -265,7 +170,7 @@ class VfxLaserBeam extends PositionComponent with HasGameReference {
   Rect _expandRect(Rect r, double pad) =>
       Rect.fromLTWH(r.left - pad, r.top - pad, r.width + pad * 2, r.height + pad * 2);
 
-  // Liang–Barsky：返回首次相交 t（0..1），无相交→null
+  /// Liang–Barsky：线段 p0→p1 与 AABB 相交的首次 t（0..1），无则 null
   double? _segmentAabbFirstT(Vector2 p0, Vector2 p1, Rect aabb) {
     final dx = p1.x - p0.x;
     final dy = p1.y - p0.y;
@@ -292,44 +197,63 @@ class VfxLaserBeam extends PositionComponent with HasGameReference {
     return tMax >= tMin ? tMin : null;
   }
 
-  // —— 渲染（只画 _p0→_p1Draw 的短迹线） —— //
+  // —— 渲染：短尾迹（tip 在 _pos，尾巴反向） —— //
   @override
   void render(Canvas c) {
     super.render(c);
 
-    final p0 = Offset(_p0.x, _p0.y);
-    final p1 = Offset(_p1Draw.x, _p1Draw.y);
+    // —— 计算“当前应显示”的尾迹长度：随飞行增长，上限 tailLength —— //
+    final len = math.min(tailLength, _traveled + speed * 0.016); // 开枪瞬间不拉满
+    final tip = Offset(_pos.x, _pos.y);
+    final dir = Offset(dirUnit.x, dirUnit.y);
 
-    // 分层描边：外→内
-    final nLayers = palette.length.clamp(1, 9);
-    for (int i = 0; i < nLayers; i++) {
-      final outerIdx = nLayers - 1 - i;
-      final color = palette[outerIdx];
-      final t = i / (nLayers - 1 == 0 ? 1 : (nLayers - 1));
-      final strokeW = width * (1.0 - 0.5 * t);
+    // 渐变颜色：核心&尾巴主色
+    final coreCol = palette.first;                              // 纯白核
+    final tailCol = (palette.length >= 4 ? palette[3]           // 鲜红
+        : (palette.length >= 2 ? palette[1] : palette.first));
+
+    // —— 分段画“锥形短尾迹”：越靠近尾巴越细越透明 —— //
+    // 6 段足够平滑；你要更短可以把 len 再调小（见适配器参数）
+    const int segs = 6;
+    for (int i = 0; i < segs; i++) {
+      final f0 = i / segs;            // [0..1)，靠近尾巴
+      final f1 = (i + 1) / segs;      // (0..1]，靠近弹头
+      final a = tip - dir * (len * f1);
+      final b = tip - dir * (len * f0);
+
+      // 宽度从尾到头：0.35W → 1.00W；透明度也从低到高
+      final w = width * (0.35 + 0.65 * (1.0 - f0));
+      final alpha = 0.10 + 0.80 * (1.0 - f0);
+      final col = Color.lerp(
+        tailCol.withOpacity(alpha * 0.8),       // 尾部偏红、透明
+        coreCol.withOpacity(alpha * 0.95),      // 头部偏白、亮
+        1.0 - f0,
+      )!;
+
       final paint = Paint()
-        ..blendMode = BlendMode.srcOver
+        ..blendMode = BlendMode.plus
         ..strokeCap = StrokeCap.round
-        ..strokeWidth = strokeW
-        ..color = color.withOpacity((0.30 + 0.60 * (1.0 - t)).clamp(0.0, 1.0));
-      c.drawLine(p0, p1, paint);
+        ..strokeWidth = w
+        ..color = col;
+      c.drawLine(a, b, paint);
     }
 
-    // 核心
-    final coreCol = palette.first;
-    final core = Paint()
-      ..blendMode = BlendMode.srcOver
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = max(1.5, width * 0.35)
-      ..color = coreCol.withOpacity(0.95);
-    c.drawLine(p0, p1, core);
-
-    // 枪口辉光
-    final glowCol = palette.length >= 2 ? palette[1] : coreCol;
-    final cap = Paint()
+    // —— 子弹头辉光（小瓣） —— //
+    final glowCol = (palette.length >= 2 ? palette[1] : coreCol);
+    final glow = Paint()
       ..blendMode = BlendMode.plus
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-    c.drawCircle(p0, width * 0.9, cap..color = glowCol.withOpacity(0.7));
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
+      ..color = glowCol.withOpacity(0.85);
+    c.drawCircle(tip, width * 0.7, glow);
+
+    // —— 弹头核心短亮线，增加“锐利感” —— //
+    final head = Paint()
+      ..blendMode = BlendMode.plus
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(1.5, width * 0.45)
+      ..color = coreCol.withOpacity(0.95);
+    final headFrom = tip - dir * (width * 0.9);
+    c.drawLine(headFrom, tip, head);
   }
 
   // ================== 特效：碎屑 & 球形电弧 ==================
@@ -349,7 +273,7 @@ class VfxLaserBeam extends PositionComponent with HasGameReference {
       baseSize: width,
       count: count,
       palette: nonWhite.isNotEmpty ? nonWhite : [palette.last],
-      dirUnit: _dirUnit.clone(),
+      dirUnit: dirUnit.clone(),
     ));
   }
 
@@ -368,6 +292,27 @@ class VfxLaserBeam extends PositionComponent with HasGameReference {
       bolts: bolts,
       life: life,
     ));
+  }
+}
+
+/// 枪口小闪光
+class _MuzzleFlash extends PositionComponent {
+  final double radius;
+  final Color color;
+  _MuzzleFlash({required Vector2 position, required this.radius, required this.color}) {
+    this.position = position;
+    anchor = Anchor.center;
+    size = Vector2.zero();
+  }
+  double _life = 0.08, _max = 0.08;
+  @override void update(double dt){ _life -= dt; if (_life<=0) removeFromParent(); }
+  @override void render(Canvas c){
+    final t = (_life/_max).clamp(0.0,1.0);
+    final p = Paint()
+      ..blendMode = BlendMode.plus
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
+      ..color = color.withOpacity(0.6*t);
+    c.drawCircle(Offset.zero, radius*(1.0+0.6*(1.0-t)), p);
   }
 }
 
