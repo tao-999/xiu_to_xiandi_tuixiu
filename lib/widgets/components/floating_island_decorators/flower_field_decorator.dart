@@ -130,7 +130,7 @@ class FlowerFieldDecorator extends Component {
             DynamicSpriteEntry('gongfa/gongfa.png', 1, type: 'gongfa_1', labelText: '神秘功法', labelColor:  Color(0xFF000000))
           ],
         },
-        dynamicTileSize: 640.0,
+        dynamicTileSize: 540.0,
         seed: seed,
         minDynamicObjectSize: 16.0,
         maxDynamicObjectSize: 25.0,

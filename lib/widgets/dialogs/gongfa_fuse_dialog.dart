@@ -27,6 +27,7 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
   }
 
   String _asset(String p) => p.startsWith('assets/') ? p : 'assets/images/$p';
+  // 锁定维度=【同名+同等级+同类型】（满足你“相同名字的同等级都可多选”的要求）
   String _canonKey(Gongfa g) => '${g.name}|${g.level}|${g.type.index}';
 
   Future<void> _load() async {
@@ -47,7 +48,7 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
     final Map<String, int> countBy = {};
     final Map<String, Gongfa> sampleBy = {};
     for (final g in all) {
-      final k = _canonKey(g);
+      final k = _canonKey(g); // name|level|typeIndex
       countBy[k] = (countBy[k] ?? 0) + (g.count > 0 ? g.count : 0);
       sampleBy[k] = g;
     }
@@ -70,6 +71,21 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
       }
     }
 
+    // ✅ 就在这里排序：Level 降序 -> 名称升序（保证同名同级挨着）-> 类型 -> uid
+    _items.sort((a, b) {
+      final ga = a.seed, gb = b.seed;
+      final byLevel = gb.level.compareTo(ga.level); // 高等级在前
+      if (byLevel != 0) return byLevel;
+
+      final byName = ga.name.compareTo(gb.name);    // 同级下，同名挨在一起
+      if (byName != 0) return byName;
+
+      final byType = ga.type.index.compareTo(gb.type.index);
+      if (byType != 0) return byType;
+
+      return a.uid.compareTo(b.uid);                // 稳定兜底
+    });
+
     setState(() => _loading = false);
   }
 
@@ -79,9 +95,11 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
     if (_disabled(it)) return;
     setState(() {
       if (_selected.contains(it.uid)) {
+        // 再次点击取消
         _selected.remove(it.uid);
         if (_selected.isEmpty) _lockKey = null;
       } else {
+        // 第一次选择→锁定同名同级同类型；最多 4 本
         _lockKey ??= it.lockKey;
         if (_selected.length < _need) {
           _selected.add(it.uid);
@@ -93,14 +111,13 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
   Future<void> _combine() async {
     if (_selected.length != _need) return;
 
-    // 任意一张作为模板
     final any = _items.firstWhere((e) => _selected.contains(e.uid));
     final g0 = any.seed;
 
-    // —— 扣库存（该组 4 本）——
+    // 1) 先扣同组库存（同名+同级+同类型）
     final all = await GongfaCollectedStorage.getAllGongfa();
     int total = 0;
-    final List<Gongfa> sameGroup = [];
+    final sameGroup = <Gongfa>[];
     for (final g in all) {
       if (_canonKey(g) == any.lockKey) {
         total += g.count;
@@ -115,21 +132,23 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
       await GongfaCollectedStorage.addGongfa(g0.copyWith(count: remain));
     }
 
-    // —— 产出：同名同类型 Lv+1，并按类型附加成长 —— //
+    // 2) 计算成长
     double atkBoost = g0.atkBoost;
     double moveBoost = g0.moveSpeedBoost;
     double atkSpeed  = g0.attackSpeed;
-
     if (g0.type == GongfaType.attack) {
-      atkBoost = atkBoost + 0.05;
+      atkBoost += 0.05;
       atkSpeed = (atkSpeed - 0.05);
-      if (atkSpeed < 0.2) atkSpeed = 0.2; // 不低于 0.2
+      if (atkSpeed < 0.2) atkSpeed = 0.2;
     } else if (g0.type == GongfaType.movement) {
-      moveBoost = moveBoost + 0.05;
+      moveBoost += 0.05;
     }
 
+    // 3) 生成“新的唯一 id”
+    String newId = '${g0.id}_L${g0.level + 1}_${DateTime.now().microsecondsSinceEpoch}';
+
     final out = Gongfa(
-      id: g0.id,
+      id: newId,                            // ✅ 关键：不要复用旧 id
       name: g0.name,
       level: g0.level + 1,
       type: g0.type,
@@ -153,6 +172,7 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // 👇—— UI 完全保留你的写法，不改样式 ——👇
     final canCombine = _selected.length == _need;
 
     return Dialog(
@@ -215,7 +235,8 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
                             Padding(
                               padding: const EdgeInsets.all(6),
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisAlignment:
+                                MainAxisAlignment.center,
                                 children: [
                                   Expanded(
                                     child: Image.asset(
@@ -227,7 +248,8 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
                                   Text(
                                     g.name,
                                     maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                    overflow:
+                                    TextOverflow.ellipsis,
                                     style: const TextStyle(
                                         fontSize: 11,
                                         color: Colors.black87),
@@ -241,7 +263,8 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
                             ),
                             if (disabled)
                               Container(
-                                color: Colors.black.withOpacity(0.55),
+                                color: Colors.black
+                                    .withOpacity(0.55),
                               ),
                             if (picked)
                               const Positioned(
@@ -268,15 +291,17 @@ class _GongfaFusionDialogState extends State<GongfaFusionDialog> {
                       _lockKey == null
                           ? '选择任意 1 张后，仅可继续选择【同名字+同等级+同类型】的卡；再次点击可取消。'
                           : '正在合成：${_lockKey!.split("|")[0]}（Lv.${_lockKey!.split("|")[1]}）  已选 ${_selected.length}/$_need',
-                      style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      style: const TextStyle(
+                          fontSize: 12, color: Colors.black54),
                     ),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: canCombine ? _combine : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                      canCombine ? const Color(0xFFDB6F18) : Colors.black26,
+                      backgroundColor: canCombine
+                          ? const Color(0xFFDB6F18)
+                          : Colors.black26,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 10),
