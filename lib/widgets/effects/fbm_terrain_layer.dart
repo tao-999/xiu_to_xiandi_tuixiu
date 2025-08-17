@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:xiu_to_xiandi_tuixiu/utils/noise_utils.dart';
@@ -12,6 +13,7 @@ class FbmTerrainLayer extends PositionComponent {
   final Vector2 Function() getWorldBase;
   static Vector2 _zeroBase() => Vector2.zero();
 
+  // ===== 基础 fBm 参数 =====
   double frequency;
   int    octaves;
   double persistence;
@@ -23,6 +25,17 @@ class FbmTerrainLayer extends PositionComponent {
 
   bool   useLodAdaptive;
   double lodNyquist;
+
+  // ===== 新增：海面参数（对应 GLSL 15~23）=====
+  bool   oceanEnable;     // 15
+  double seaLevel;        // 16
+  double oceanAmp;        // 17
+  double oceanSpeed;      // 18
+  double oceanChoppy;     // 19
+  double sunTheta;        // 20 (弧度)
+  double sunStrength;     // 21
+  double foamWidth;       // 22
+  double foamIntensity;   // 23
 
   static ui.FragmentProgram? _cachedProgram;
   ui.FragmentShader? _shader;
@@ -42,14 +55,27 @@ class FbmTerrainLayer extends PositionComponent {
     this.frequency = 0.004,
     this.octaves = 6,
     this.persistence = 0.6,
-    this.animate = false,
+    this.animate = false,      // 想要海面动起来：外部设为 true
     this.seed = 1337,
     this.debugLogUniforms = false,
     this.debugLevel = 0.0,
     this.useLodAdaptive = true,
     this.lodNyquist = 0.5,
+    // —— 海面默认值（与 GLSL 建议一致）——
+    this.oceanEnable = true,
+    this.seaLevel = 0.43,
+    this.oceanAmp = 2.0,
+    this.oceanSpeed = 1.2,
+    this.oceanChoppy = 0.6,
+    double? sunThetaDegrees, // 允许用角度传入
+    this.sunStrength = 1.2,
+    this.foamWidth = 0.025,
+    this.foamIntensity = 1.0,
     int? priority,
-  }) : super(priority: priority ?? -10000);
+  })  : sunTheta = (sunThetaDegrees != null)
+      ? sunThetaDegrees * math.pi / 180.0
+      : (40.0 * math.pi / 180.0),
+        super(priority: priority ?? -10000);
 
   @override
   Future<void> onLoad() async {
@@ -99,13 +125,14 @@ class FbmTerrainLayer extends PositionComponent {
     }
 
     try {
-      // 基础周期（和重基单位一致）：256 / frequency
+      // 基础周期：256 / frequency
       final double f = frequency.abs() > 1e-12 ? frequency.abs() : 1e-12;
       final double rebaseUnit = 256.0 / f;
-      // 只把小数部分传进 shader（避免超大数带来的精度掉帧）
+      // ✅ Dart 侧先取模，传已取模的 worldBase
       final double baseX = _fmod(base.x, rebaseUnit);
       final double baseY = _fmod(base.y, rebaseUnit);
 
+      // 0~14：原有参数（不变）
       s.setFloat(0,  screen.x);
       s.setFloat(1,  screen.y);
       s.setFloat(2,  worldTopLeft.x);
@@ -119,10 +146,19 @@ class FbmTerrainLayer extends PositionComponent {
       s.setFloat(10, debugLevel);
       s.setFloat(11, useLodAdaptive ? 1.0 : 0.0);
       s.setFloat(12, lodNyquist);
-
-      // ✅ 传入“已取模”的 worldBase
       s.setFloat(13, baseX);
       s.setFloat(14, baseY);
+
+      // 15~23：海面参数（必须补！）
+      s.setFloat(15, oceanEnable ? 1.0 : 0.0);
+      s.setFloat(16, seaLevel);
+      s.setFloat(17, oceanAmp);
+      s.setFloat(18, oceanSpeed);
+      s.setFloat(19, oceanChoppy);
+      s.setFloat(20, sunTheta);       // 已转弧度
+      s.setFloat(21, sunStrength);
+      s.setFloat(22, foamWidth);
+      s.setFloat(23, foamIntensity);
 
       s.setImageSampler(0, _perm1!);
       s.setImageSampler(1, _perm2!);
@@ -130,6 +166,16 @@ class FbmTerrainLayer extends PositionComponent {
 
       _paint.shader = s;
       canvas.drawRect(rect, _paint);
+
+      // 可选：每秒打印一次关键参数，方便校验
+      if (debugLogUniforms && _logTimer >= 1.0) {
+        _logTimer = 0.0;
+        debugPrint('[FbmTerrainLayer] ocean=${oceanEnable ? 1 : 0} '
+            'sea=$seaLevel amp=$oceanAmp speed=$oceanSpeed choppy=$oceanChoppy '
+            'sunTheta=${(sunTheta*180/math.pi).toStringAsFixed(1)} '
+            'sunStr=$sunStrength foamW=$foamWidth foamI=$foamIntensity '
+            'scale=$scale freq=$frequency time=${_t.toStringAsFixed(2)}');
+      }
     } catch (e, st) {
       debugPrint('[FbmTerrainLayer] set uniforms/samplers failed: $e\n$st');
       canvas.drawRect(rect, _fallback);
@@ -156,5 +202,30 @@ class FbmTerrainLayer extends PositionComponent {
     }
     final pic = recorder.endRecording();
     return pic.toImage(256, 1);
+  }
+
+  // 便捷更新接口（可热调试）
+  void setOcean({
+    bool? enable,
+    double? seaLevel,
+    double? amp,
+    double? speed,
+    double? choppy,
+    double? sunThetaDegrees,
+    double? sunStrength,
+    double? foamWidth,
+    double? foamIntensity,
+  }) {
+    if (enable != null) oceanEnable = enable;
+    if (seaLevel != null) this.seaLevel = seaLevel;
+    if (amp != null) oceanAmp = amp;
+    if (speed != null) oceanSpeed = speed;
+    if (choppy != null) oceanChoppy = choppy;
+    if (sunThetaDegrees != null) {
+      sunTheta = sunThetaDegrees * math.pi / 180.0;
+    }
+    if (sunStrength != null) this.sunStrength = sunStrength;
+    if (foamWidth != null) this.foamWidth = foamWidth;
+    if (foamIntensity != null) this.foamIntensity = foamIntensity;
   }
 }

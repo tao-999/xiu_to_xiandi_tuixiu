@@ -193,18 +193,39 @@ class FloatingIslandMapComponent extends FlameGame
     final ng = _noiseMapGenerator!;
     final clampedOct = ng.octaves < 1 ? 1 : (ng.octaves > 8 ? 8 : ng.octaves);
     _fbmLayer = FbmTerrainLayer(
-      getViewSize: () => size,                 // 屏幕像素
-      getViewScale: () => 1.0,                 // 如有缩放改这里
-      getLogicalOffset: () => logicalOffset,   // 世界相机中心（局部）
-      getWorldBase: () => worldBase,
-      frequency: ng.frequency,
-      octaves: clampedOct,
+      // —— 视图&相机 —— //
+      getViewSize:      () => size,           // 屏幕像素
+      getViewScale:     () => 1.0,      // 你的缩放（例如 1.0 或相机缩放）
+      getLogicalOffset: () => logicalOffset,  // 世界相机中心（局部）
+      getWorldBase:     () => worldBase,      // 让大地图滚动绝对无缝
+
+      // —— fBm 参数（用你现有数值）——
+      frequency:   ng.frequency,
+      octaves:     clampedOct,
       persistence: ng.persistence,
-      seed: ng.seed,
-      animate: false,
-      priority: -10000,
+      seed:        ng.seed,
+
+      // 动画打开，uTime 才会走
+      animate: true,
+
+      // LOD（保留你原逻辑）
       useLodAdaptive: true,
-      lodNyquist: 0.5,
+      lodNyquist:     0.5,
+
+      // —— 海面参数（关键，不会强制全屏海）——
+      oceanEnable: true,
+      seaLevel: 0.43,      // 只判 mixed < 0.43 为海
+      oceanAmp: 2.0,       // 1.8~2.4
+      oceanSpeed: 10.5,     // 1.1~1.5
+      oceanChoppy: 0.75,   // 0.45~0.60
+      sunStrength: 0.0,    // 0.9~1.4
+      foamWidth: 0.2,
+      foamIntensity: 1.5,
+
+      // 方便核对是否喂到 15~23 号 uniform
+      debugLogUniforms: false,
+
+      priority: -10000,
     );
     add(_fbmLayer!);
 

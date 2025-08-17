@@ -9,7 +9,6 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:xiu_to_xiandi_tuixiu/services/treasure_chest_storage.dart';
 
 import 'models/character.dart';
 import 'models/disciple.dart';
