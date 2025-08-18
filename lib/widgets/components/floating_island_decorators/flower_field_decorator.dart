@@ -82,7 +82,7 @@ class FlowerFieldDecorator extends Component {
             StaticSpriteEntry('floating_island/flower_field_6.png', 1),
           ],
         },
-        staticTileSize: 128.0,
+        staticTileSize: 178.0,
         seed: seed,
         minCount: 1,
         maxCount: 7,

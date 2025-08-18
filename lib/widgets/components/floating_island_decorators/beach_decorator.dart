@@ -39,7 +39,7 @@ class BeachDecorator extends Component {
           StaticSpriteEntry('floating_island/beach_9.png', 2),
         ],
       },
-      staticTileSize: 150.0,
+      staticTileSize: 157.0,
       seed: seed,
       minCount: 2,
       maxCount: 6,

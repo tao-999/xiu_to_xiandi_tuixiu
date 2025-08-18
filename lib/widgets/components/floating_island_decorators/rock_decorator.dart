@@ -86,7 +86,7 @@ class RockDecorator extends Component {
             StaticSpriteEntry('floating_island/rock_10.png', 10),
           ],
         },
-        staticTileSize: 130.0,
+        staticTileSize: 170.0,
         seed: seed,
         minCount: 1,
         maxCount: 2,

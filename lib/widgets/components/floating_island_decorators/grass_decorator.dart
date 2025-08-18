@@ -112,7 +112,7 @@ class GrassDecorator extends Component {
             StaticSpriteEntry('floating_island/grass_10.png', 10),
           ],
         },
-        staticTileSize: 128.0,
+        staticTileSize: 168.0,
         seed: seed,
         minCount: 2,
         maxCount: 8,
