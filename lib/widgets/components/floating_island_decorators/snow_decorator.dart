@@ -64,7 +64,7 @@ class SnowDecorator extends Component {
         allowedTerrains: {'snow'},
         dynamicSpritesMap: {
           'snow': [
-            DynamicSpriteEntry('floating_island/snow_d_1.png', 1),
+            DynamicSpriteEntry('floating_island/snow_d_1.png', 1, defaultFacingRight: false),
             DynamicSpriteEntry(
                 'floating_island/snow_d_2.png',
                 1,

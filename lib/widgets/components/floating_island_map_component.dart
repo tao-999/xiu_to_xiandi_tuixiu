@@ -214,13 +214,13 @@ class FloatingIslandMapComponent extends FlameGame
 
       // —— 海面参数（关键，不会强制全屏海）——
       oceanEnable: true,
-      seaLevel: 0.43,      // 只判 mixed < 0.43 为海
-      oceanAmp: 2.0,       // 1.8~2.4
-      oceanSpeed: 10.5,     // 1.1~1.5
-      oceanChoppy: 0.75,   // 0.45~0.60
-      sunStrength: 0.0,    // 0.9~1.4
+      seaLevel: 0.43,
+      oceanAmp: 2.2,
+      oceanSpeed: 1.55,
+      oceanChoppy: 0.6,
+      sunStrength: 0.55,
       foamWidth: 0.2,
-      foamIntensity: 1.5,
+      foamIntensity: 1.20,
 
       // 方便核对是否喂到 15~23 号 uniform
       debugLogUniforms: false,

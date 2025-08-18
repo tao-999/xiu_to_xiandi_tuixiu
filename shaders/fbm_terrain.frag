@@ -42,7 +42,7 @@ C4=vec3(0.800,0.757,0.608), C5=vec3(0.309,0.639,0.780),
 C6=vec3(0.918,0.843,0.714), C7=vec3(0.494,0.231,0.231);
 const vec3 WATER_DEEP=vec3(0.055,0.215,0.345), WATER_SHALLOW=vec3(0.160,0.560,0.675), FOAM_COLOR=vec3(0.95);
 
-// ---------- fBm 基础（保留你原来的） ----------
+// ---------- fBm（保留你的陆地生成） ----------
 float fade5(float t){ return t*t*t*(t*(t*6.0-15.0)+10.0); }
 float permAt1(float i){ float x=(floor(mod(i,256.0))+0.5)*INV_256; return texture(uPerm1, vec2(x,0.5)).r*255.0; }
 float permAt2(float i){ float x=(floor(mod(i,256.0))+0.5)*INV_256; return texture(uPerm2, vec2(x,0.5)).r*255.0; }
@@ -107,12 +107,18 @@ vec3 pickPalette(int idx){
   return C0*w0+C1*w1+C2*w2+C3*w3+C4*w4+C5*w5+C6*w6+C7*w7;
 }
 
-// ---------- Ocean（抗“雪花”版） ----------
+// ---------- 工具 ----------
 float hash11(float n){ return fract(sin(n*127.1 + uSeed*0.123)*43758.5453); }
-vec2  dirFromHash(float h){ float a=6.2831853*h; return vec2(cos(a),sin(a)); }
 vec2  rot(vec2 v,float a){ float c=cos(a),s=sin(a); return vec2(c*v.x - s*v.y, s*v.x + c*v.y); }
 
-// 缓慢流场（只旋转/平移）
+// ========== 海面（保留你之前的 Gerstner + 预滤） ==========
+float k_from_lambda_px(float lambdaPx, float pxPerWorld){
+  float lambdaW = lambdaPx / max(pxPerWorld, 1e-6);
+  return 6.2831853 / max(lambdaW, 1e-6);
+}
+float atten_by_samples(float lambdaPx, float minSamples){
+  return smoothstep(minSamples, minSamples*3.0, lambdaPx);
+}
 vec3 flowField(vec2 p,float t){
   float n1=fbm1(p*0.015+vec2(10.3,-7.1)+vec2(t*0.010),4,1.0,0.55,uScale,0.0,1.0);
   float n2=fbm2(p*0.015+vec2(-2.9,12.4)-vec2(t*0.009),4,1.0,0.55,uScale,0.0,1.0);
@@ -122,128 +128,222 @@ vec3 flowField(vec2 p,float t){
   vec2 vel=normalize(v+1e-6)*mag;
   return vec3(ang,vel.x,vel.y);
 }
+void gerstner_sum(
+vec2 p, float t, float pxw, float baseDir, float ampScale, float chop, float spd,
+out float H, out vec2 gradF, out vec2 gradC
+){
+  H=0.0; gradF=vec2(0.0); gradC=vec2(0.0);
 
-// LOD 可见性：像素每波长采样数不足就降权
-float lodVis(float k,float pxPerWorld){
-  float lambda=6.2831853/max(k,1e-6);
-  float samples=lambda*pxPerWorld;           // 每波长像素数
-  return smoothstep(1.2, 3.2, samples);      // 阈值略抬高，抑制高频
-}
+  float screenMin = min(uResolution.x, uResolution.y);
+  float LONG_MIN  = 1.10*screenMin, LONG_MAX  = 2.20*screenMin;
+  float MID_MIN   = 0.35*screenMin, MID_MAX   = 0.70*screenMin;
+  float SHORT_MIN = 0.12*screenMin, SHORT_MAX = 0.22*screenMin;
 
-// ① 硬限频：每个波长至少 minSamples 像素（直接掐死走样）
-float clampKByScreen(float k, float pxPerWorld, float minSamples){
-  float kCrit = (2.0*3.14159265*pxPerWorld)/max(minSamples, 1e-6);
-  return min(k, kCrit);
-}
+  const float W_LONG  = 1.00;
+  const float W_MID   = 0.30;
+  const float W_SHORT = 0.05;
 
-// 三波段合成：涌浪(2) + 风浪(4) + 碎浪(3, 极弱)
-float oceanHeightCore(vec2 p,float t){
-  float speed=max(uOceanSpeed,0.0);
-  float ampG =max(uOceanAmp,  0.0);
-  float chop =clamp(uOceanChoppy,0.0,1.0);
-  float pxw  =max(uScale,1e-6);
-  float kBase=0.10/pxw;
+  const float SAMPLES_FINE   = 3.5;
+  const float SAMPLES_COARSE = 7.0;
 
-  // 轻扭曲（低频，避免规则栅格）
-  vec2 warp;
-  warp.x=fbm1(p*0.03+vec2(3.7,-2.1)+vec2(t*0.02),3,1.0,0.55,pxw,0.0,1.0);
-  warp.y=fbm2(p*0.03+vec2(-1.4,2.9)-vec2(t*0.018),3,1.0,0.55,pxw,0.0,1.0);
-  p+=warp*4.0;
+  float speedMul = max(spd, 0.0) * 0.82;
 
-  // 局部方向与推进
-  vec3 ff=flowField(p*0.22+uWorldBase,t);
-  float dir0=ff.x;
-  vec2  adv =ff.yz*(0.5*speed)*t;
-  vec2  q   =p+adv;
+  for(int i=0;i<10;i++){
+    float r = hash11(50.0 + float(i) + uSeed*3.7);
+    int band = (i<4) ? 0 : (i<8 ? 1 : 2);
 
-  float sumH=0.0, sumW=0.0;
+    float lambdaPx =
+    (band==0) ? mix(LONG_MIN,  LONG_MAX,  hash11(60.0 + float(i)+uSeed)) :
+    (band==1) ? mix(MID_MIN,   MID_MAX,   hash11(70.0 + float(i)+uSeed)) :
+    mix(SHORT_MIN, SHORT_MAX, hash11(80.0 + float(i)+uSeed));
 
-  // 涌浪（长）
-  for(int i=0;i<2;++i){
-    float r=hash11(100.0+float(i)+uSeed);
-    vec2 d=rot(dirFromHash(r), dir0*0.6+(r-0.5)*0.8);
-    float k=kBase*mix(0.18,0.35,hash11(110.0+float(i)+uSeed));
-    k = clampKByScreen(k, pxw, 3.0); // ← 新增：硬限频
-    float w=lodVis(k,pxw)*mix(0.35,0.55,hash11(120.0+float(i)+uSeed));
-    float ph=dot(q,d)*k - t*speed*mix(0.5,0.9,hash11(130.0+float(i)+uSeed));
-    sumH+=sin(ph)*w; sumW+=w;
+    float aFine   = atten_by_samples(lambdaPx, SAMPLES_FINE);
+    float aCoarse = atten_by_samples(lambdaPx, SAMPLES_COARSE);
+
+    float jitter  = (band==0) ? 0.18 : (band==1 ? 0.55 : 1.00);
+    vec2  dir     = rot(vec2(cos(baseDir), sin(baseDir)), (r-0.5)*jitter);
+    dir = normalize(dir);
+
+    float k  = k_from_lambda_px(lambdaPx, pxw);
+    float w  = sqrt(9.8*k);
+    float A0 = (band==0)? W_LONG : (band==1? W_MID : W_SHORT);
+    float A  = ampScale * A0 * mix(0.85,1.20,hash11(81.0+float(i)+uSeed));
+
+    float phase = k*dot(p, dir) - w*t*speedMul;
+
+    float s = sin(phase);
+    float c = cos(phase);
+    H += A * s * aFine;
+
+    vec2 g = A * k * dir * c;
+    gradF += g * aFine;
+    gradC += g * aCoarse;
+
+    float q = clamp(chop, 0.0, 1.0);
+    p += dir * (q*A*c) * aFine * 0.65;
   }
-
-  // 风浪（中）
-  for(int i=0;i<4;++i){
-    float r=hash11(200.0+float(i)+uSeed);
-    vec2 d=rot(dirFromHash(r), dir0+(r-0.5)*0.9);
-    float k=kBase*mix(0.7,1.8,hash11(210.0+float(i)+uSeed));
-    k = clampKByScreen(k, pxw, 3.0); // ← 新增
-    float w=lodVis(k,pxw)*mix(0.6,1.0,hash11(220.0+float(i)+uSeed));
-    float ph=dot(q,d)*k - t*speed*mix(0.8,1.4,hash11(230.0+float(i)+uSeed));
-    float wv=sin(ph)+0.25*chop*sin(2.0*ph); // ← 略降次谐波
-    sumH+=wv*w; sumW+=w;
-  }
-
-  // 碎浪（高频，极弱，仅提浪尖）
-  for(int i=0;i<3;++i){
-    float r=hash11(300.0+float(i)+uSeed);
-    vec2 d=rot(dirFromHash(r), dir0+(r-0.5)*1.1);
-    float k=kBase*mix(1.9,2.7,hash11(310.0+float(i)+uSeed));
-    k = clampKByScreen(k, pxw, 3.2); // ← 新增
-    float w=lodVis(k,pxw)*mix(0.08,0.16,hash11(320.0+float(i)+uSeed));
-    float ph=dot(q,d)*k - t*speed*mix(1.0,1.6,hash11(330.0+float(i)+uSeed));
-    float wv=sin(ph)+0.38*chop*sin(2.0*ph); // ← 略降次谐波
-    sumH+=wv*w; sumW+=w;
-  }
-
-  return (sumW>0.0?sumH/sumW:0.0)*ampG;
 }
-
-// 法线（可指定采样步长倍率）
-vec3 oceanNormalWithStep(vec2 wpos,float t,float pxPerWorld,float stepMul){
-  float kMin=0.10/max(uScale,1e-6);           // 基准
-  float kMax=kMin*3.0;
-  float lambdaMin=6.2831853/kMax;
-  float eps=clamp(lambdaMin*0.25*stepMul, 1.0/pxPerWorld, 8.0/pxPerWorld);
-  float hC=oceanHeightCore(wpos,t);
-  float hX=oceanHeightCore(wpos+vec2(eps,0.0),t);
-  float hY=oceanHeightCore(wpos+vec2(0.0,eps),t);
-  return normalize(vec3(-(hX-hC)/eps, -(hY-hC)/eps, 1.0));
-}
-vec3 oceanNormal(vec2 wpos,float t,float pxPerWorld){ return oceanNormalWithStep(wpos,t,pxPerWorld,1.0); }
-
-// ② 预滤高光：只用“粗法线”，避免针点闪烁
-// 预滤镜面：粗法线 + 屏幕采样限制 + 贴地角抑制 + 强度上限
-float filteredSpecular(vec3 nCoarse){
-  // 光照向量
+vec3 normal_from_grad(vec2 grad){ return normalize(vec3(-grad.x, -grad.y, 1.0)); }
+float filteredSpecular(vec3 nCoarse, float fresnel){
   vec3 L = normalize(vec3(cos(uSunTheta), sin(uSunTheta), 0.7));
   vec3 V = vec3(0.0, 0.0, 1.0);
   vec3 H = normalize(L + V);
-
-  // 基础高光（只用粗法线，避免针点）
   float base = pow(max(dot(nCoarse, H), 0.0), 14.0);
-
-  // —— 1) 屏幕采样限制：像素对最短波长的“每波长像素数”越少 → 高光越被压 —— //
-  float pxw = max(uScale, 1e-6);
-  float kMin = 0.10 / pxw;          // 和海面波段一致
-  float kMax = kMin * 2.5;          // 海里最高频那档
-  float lambdaMin = 6.2831853 / kMax;
-  float samples   = lambdaMin * pxw;                 // 每波长像素数
-  float lodGate   = smoothstep(1.8, 3.8, samples);   // 要≥~3px/λ 才放得开
-
-  // —— 2) 贴地角抑制：接近地平线的镜面反射最容易出“针点”，拉低 —— //
   float NdotL = clamp(dot(nCoarse, L), 0.0, 1.0);
-  float grazingGate = smoothstep(0.0, 0.30, NdotL);  // 地平线附近→0，正对→1
-
-  // —— 3) 强度上限（最后一道保险）—— //
-  float spec = base * lodGate * grazingGate * clamp(uSunStrength, 0.0, 1.2);
-  return min(spec, 0.35);
+  float grazingGate = smoothstep(0.0, 0.30, NdotL);
+  float spec = base * grazingGate * clamp(uSunStrength, 0.0, 1.2);
+  spec = min(spec, 0.28);
+  spec *= mix(0.35, 1.0, fresnel);
+  return spec;
+}
+float foamFactor(float terrainDepth01, float slope, float chop){
+  float width=max(uFoamWidth,0.0);
+  float nearShore=1.0 - smoothstep(0.0, width+1e-6, terrainDepth01);
+  float crest    = smoothstep(0.70, 1.10, slope * (0.95 + 0.75*chop));
+  float f = nearShore*0.80 + crest*0.55;
+  return clamp(f * uFoamIntensity, 0.0, 1.0);
 }
 
-// ③ 泡沫：近岸为主；远海更苛刻
-float foamFactor(float terrainDepth, vec3 nCoarse){
-  float width=max(uFoamWidth,0.0);
-  float nearShore=1.0 - smoothstep(0.0, width+1e-6, terrainDepth);
-  float crest=smoothstep(0.65, 0.90, 1.0 - nCoarse.z);
-  float f=nearShore*0.90 + crest*0.10; // 远海权重更低
-  return clamp(f*uFoamIntensity, 0.0, 1.0);
+// ========== 带宽安全噪声（沙滩/熔岩共用，静态） ==========
+float bandNoise01(vec2 world, float targetPx, int ch){
+  float pxw     = max(uScale, 1.0/1024.0);
+  float lambdaW = targetPx / pxw;
+  float f       = 1.0 / max(lambdaW, 1e-6);
+  float vis     = atten_by_samples(targetPx, 2.5);
+  float n = perlinX(world * f, ch); // [-1,1]
+  n = n*0.5 + 0.5;                  // 0..1
+  return mix(0.5, n, vis);          // 采样不足时回中性
+}
+
+// ========== 沙滩（idx==6）：颗粒+轻拉丝，静态 ==========
+vec3 shadeSand(vec2 world, float pxPerWorld){
+  vec3 base = C6;
+
+  float ang = flowField(world*0.05, 0.0).x + 1.5707963;
+  vec2  T = vec2(cos(ang), sin(ang));        // 切向（沿岸）
+  vec2  B = vec2(-T.y, T.x);                 // 法向（离岸）
+
+  // 静态域扭曲（破相干）
+  float wA = bandNoise01(world + vec2(7.2,-3.1), 280.0, 1);
+  float wB = bandNoise01(world + vec2(-5.6,8.4), 420.0, 2);
+  vec2  disp = ((wA-0.5)*T + (wB-0.5)*B) * (28.0 / max(pxPerWorld,1e-6));
+  vec2  p    = world + disp;
+
+  // 大尺度起伏
+  float h1 = bandNoise01(p,                  160.0, 3);
+  float h2 = bandNoise01(p + vec2(11.3,4.7), 260.0, 1);
+  float hill = mix(h1, h2, 0.35);
+
+  // 沿岸“拉丝”：方向导数
+  float stepW = 4.0 / max(pxPerWorld,1e-6);
+  float hf = bandNoise01(p + T*stepW, 160.0, 3);
+  float hb = bandNoise01(p - T*stepW, 160.0, 3);
+  float streak  = smoothstep(0.03, 0.10, abs(hf - hb));
+
+  // 细颗粒
+  float gA = bandNoise01(world + vec2(9.1,3.7),   4.0, 1);
+  float gB = bandNoise01(world + vec2(-4.2,6.8),  5.5, 2);
+  float grains = (gA - 0.5) + (gB - 0.5);
+
+  // 极细“沙屑”
+  float speck  = bandNoise01(world*1.6 + vec2(21.1,-17.3), 3.2, 2) - 0.5;
+
+  vec3 col = base;
+  col *= 0.95 + 0.10*hill;
+  col *= 0.97 + 0.06*streak;
+  col += vec3(grains) * 0.05;
+  col += vec3(speck)  * 0.02;
+  col += (hill - 0.5) * vec3(0.03, 0.024, 0.015);
+
+  return clamp(col, 0.0, 1.0);
+}
+
+// 更强层级 + 深坑洞（静态）
+float ridge(float x){ x = clamp(x,0.0,1.0); return 1.0 - abs(2.0*x - 1.0); }
+
+float basaltHeight(vec2 w){
+  // 屏幕像素标定的尺度（大形体/中/小/微）
+  float hL = bandNoise01(w + vec2(13.1,-7.9), 220.0, 1);
+  float hM = bandNoise01(w + vec2(-9.7,5.3),  110.0, 2);
+  float hS = bandNoise01(w + vec2(4.6,11.2),   56.0, 3);
+  float hV = bandNoise01(w*1.3 + vec2(-17.0,8.0), 24.0, 1);
+
+  // “气泡孔”感：用 ridged 变形加强坑洞
+  float pits = pow(ridge(hS), 1.75) * 0.65 + pow(ridge(hV), 2.2) * 0.35;
+
+  // 高度合成（加权略偏向中小尺度，利于局部起伏）
+  float h = 0.42*hL + 0.40*hM + 0.36*pits + 0.18*hV;
+  return clamp(h, 0.0, 1.0);
+}
+
+// 双尺度法线 + 增益，让凹凸更“立体”
+vec3 basaltNormal(vec2 w, float pxPerWorld, float gain){
+  float s1 = 1.5 / max(pxPerWorld,1e-6);  // 细
+  float s2 = 4.0 / max(pxPerWorld,1e-6);  // 粗
+
+  float hC = basaltHeight(w);
+  float hX1 = basaltHeight(w + vec2(s1,0.0));
+  float hY1 = basaltHeight(w + vec2(0.0,s1));
+  vec2  g1  = vec2(hX1-hC, hY1-hC) / s1;  // 细梯度
+
+  float hX2 = basaltHeight(w + vec2(s2,0.0));
+  float hY2 = basaltHeight(w + vec2(0.0,s2));
+  vec2  g2  = vec2(hX2-hC, hY2-hC) / s2;  // 粗梯度
+
+  // 混合：把粗形体当主、细节当辅
+  vec2 g = mix(g2, g1, 0.6) * gain;
+
+  return normalize(vec3(-g.x, -g.y, 1.0));
+}
+
+vec3 shadeLavaBasalt(vec2 world, float pxPerWorld){
+  // 基色（暗、微暖）
+  const vec3 BASALT_DARK = vec3(0.06, 0.05, 0.05);
+  const vec3 BASALT_MID  = vec3(0.12, 0.10, 0.10);
+  const vec3 BASALT_WARM = vec3(0.16, 0.13, 0.12);
+
+  // 1) 高度 & 法线（把增益调高些，凹凸更明显）
+  float h = basaltHeight(world);
+  const float NORMAL_GAIN = 2.25;                  // ← 拉高凹凸
+  vec3 n  = basaltNormal(world, pxPerWorld, NORMAL_GAIN);
+
+  // 2) 曲率近似（四邻域拉普拉斯）→ 腔体更暗、鼓包更亮
+  float s  = 2.0 / max(pxPerWorld,1e-6);
+  float hC = h;
+  float hL = basaltHeight(world - vec2(s,0.0));
+  float hR = basaltHeight(world + vec2(s,0.0));
+  float hD = basaltHeight(world - vec2(0.0,s));
+  float hU = basaltHeight(world + vec2(0.0,s));
+  float lap = (hL + hR + hD + hU - 4.0*hC);        // >0 鼓包，<0 凹陷
+  float cavity = smoothstep(0.00, 0.10, max(0.0, -lap)); // 凹陷AO
+  float bulge  = smoothstep(0.00, 0.10, max(0.0,  lap)); // 鼓包提亮
+
+  // 3) 斜率阴影（越陡越暗，类似微自阴影）
+  float slope = length(vec2(hR-hL, hU-hD)) / (2.0*s);
+  float slopeShadow = 1.0 - smoothstep(0.15, 0.9, slope);
+
+  // 4) 光照（静态）+ 极弱高光（只为增加“石质”质感）
+  vec3 L = normalize(vec3(cos(uSunTheta), sin(uSunTheta), 0.55));
+  float ndl = dot(n, L);
+  float diff = smoothstep(-0.15, 0.9, ndl);        // 包裹式漫反，避免大面积死黑
+  vec3  V = vec3(0.0,0.0,1.0);
+  vec3  H = normalize(L + V);
+  float spec = pow(max(dot(n, H), 0.0), 22.0) * 0.035; // 非常弱
+
+  // 5) 基色随高度略偏暖 + 微孔暗斑
+  vec3 base = mix(BASALT_DARK, BASALT_MID, h);
+  base = mix(base, BASALT_WARM, 0.14*h);
+  float micro = bandNoise01(world*1.7 + vec2(8.3,-6.1), 6.0, 2) - 0.5;
+  base += vec3(micro) * (-0.06);
+
+  // 6) AO & 阴影 & 提亮整合
+  float amb = 0.34;
+  float ao  = clamp(1.0 - 0.65*cavity - 0.25*slope, 0.45, 1.0);
+  float lift = 0.10*bulge;                          // 鼓包轻微提亮
+
+  vec3 col = base * (amb + 0.78*diff) * ao * (1.0 + lift) + spec;
+
+  return clamp(col, 0.0, 1.0);
 }
 
 // ---------- main ----------
@@ -265,15 +365,26 @@ void main(){
   float h3=(fbm3(world-vec2(SAFE_SHIFT),   oct,f,per,pxPerWorld,le,ln)+1.0)*0.5;
   float mixed=clamp(h1*0.4 + h2*0.3 + h3*0.3, 0.0, 1.0);
 
+  // —— 与 Dart 完全一致的 idx 判定 —— //
   int idx;
-  if(mixed<0.40 || mixed>0.60) idx=5;
-  else { float norm=(mixed-0.40)/0.20; idx=int(clamp(floor(norm*8.0),0.0,7.0)); }
+  if (mixed < 0.40 || mixed > 0.60) {
+    idx = 5; // shallow_ocean
+  } else {
+    float norm = (mixed - 0.40) / 0.20;       // 0..1
+    idx = int(clamp(floor(norm * 8.0), 0.0, 7.0));
+  }
 
-  // —— 保留你的判海逻辑（不会吞掉地形）——
-  float seaLevel=(uSeaLevel>0.0)?clamp(uSeaLevel,0.0,1.0):0.43;
-  bool isOcean=(uOceanEnable>0.5) && ((mixed<seaLevel) || (idx==5));
+  // —— 海洋启用只看 idx==5（统一！）—— //
+  float seaLevel=(uSeaLevel>0.0)?clamp(uSeaLevel,0.0,1.0):0.43; // 仍可用于深浅色
+  bool isOcean = (uOceanEnable > 0.5) && (idx == 5);
+
+  // ===== 可选调试 =====
+  if (uDebug > 7.5 && uDebug < 8.5) { vec3 sand=shadeSand(world, pxPerWorld); fragColor=vec4(sand,1.0); return; }
+  if (uDebug > 5.5 && uDebug < 6.5) { vec3 lava=shadeLavaBasalt(world, pxPerWorld); fragColor=vec4(lava,1.0); return; }
+  // ===== 调试结束 =====
 
   if(isOcean){
+    // 用 seaLevel 继续生成“深浅感”（不影响是否为海的判定）
     float dLow = clamp((seaLevel - mixed)/max(seaLevel,1e-6), 0.0, 1.0);
     float dHigh= clamp((mixed - (1.0-seaLevel))/max(seaLevel,1e-6), 0.0, 1.0);
     float depth01=max(dLow,dHigh);
@@ -281,29 +392,51 @@ void main(){
     vec2 wpos=world+uWorldBase;
     float t=uTime;
 
-    float h=oceanHeightCore(wpos,t);
+    vec3 ff=flowField(wpos*0.18, t);
+    float baseDir = ff.x;
+    float amp     = max(uOceanAmp, 0.0);
+    float chop    = clamp(uOceanChoppy, 0.0, 1.0);
+    float spd     = max(uOceanSpeed, 0.0);
 
-    // 细+粗法线（高光/泡沫用粗法线）
-    vec3 nFine  = oceanNormalWithStep(wpos,t,pxPerWorld,1.0);
-    vec3 nCoarse= oceanNormalWithStep(wpos,t,pxPerWorld,4.0);
+    float H; vec2 gradF, gradC;
+    gerstner_sum(wpos, t, pxPerWorld, baseDir, amp, chop, spd, H, gradF, gradC);
+
+    vec3 nFine   = normal_from_grad(gradF);
+    vec3 nCoarse = normal_from_grad(gradC);
+
+    vec3 V = vec3(0.0,0.0,1.0);
+    float NdotV = clamp(dot(nCoarse, V), 0.0, 1.0);
+    float F0 = 0.06;
+    float fresnel = F0 + (1.0 - F0) * pow(1.0 - NdotV, 5.0);
 
     vec3 col = mix(WATER_SHALLOW, WATER_DEEP, depth01);
-    col *= (0.88 + 0.12*pow(nCoarse.z, 1.5)); // 用粗法线增强体积感（更稳）
-    col += vec3(h)*0.025;                     // 高度轻调色，避免闪
+    col *= (0.88 + 0.12*pow(nCoarse.z, 1.6));
+    col += vec3(H) * 0.006;
 
-    // 预滤高光（只用粗法线）
-    col += filteredSpecular(nCoarse);
+    col += filteredSpecular(nCoarse, fresnel);
 
-    // 近岸泡沫（更保守）
-    float foam = foamFactor(1.0 - depth01, nCoarse);
-    col = mix(col, FOAM_COLOR, clamp(foam,0.0,1.0));
+    float slope = length(gradF);
+    float foamBase = foamFactor(1.0 - depth01, slope, chop);
+    float whitecap = smoothstep(0.55, 0.90, 1.0 - nCoarse.z) * (0.4 + 0.6*chop);
+    float foamNoise = 0.5 + 0.5 * fbm1(wpos*0.05 + vec2(13.1,-7.2), 2, 1.0, 0.5, pxPerWorld, 0.0, 1.0);
+    float foamAll = clamp(max(foamBase, whitecap) * mix(0.88, 1.12, foamNoise), 0.0, 1.0);
+    col = mix(col, FOAM_COLOR, foamAll);
+    col = mix(col, col*1.15 + vec3(0.03), fresnel*0.15);
 
     fragColor=vec4(clamp(col,0.0,1.0),1.0);
     return;
   }
 
-  // —— 陆地（原调色）——
+  // —— 陆地 —— 沙滩/熔岩写实，其它照旧
   float bright=rowBrightness(world.y);
-  vec3  base=pickPalette(idx);
-  fragColor=vec4(clamp(base+vec3(bright), vec3(0.0), vec3(1.0)),1.0);
+  if (idx == 6) {
+    vec3 sand = shadeSand(world, pxPerWorld);
+    fragColor = vec4(clamp(sand + vec3(bright*0.3), 0.0, 1.0), 1.0);
+  } else if (idx == 7) {
+    vec3 lava = shadeLavaBasalt(world, pxPerWorld); // 暗色玄武岩，静态
+    fragColor = vec4(lava, 1.0);
+  } else {
+    vec3 base=pickPalette(idx);
+    fragColor=vec4(clamp(base+vec3(bright), vec3(0.0), vec3(1.0)),1.0);
+  }
 }
