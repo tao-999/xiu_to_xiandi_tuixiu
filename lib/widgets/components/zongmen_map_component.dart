@@ -6,7 +6,6 @@ import 'package:xiu_to_xiandi_tuixiu/widgets/components/sect_building_component.
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/sect_building_manager_component.dart';
 import 'package:xiu_to_xiandi_tuixiu/widgets/components/zongmen_diplomacy_disciple_component.dart';
 
-import '../../pages/page_danfang.dart';
 import '../../pages/page_lianqi.dart';
 import '../../pages/page_disciples.dart';
 import '../../services/zongmen_diplomacy_service.dart';
@@ -251,7 +250,6 @@ class ZongmenMapComponent extends FlameGame
 // ③ 建筑名 -> 页面（用你管理器里生成的名字：炼丹房/炼器房/弟子闺房）
   Widget? _pageForBuilding(String name) {
     switch (name) {
-      case '炼丹房':   return const DanfangPage();
       case '炼器房':   return const LianqiPage();
       case '弟子闺房': return const DisciplesPage();
       default:         return null;

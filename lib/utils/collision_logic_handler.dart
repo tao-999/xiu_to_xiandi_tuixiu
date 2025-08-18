@@ -9,7 +9,6 @@ import '../logic/collision/fate_recruit_charm1_collision_handler.dart';
 import '../logic/collision/gongfa1_collision_handler.dart';
 import '../logic/collision/npc1_collision_handler.dart';
 import '../logic/collision/recruit_ticket_collision_handler.dart';
-import '../logic/collision/xiancao_collision_handler.dart';
 import '../widgets/components/floating_island_dynamic_mover_component.dart';
 import '../widgets/components/floating_island_player_component.dart';
 import '../widgets/components/floating_island_static_decoration_component.dart';
@@ -62,13 +61,6 @@ class CollisionLogicHandler {
           RecruitTicketCollisionHandler.handle(
             player: player,
             charm: other,
-            resourceBarKey: resourceBarKey,
-          );
-          break;
-        case 'xiancao':
-          XiancaoCollisionHandler.handle(
-            player: player,
-            xiancao: other,
             resourceBarKey: resourceBarKey,
           );
           break;

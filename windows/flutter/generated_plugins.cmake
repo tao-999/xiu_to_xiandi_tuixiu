@@ -4,7 +4,6 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
-  native_renderer
   rive_common
   screen_retriever_windows
   window_manager

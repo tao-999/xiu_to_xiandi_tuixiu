@@ -26,7 +26,7 @@ class FbmTerrainLayer extends PositionComponent {
   bool   useLodAdaptive;
   double lodNyquist;
 
-  // ===== 新增：海面参数（对应 GLSL 15~23）=====
+  // ===== 海面参数（ABI 保留，但 Shader 已纯色不再使用）=====
   bool   oceanEnable;     // 15
   double seaLevel;        // 16
   double oceanAmp;        // 17
@@ -47,6 +47,10 @@ class FbmTerrainLayer extends PositionComponent {
   double _t = 0.0;
   double _logTimer = 0.0;
 
+  // ⚡️ 小优化：缓存频率对应的重基周期，频率变化才重算
+  double? _cachedFreq;
+  double? _cachedRebaseUnit;
+
   FbmTerrainLayer({
     required this.getViewSize,
     required this.getViewScale,
@@ -55,22 +59,22 @@ class FbmTerrainLayer extends PositionComponent {
     this.frequency = 0.004,
     this.octaves = 6,
     this.persistence = 0.6,
-    this.animate = false,      // 想要海面动起来：外部设为 true
+    this.animate = false,      // 纯色模式下默认 false，省一丢丢 CPU
     this.seed = 1337,
     this.debugLogUniforms = false,
     this.debugLevel = 0.0,
     this.useLodAdaptive = true,
     this.lodNyquist = 0.5,
-    // —— 海面默认值（与 GLSL 建议一致）——
-    this.oceanEnable = true,
+    // —— 海面默认值（已不影响渲染，但保留 ABI）——
+    this.oceanEnable = false,  // ✅ 默认关，避免误用老海浪 Shader 时算重特效
     this.seaLevel = 0.43,
-    this.oceanAmp = 2.0,
-    this.oceanSpeed = 1.2,
-    this.oceanChoppy = 0.6,
-    double? sunThetaDegrees, // 允许用角度传入
-    this.sunStrength = 1.2,
-    this.foamWidth = 0.025,
-    this.foamIntensity = 1.0,
+    this.oceanAmp = 0.0,
+    this.oceanSpeed = 0.0,
+    this.oceanChoppy = 0.0,
+    double? sunThetaDegrees,
+    this.sunStrength = 0.0,
+    this.foamWidth = 0.0,
+    this.foamIntensity = 0.0,
     int? priority,
   })  : sunTheta = (sunThetaDegrees != null)
       ? sunThetaDegrees * math.pi / 180.0
@@ -81,6 +85,7 @@ class FbmTerrainLayer extends PositionComponent {
   Future<void> onLoad() async {
     await super.onLoad();
     try {
+      // ⚠️ 路径保持不变：请把你“纯色版”的 shader 覆盖到同名文件
       _cachedProgram ??= await ui.FragmentProgram.fromAsset('shaders/fbm_terrain.frag');
       _shader = _cachedProgram!.fragmentShader();
 
@@ -96,7 +101,7 @@ class FbmTerrainLayer extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
-    if (animate) _t += dt;
+    if (animate) _t += dt;           // 纯色 Shader 未用到 time；留作扩展
     if (debugLogUniforms) _logTimer += dt;
   }
 
@@ -125,21 +130,31 @@ class FbmTerrainLayer extends PositionComponent {
     }
 
     try {
-      // 基础周期：256 / frequency
+      // ✅ 与 Shader 一致：基础周期 = 256 / frequency
       final double f = frequency.abs() > 1e-12 ? frequency.abs() : 1e-12;
-      final double rebaseUnit = 256.0 / f;
-      // ✅ Dart 侧先取模，传已取模的 worldBase
+
+      // ⚡️频率不变就复用周期
+      double rebaseUnit;
+      if (_cachedFreq != null && (_cachedFreq! - f).abs() < 1e-12 && _cachedRebaseUnit != null) {
+        rebaseUnit = _cachedRebaseUnit!;
+      } else {
+        rebaseUnit = 256.0 / f;
+        _cachedFreq = f;
+        _cachedRebaseUnit = rebaseUnit;
+      }
+
+      // ✅ Dart 侧先取模，传已取模的 worldBase（重基无缝）
       final double baseX = _fmod(base.x, rebaseUnit);
       final double baseY = _fmod(base.y, rebaseUnit);
 
-      // 0~14：原有参数（不变）
+      // 0~14：基础参数
       s.setFloat(0,  screen.x);
       s.setFloat(1,  screen.y);
       s.setFloat(2,  worldTopLeft.x);
       s.setFloat(3,  worldTopLeft.y);
       s.setFloat(4,  scale);
       s.setFloat(5,  frequency);
-      s.setFloat(6,  animate ? _t : 0.0);
+      s.setFloat(6,  animate ? _t : 0.0);     // 纯色版目前未用
       s.setFloat(7,  octaves.clamp(1, 8).toDouble());
       s.setFloat(8,  persistence);
       s.setFloat(9,  seed.toDouble());
@@ -149,13 +164,13 @@ class FbmTerrainLayer extends PositionComponent {
       s.setFloat(13, baseX);
       s.setFloat(14, baseY);
 
-      // 15~23：海面参数（必须补！）
+      // 15~23：海面参数（ABI 保留；纯色版 Shader 不读取，但传零成本很低、最稳）
       s.setFloat(15, oceanEnable ? 1.0 : 0.0);
       s.setFloat(16, seaLevel);
       s.setFloat(17, oceanAmp);
       s.setFloat(18, oceanSpeed);
       s.setFloat(19, oceanChoppy);
-      s.setFloat(20, sunTheta);       // 已转弧度
+      s.setFloat(20, sunTheta);
       s.setFloat(21, sunStrength);
       s.setFloat(22, foamWidth);
       s.setFloat(23, foamIntensity);
@@ -167,14 +182,11 @@ class FbmTerrainLayer extends PositionComponent {
       _paint.shader = s;
       canvas.drawRect(rect, _paint);
 
-      // 可选：每秒打印一次关键参数，方便校验
       if (debugLogUniforms && _logTimer >= 1.0) {
         _logTimer = 0.0;
-        debugPrint('[FbmTerrainLayer] ocean=${oceanEnable ? 1 : 0} '
-            'sea=$seaLevel amp=$oceanAmp speed=$oceanSpeed choppy=$oceanChoppy '
-            'sunTheta=${(sunTheta*180/math.pi).toStringAsFixed(1)} '
-            'sunStr=$sunStrength foamW=$foamWidth foamI=$foamIntensity '
-            'scale=$scale freq=$frequency time=${_t.toStringAsFixed(2)}');
+        debugPrint('[FbmTerrainLayer] scale=$scale freq=$frequency oct=$octaves '
+            'lod=${useLodAdaptive?1:0} nyq=$lodNyquist base=(${baseX.toStringAsFixed(1)},${baseY.toStringAsFixed(1)}) '
+            'dbg=$debugLevel time=${_t.toStringAsFixed(2)}');
       }
     } catch (e, st) {
       debugPrint('[FbmTerrainLayer] set uniforms/samplers failed: $e\n$st');
@@ -204,7 +216,7 @@ class FbmTerrainLayer extends PositionComponent {
     return pic.toImage(256, 1);
   }
 
-  // 便捷更新接口（可热调试）
+  // 便捷更新接口（保留；对纯色版无硬性影响）
   void setOcean({
     bool? enable,
     double? seaLevel,

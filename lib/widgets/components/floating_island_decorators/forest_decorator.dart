@@ -24,6 +24,47 @@ class ForestDecorator extends Component {
 
   @override
   Future<void> onLoad() async {
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'forest'},
+        staticSpritesMap: {
+          'forest': [
+            StaticSpriteEntry('herbs/61.png', 1),
+            StaticSpriteEntry('herbs/62.png', 1),
+            StaticSpriteEntry('herbs/63.png', 1),
+            StaticSpriteEntry('herbs/64.png', 1),
+            StaticSpriteEntry('herbs/65.png', 1),
+            StaticSpriteEntry('herbs/66.png', 1),
+            StaticSpriteEntry('herbs/67.png', 1),
+            StaticSpriteEntry('herbs/68.png', 1),
+            StaticSpriteEntry('herbs/69.png', 1),
+            StaticSpriteEntry('herbs/70.png', 1),
+            StaticSpriteEntry('herbs/71.png', 1),
+            StaticSpriteEntry('herbs/72.png', 1),
+            StaticSpriteEntry('herbs/73.png', 1),
+            StaticSpriteEntry('herbs/74.png', 1),
+            StaticSpriteEntry('herbs/75.png', 1),
+            StaticSpriteEntry('herbs/76.png', 1),
+            StaticSpriteEntry('herbs/77.png', 1),
+            StaticSpriteEntry('herbs/78.png', 1),
+            StaticSpriteEntry('herbs/79.png', 1),
+            StaticSpriteEntry('herbs/80.png', 1),
+
+          ],
+        },
+        staticTileSize: 160.0,
+        seed: seed,
+        minCount: 0,
+        maxCount: 1,
+        minSize: 45.0,
+        maxSize: 60.0,
+      ),
+    );
+
     // 🌿静态树
     add(
       FloatingIslandStaticSpawnerComponent(
@@ -42,12 +83,12 @@ class ForestDecorator extends Component {
             StaticSpriteEntry('floating_island/tree_14.png', 1),
           ],
         },
-        staticTileSize: 128.0,
+        staticTileSize: 150.0,
         seed: seed,
-        minCount: 1,
+        minCount: 0,
         maxCount: 5,
         minSize: 50.0,
-        maxSize: 64.0,
+        maxSize: 60.0,
       ),
     );
 
@@ -68,10 +109,10 @@ class ForestDecorator extends Component {
         },
         staticTileSize: 227.0,
         seed: seed,
-        minCount: 2,
-        maxCount: 8,
-        minSize: 90.0,
-        maxSize: 128.0,
+        minCount: 0,
+        maxCount: 4,
+        minSize: 80.0,
+        maxSize: 100.0,
       ),
     );
 
@@ -213,28 +254,6 @@ class ForestDecorator extends Component {
         maxDynamicObjectSize: 100.0,
         minSpeed: 50.0,
         maxSpeed: 75.0,
-      ),
-    );
-
-    add(
-      FloatingIslandDynamicSpawnerComponent(
-        grid: grid,
-        getLogicalOffset: getLogicalOffset,
-        getViewSize: getViewSize,
-        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
-        noiseMapGenerator: noiseMapGenerator,
-        allowedTerrains: {'forest'},
-        dynamicSpritesMap: {
-          'forest': [
-            DynamicSpriteEntry('xiancao.png', 1, type: 'xiancao', labelText: '神秘仙草', labelColor:  Color(0xFFFFFAFA)),
-          ],
-        },
-        dynamicTileSize: 473.0,
-        seed: seed,
-        minDynamicObjectSize: 20.0,
-        maxDynamicObjectSize: 25.0,
-        minSpeed: 20.0,
-        maxSpeed: 35.0,
       ),
     );
   }

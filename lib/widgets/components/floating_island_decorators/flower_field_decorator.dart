@@ -34,6 +34,46 @@ class FlowerFieldDecorator extends Component {
         allowedTerrains: {'flower_field'},
         staticSpritesMap: {
           'flower_field': [
+            StaticSpriteEntry('herbs/1.png', 1),
+            StaticSpriteEntry('herbs/2.png', 1),
+            StaticSpriteEntry('herbs/3.png', 1),
+            StaticSpriteEntry('herbs/4.png', 1),
+            StaticSpriteEntry('herbs/5.png', 1),
+            StaticSpriteEntry('herbs/6.png', 1),
+            StaticSpriteEntry('herbs/7.png', 1),
+            StaticSpriteEntry('herbs/8.png', 1),
+            StaticSpriteEntry('herbs/9.png', 1),
+            StaticSpriteEntry('herbs/10.png', 1),
+            StaticSpriteEntry('herbs/11.png', 1),
+            StaticSpriteEntry('herbs/12.png', 1),
+            StaticSpriteEntry('herbs/13.png', 1),
+            StaticSpriteEntry('herbs/14.png', 1),
+            StaticSpriteEntry('herbs/15.png', 1),
+            StaticSpriteEntry('herbs/16.png', 1),
+            StaticSpriteEntry('herbs/17.png', 1),
+            StaticSpriteEntry('herbs/18.png', 1),
+            StaticSpriteEntry('herbs/19.png', 1),
+            StaticSpriteEntry('herbs/20.png', 1),
+          ],
+        },
+        staticTileSize: 160.0,
+        seed: seed,
+        minCount: 0,
+        maxCount: 1,
+        minSize: 45.0,
+        maxSize: 60.0,
+      ),
+    );
+
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'flower_field'},
+        staticSpritesMap: {
+          'flower_field': [
             StaticSpriteEntry('floating_island/flower_field_1.png', 1),
             StaticSpriteEntry('floating_island/flower_field_2.png', 1),
             StaticSpriteEntry('floating_island/flower_field_3.png', 1),
@@ -45,9 +85,9 @@ class FlowerFieldDecorator extends Component {
         staticTileSize: 128.0,
         seed: seed,
         minCount: 1,
-        maxCount: 8,
-        minSize: 16.0,
-        maxSize: 32.0,
+        maxCount: 7,
+        minSize: 30.0,
+        maxSize: 40.0,
       ),
     );
 

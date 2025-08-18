@@ -34,6 +34,46 @@ class RockDecorator extends Component {
         allowedTerrains: {'rock'},
         staticSpritesMap: {
           'rock': [
+            StaticSpriteEntry('herbs/41.png', 1),
+            StaticSpriteEntry('herbs/42.png', 1),
+            StaticSpriteEntry('herbs/43.png', 1),
+            StaticSpriteEntry('herbs/44.png', 1),
+            StaticSpriteEntry('herbs/45.png', 1),
+            StaticSpriteEntry('herbs/46.png', 1),
+            StaticSpriteEntry('herbs/47.png', 1),
+            StaticSpriteEntry('herbs/48.png', 1),
+            StaticSpriteEntry('herbs/49.png', 1),
+            StaticSpriteEntry('herbs/50.png', 1),
+            StaticSpriteEntry('herbs/51.png', 1),
+            StaticSpriteEntry('herbs/52.png', 1),
+            StaticSpriteEntry('herbs/53.png', 1),
+            StaticSpriteEntry('herbs/54.png', 1),
+            StaticSpriteEntry('herbs/55.png', 1),
+            StaticSpriteEntry('herbs/56.png', 1),
+            StaticSpriteEntry('herbs/57.png', 1),
+            StaticSpriteEntry('herbs/58.png', 1),
+            StaticSpriteEntry('herbs/59.png', 1),
+            StaticSpriteEntry('herbs/60.png', 1),
+          ],
+        },
+        staticTileSize: 160.0,
+        seed: seed,
+        minCount: 0,
+        maxCount: 1,
+        minSize: 45.0,
+        maxSize: 60.0,
+      ),
+    );
+
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'rock'},
+        staticSpritesMap: {
+          'rock': [
             StaticSpriteEntry('floating_island/rock_1.png', 40),
             StaticSpriteEntry('floating_island/rock_2.png', 30),
             StaticSpriteEntry('floating_island/rock_3.png', 2),
@@ -46,12 +86,12 @@ class RockDecorator extends Component {
             StaticSpriteEntry('floating_island/rock_10.png', 10),
           ],
         },
-        staticTileSize: 100.0,
+        staticTileSize: 130.0,
         seed: seed,
         minCount: 1,
         maxCount: 2,
-        minSize: 32.0,
-        maxSize: 48.0,
+        minSize: 45.0,
+        maxSize: 60.0,
       ),
     );
 

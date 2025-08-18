@@ -24,6 +24,72 @@ class GrassDecorator extends Component {
 
   @override
   Future<void> onLoad() async {
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) => noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'grass'},
+        staticSpritesMap: {
+          'grass': [
+            StaticSpriteEntry('herbs/21.png', 1),
+            StaticSpriteEntry('herbs/22.png', 1),
+            StaticSpriteEntry('herbs/23.png', 1),
+            StaticSpriteEntry('herbs/24.png', 1),
+            StaticSpriteEntry('herbs/25.png', 1),
+            StaticSpriteEntry('herbs/26.png', 1),
+            StaticSpriteEntry('herbs/27.png', 1),
+            StaticSpriteEntry('herbs/28.png', 1),
+            StaticSpriteEntry('herbs/29.png', 1),
+            StaticSpriteEntry('herbs/30.png', 1),
+            StaticSpriteEntry('herbs/31.png', 1),
+            StaticSpriteEntry('herbs/32.png', 1),
+            StaticSpriteEntry('herbs/33.png', 1),
+            StaticSpriteEntry('herbs/34.png', 1),
+            StaticSpriteEntry('herbs/35.png', 1),
+            StaticSpriteEntry('herbs/36.png', 1),
+            StaticSpriteEntry('herbs/37.png', 1),
+            StaticSpriteEntry('herbs/38.png', 1),
+            StaticSpriteEntry('herbs/39.png', 1),
+            StaticSpriteEntry('herbs/40.png', 1),
+            StaticSpriteEntry('herbs/81.png', 1),
+            StaticSpriteEntry('herbs/82.png', 1),
+            StaticSpriteEntry('herbs/83.png', 1),
+            StaticSpriteEntry('herbs/84.png', 1),
+            StaticSpriteEntry('herbs/85.png', 1),
+            StaticSpriteEntry('herbs/86.png', 1),
+            StaticSpriteEntry('herbs/87.png', 1),
+            StaticSpriteEntry('herbs/88.png', 1),
+            StaticSpriteEntry('herbs/89.png', 1),
+            StaticSpriteEntry('herbs/90.png', 1),
+            StaticSpriteEntry('herbs/91.png', 1),
+            StaticSpriteEntry('herbs/92.png', 1),
+            StaticSpriteEntry('herbs/93.png', 1),
+            StaticSpriteEntry('herbs/94.png', 1),
+            StaticSpriteEntry('herbs/95.png', 1),
+            StaticSpriteEntry('herbs/96.png', 1),
+            StaticSpriteEntry('herbs/97.png', 1),
+            StaticSpriteEntry('herbs/98.png', 1),
+            StaticSpriteEntry('herbs/99.png', 1),
+            StaticSpriteEntry('herbs/100.png', 1),
+            StaticSpriteEntry('herbs/101.png', 1),
+            StaticSpriteEntry('herbs/102.png', 1),
+            StaticSpriteEntry('herbs/103.png', 1),
+            StaticSpriteEntry('herbs/104.png', 1),
+            StaticSpriteEntry('herbs/105.png', 1),
+
+          ],
+        },
+        staticTileSize: 160.0,
+        seed: seed,
+        minCount: 0,
+        maxCount: 1,
+        minSize: 45.0,
+        maxSize: 60.0,
+      ),
+    );
+
     // 🌿 静态草
     add(
       FloatingIslandStaticSpawnerComponent(
@@ -48,10 +114,10 @@ class GrassDecorator extends Component {
         },
         staticTileSize: 128.0,
         seed: seed,
-        minCount: 5,
-        maxCount: 10,
-        minSize: 20.0,
-        maxSize: 40.0,
+        minCount: 2,
+        maxCount: 8,
+        minSize: 45.0,
+        maxSize: 60.0,
       ),
     );
 

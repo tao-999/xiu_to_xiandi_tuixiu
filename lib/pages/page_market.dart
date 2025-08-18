@@ -4,8 +4,6 @@ import '../widgets/components/back_button_overlay.dart';
 import '../widgets/components/duihuan_lingshi.dart';
 import '../widgets/components/forge_blueprint_shop.dart';
 import '../widgets/components/refine_material_shop.dart';
-import '../widgets/components/herb_material_shop.dart';
-import '../widgets/components/pill_blueprint_shop.dart';
 
 class XiuXianMarketPage extends StatelessWidget {
   const XiuXianMarketPage({super.key});
@@ -35,10 +33,6 @@ class XiuXianMarketPage extends StatelessWidget {
                 SizedBox(width: 128, height: 128, child: RefineMaterialShop()),
                 SizedBox(width: 20),
                 SizedBox(width: 128, height: 128, child: ForgeBlueprintShop()),
-                SizedBox(width: 20),
-                SizedBox(width: 128, height: 128, child: PillBlueprintShop()),
-                SizedBox(width: 20),
-                SizedBox(width: 128, height: 128, child: HerbMaterialShop()),
               ],
             )
           ),

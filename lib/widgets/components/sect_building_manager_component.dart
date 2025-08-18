@@ -27,7 +27,6 @@ class SectBuildingManagerComponent extends Component {
   Future<void> onLoad() async {
     await super.onLoad();
 
-    await _spawnBuilding('炼丹房', 'zongmen/liandan.png');
     await _spawnBuilding('炼器房', 'zongmen/lianqi.png');
     await _spawnBuilding('弟子闺房', 'zongmen/dizi.png');
   }
