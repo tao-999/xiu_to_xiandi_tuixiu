@@ -59,6 +59,7 @@ flutter:
     - assets/images/xianren/
     - assets/images/xianren_icon/
     - assets/images/gongfa/
+    - assets/textures/
   fonts:
     - family: ZcoolCangEr
       fonts:

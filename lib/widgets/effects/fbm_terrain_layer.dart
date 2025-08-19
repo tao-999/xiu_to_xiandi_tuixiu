@@ -1,99 +1,124 @@
-import 'dart:ui' as ui;
+// fbm_terrain_layer.dart
+import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'package:xiu_to_xiandi_tuixiu/utils/noise_utils.dart';
+import 'package:flutter/services.dart' show rootBundle;
+
+enum Biome { snow, grass, rock, forest, flower, shallow, beach, volcanic }
 
 class FbmTerrainLayer extends PositionComponent {
   final Vector2 Function() getViewSize;
   final double  Function() getViewScale;
   final Vector2 Function() getLogicalOffset;
-
-  // 可选：不传也行（默认 0,0）；传了就能做到任何情况下都绝对无缝
   final Vector2 Function() getWorldBase;
-  static Vector2 _zeroBase() => Vector2.zero();
 
-  // ===== 基础 fBm 参数 =====
   double frequency;
   int    octaves;
   double persistence;
-  bool   animate;
   final  int seed;
-
-  final bool debugLogUniforms;
-  double debugLevel;
+  bool   animate;
 
   bool   useLodAdaptive;
   double lodNyquist;
 
-  // ===== 海面参数（ABI 保留，但 Shader 已纯色不再使用）=====
-  bool   oceanEnable;     // 15
-  double seaLevel;        // 16
-  double oceanAmp;        // 17
-  double oceanSpeed;      // 18
-  double oceanChoppy;     // 19
-  double sunTheta;        // 20 (弧度)
-  double sunStrength;     // 21
-  double foamWidth;       // 22
-  double foamIntensity;   // 23
+  bool   debugLogUniforms;
+  double debugLevel;
+
+  double periodSnow;
+  double periodGrass;
+  double periodRock;
+  double periodForest;
+  double periodFlower;
+  double periodShallow;
+  double periodBeach;
+  double periodVolcanic;
+
+  // 纹理路径（为空=纯色）
+  final List<String> snowPaths;
+  final List<String> grassPaths;
+  final List<String> rockPaths;
+  final List<String> forestPaths;
+  final List<String> flowerPaths;
+  final List<String> shallowPaths;
+  final List<String> beachPaths;
+  final List<String> volcanicPaths;
 
   static ui.FragmentProgram? _cachedProgram;
   ui.FragmentShader? _shader;
-  final Paint _paint = Paint();
-  final Paint _fallback = Paint()..color = const Color(0xFF0B0B0B);
 
   ui.Image? _perm1, _perm2, _perm3;
+
+  // ===== 单图集（安全热替换）=====
+  ui.Image? _atlas;        // 当前在用（shader: uAtlasA，sampler=3）
+  ui.Image? _nextAtlas;    // 下帧交换
+  final List<ui.Image> _recycleBin = []; // 帧末统一销毁
+
+  ui.Image? _placeholder; // 初始占位（2x2）
+
+  int _atlasCols = 1;
+  int _atlasRows = 1;
+
+  final Map<Biome, int> _varOffset = { for (final b in Biome.values) b: 0 };
+  final Map<Biome, int> _varCount  = { for (final b in Biome.values) b: 0 };
 
   double _t = 0.0;
   double _logTimer = 0.0;
 
-  // ⚡️ 小优化：缓存频率对应的重基周期，频率变化才重算
-  double? _cachedFreq;
-  double? _cachedRebaseUnit;
+  final Paint _paint = Paint();
+  final Paint _fallback = Paint()..color = const Color(0xFF0B0B0B);
 
   FbmTerrainLayer({
     required this.getViewSize,
     required this.getViewScale,
     required this.getLogicalOffset,
-    this.getWorldBase = _zeroBase,
-    this.frequency = 0.004,
-    this.octaves = 6,
+    required this.getWorldBase,
+    this.frequency   = 0.004,
+    this.octaves     = 6,
     this.persistence = 0.6,
-    this.animate = false,      // 纯色模式下默认 false，省一丢丢 CPU
-    this.seed = 1337,
-    this.debugLogUniforms = false,
-    this.debugLevel = 0.0,
+    this.seed        = 1337,
+    this.animate     = true,
     this.useLodAdaptive = true,
-    this.lodNyquist = 0.5,
-    // —— 海面默认值（已不影响渲染，但保留 ABI）——
-    this.oceanEnable = false,  // ✅ 默认关，避免误用老海浪 Shader 时算重特效
-    this.seaLevel = 0.43,
-    this.oceanAmp = 0.0,
-    this.oceanSpeed = 0.0,
-    this.oceanChoppy = 0.0,
-    double? sunThetaDegrees,
-    this.sunStrength = 0.0,
-    this.foamWidth = 0.0,
-    this.foamIntensity = 0.0,
+    this.lodNyquist     = 0.5,
+    this.debugLogUniforms = false,
+    this.debugLevel       = 0.0,
+    this.periodSnow     = 125.0,
+    this.periodGrass    = 125.0,
+    this.periodRock     = 125.0,
+    this.periodForest   = 125.0,
+    this.periodFlower   = 125.0,
+    this.periodShallow  = 125.0,
+    this.periodBeach    = 125.0,
+    this.periodVolcanic = 125.0,
+    this.snowPaths     = const [],
+    this.grassPaths    = const [],
+    this.rockPaths     = const [],
+    this.forestPaths   = const [],
+    this.flowerPaths   = const [],
+    this.shallowPaths  = const [],
+    this.beachPaths    = const [],
+    this.volcanicPaths = const [],
     int? priority,
-  })  : sunTheta = (sunThetaDegrees != null)
-      ? sunThetaDegrees * math.pi / 180.0
-      : (40.0 * math.pi / 180.0),
-        super(priority: priority ?? -10000);
+  }) : super(priority: priority ?? -10000);
 
   @override
   Future<void> onLoad() async {
     await super.onLoad();
     try {
-      // ⚠️ 路径保持不变：请把你“纯色版”的 shader 覆盖到同名文件
+      _placeholder = await _makeSolidImage(const Color(0xFF000000));
+      _atlas = _placeholder;
+
       _cachedProgram ??= await ui.FragmentProgram.fromAsset('shaders/fbm_terrain.frag');
       _shader = _cachedProgram!.fragmentShader();
 
-      _perm1 = await _buildPermImage(NoiseUtils(seed).perm);
-      _perm2 = await _buildPermImage(NoiseUtils(seed + 999).perm);
-      _perm3 = await _buildPermImage(NoiseUtils(seed - 999).perm);
+      _perm1 = await _buildPermImage(_makePerm(seed));
+      _perm2 = await _buildPermImage(_makePerm(seed + 999));
+      _perm3 = await _buildPermImage(_makePerm(seed - 999));
+
+      await _buildAtlas(); // 生成首个图集，结果放到 _nextAtlas，首帧交换
     } catch (e, st) {
-      debugPrint('[FbmTerrainLayer] ⚠️ Shader load failed: $e\n$st');
+      debugPrint('[FbmTerrainLayer] init failed: $e\n$st');
       _shader = null;
     }
   }
@@ -101,15 +126,8 @@ class FbmTerrainLayer extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
-    if (animate) _t += dt;           // 纯色 Shader 未用到 time；留作扩展
+    if (animate) _t += dt;
     if (debugLogUniforms) _logTimer += dt;
-  }
-
-  // 安全的 double 取模（兼容负数）
-  double _fmod(double a, double m) {
-    if (!a.isFinite || !m.isFinite || m == 0) return 0.0;
-    final q = (a / m).floorToDouble();
-    return a - q * m;
   }
 
   @override
@@ -118,88 +136,131 @@ class FbmTerrainLayer extends PositionComponent {
     final scale  = getViewScale();
     final center = getLogicalOffset();
     final base   = getWorldBase();
-
-    final worldSize    = screen / scale;
-    final worldTopLeft = center - worldSize / 2;
     final rect = Rect.fromLTWH(0, 0, screen.x, screen.y);
 
-    final s = _shader;
-    if (s == null || _perm1 == null || _perm2 == null || _perm3 == null) {
+    // ===== 帧首交换（原子替换）=====
+    if (_nextAtlas != null) {
+      final old = _atlas;
+      _atlas = _nextAtlas;
+      _nextAtlas = null;
+      if (old != null && !identical(old, _atlas)) {
+        _recycleBin.add(old); // 帧末销毁
+      }
+    }
+
+    // 帧内快照
+    final s  = _shader;
+    final p1 = _perm1;
+    final p2 = _perm2;
+    final p3 = _perm3;
+    final a  = _atlas;
+
+    if (s == null || p1 == null || p2 == null || p3 == null || a == null) {
       canvas.drawRect(rect, _fallback);
+      _disposeRecycleBinIfAny();
       return;
     }
 
     try {
-      // ✅ 与 Shader 一致：基础周期 = 256 / frequency
-      final double f = frequency.abs() > 1e-12 ? frequency.abs() : 1e-12;
+      final worldSize    = screen / scale;
+      final worldTopLeft = center - worldSize / 2;
 
-      // ⚡️频率不变就复用周期
-      double rebaseUnit;
-      if (_cachedFreq != null && (_cachedFreq! - f).abs() < 1e-12 && _cachedRebaseUnit != null) {
-        rebaseUnit = _cachedRebaseUnit!;
-      } else {
-        rebaseUnit = 256.0 / f;
-        _cachedFreq = f;
-        _cachedRebaseUnit = rebaseUnit;
-      }
-
-      // ✅ Dart 侧先取模，传已取模的 worldBase（重基无缝）
-      final double baseX = _fmod(base.x, rebaseUnit);
-      final double baseY = _fmod(base.y, rebaseUnit);
-
-      // 0~14：基础参数
       s.setFloat(0,  screen.x);
       s.setFloat(1,  screen.y);
       s.setFloat(2,  worldTopLeft.x);
       s.setFloat(3,  worldTopLeft.y);
       s.setFloat(4,  scale);
       s.setFloat(5,  frequency);
-      s.setFloat(6,  animate ? _t : 0.0);     // 纯色版目前未用
+      s.setFloat(6,  animate ? _t : 0.0);
       s.setFloat(7,  octaves.clamp(1, 8).toDouble());
       s.setFloat(8,  persistence);
       s.setFloat(9,  seed.toDouble());
       s.setFloat(10, debugLevel);
       s.setFloat(11, useLodAdaptive ? 1.0 : 0.0);
       s.setFloat(12, lodNyquist);
-      s.setFloat(13, baseX);
-      s.setFloat(14, baseY);
+      s.setFloat(13, base.x);
+      s.setFloat(14, base.y);
 
-      // 15~23：海面参数（ABI 保留；纯色版 Shader 不读取，但传零成本很低、最稳）
-      s.setFloat(15, oceanEnable ? 1.0 : 0.0);
-      s.setFloat(16, seaLevel);
-      s.setFloat(17, oceanAmp);
-      s.setFloat(18, oceanSpeed);
-      s.setFloat(19, oceanChoppy);
-      s.setFloat(20, sunTheta);
-      s.setFloat(21, sunStrength);
-      s.setFloat(22, foamWidth);
-      s.setFloat(23, foamIntensity);
+      s.setFloat(15, periodSnow);
+      s.setFloat(16, periodGrass);
+      s.setFloat(17, periodRock);
+      s.setFloat(18, periodForest);
+      s.setFloat(19, periodFlower);
+      s.setFloat(20, periodShallow);
+      s.setFloat(21, periodBeach);
+      s.setFloat(22, periodVolcanic);
 
-      s.setImageSampler(0, _perm1!);
-      s.setImageSampler(1, _perm2!);
-      s.setImageSampler(2, _perm3!);
+      for (int i = 23; i <= 30; i++) { s.setFloat(i, 0.0); }
+
+      s.setFloat(31, _atlasCols.toDouble());
+      s.setFloat(32, _atlasRows.toDouble());
+      s.setFloat(33, 0.0);
+      s.setFloat(34, 0.0);
+
+      s.setFloat(35, _varOffset[Biome.snow]!.toDouble());
+      s.setFloat(36, _varOffset[Biome.grass]!.toDouble());
+      s.setFloat(37, _varOffset[Biome.rock]!.toDouble());
+      s.setFloat(38, _varOffset[Biome.forest]!.toDouble());
+      s.setFloat(39, _varOffset[Biome.flower]!.toDouble());
+      s.setFloat(40, _varOffset[Biome.shallow]!.toDouble());
+      s.setFloat(41, _varOffset[Biome.beach]!.toDouble());
+      s.setFloat(42, _varOffset[Biome.volcanic]!.toDouble());
+
+      s.setFloat(43, _varCount[Biome.snow]!.toDouble());
+      s.setFloat(44, _varCount[Biome.grass]!.toDouble());
+      s.setFloat(45, _varCount[Biome.rock]!.toDouble());
+      s.setFloat(46, _varCount[Biome.forest]!.toDouble());
+      s.setFloat(47, _varCount[Biome.flower]!.toDouble());
+      s.setFloat(48, _varCount[Biome.shallow]!.toDouble());
+      s.setFloat(49, _varCount[Biome.beach]!.toDouble());
+      s.setFloat(50, _varCount[Biome.volcanic]!.toDouble());
+
+      for (int i = 51; i <= 66; i++) { s.setFloat(i, 0.0); }
+
+      // ===== samplers（注意索引：perm1=0, perm2=1, perm3=2, atlasA=3）=====
+      s.setImageSampler(0, p1);
+      s.setImageSampler(1, p2);
+      s.setImageSampler(2, p3);
+      s.setImageSampler(3, a);
 
       _paint.shader = s;
       canvas.drawRect(rect, _paint);
-
-      if (debugLogUniforms && _logTimer >= 1.0) {
-        _logTimer = 0.0;
-        debugPrint('[FbmTerrainLayer] scale=$scale freq=$frequency oct=$octaves '
-            'lod=${useLodAdaptive?1:0} nyq=$lodNyquist base=(${baseX.toStringAsFixed(1)},${baseY.toStringAsFixed(1)}) '
-            'dbg=$debugLevel time=${_t.toStringAsFixed(2)}');
-      }
     } catch (e, st) {
-      debugPrint('[FbmTerrainLayer] set uniforms/samplers failed: $e\n$st');
+      debugPrint('[FbmTerrainLayer] render failed: $e\n$st');
       canvas.drawRect(rect, _fallback);
+    } finally {
+      _disposeRecycleBinIfAny();
     }
+  }
+
+  void _disposeRecycleBinIfAny() {
+    if (_recycleBin.isEmpty) return;
+    for (final img in _recycleBin) {
+      try { img.dispose(); } catch (_) {}
+    }
+    _recycleBin.clear();
   }
 
   @override
   void onRemove() {
-    _perm1?.dispose();
-    _perm2?.dispose();
-    _perm3?.dispose();
+    _disposeRecycleBinIfAny();
+
+    _perm1?.dispose(); _perm1 = null;
+    _perm2?.dispose(); _perm2 = null;
+    _perm3?.dispose(); _perm3 = null;
+
+    _atlas?.dispose(); _atlas = null;
+    _nextAtlas?.dispose(); _nextAtlas = null;
+    _placeholder?.dispose(); _placeholder = null;
+
     super.onRemove();
+  }
+
+  // ===== util =====
+  List<int> _makePerm(int seed) {
+    final rnd = math.Random(seed);
+    final list = List<int>.generate(256, (i) => i)..shuffle(rnd);
+    return list;
   }
 
   Future<ui.Image> _buildPermImage(List<int> perm) async {
@@ -207,37 +268,120 @@ class FbmTerrainLayer extends PositionComponent {
     final c = Canvas(recorder);
     for (int i = 0; i < 256; i++) {
       final v = perm[i].clamp(0, 255);
-      c.drawRect(
-        Rect.fromLTWH(i.toDouble(), 0, 1, 1),
-        Paint()..color = Color.fromARGB(0xFF, v, 0, 0),
-      );
+      c.drawRect(Rect.fromLTWH(i.toDouble(), 0, 1, 1),
+          Paint()..color = Color.fromARGB(0xFF, v, 0, 0));
     }
     final pic = recorder.endRecording();
     return pic.toImage(256, 1);
   }
 
-  // 便捷更新接口（保留；对纯色版无硬性影响）
-  void setOcean({
-    bool? enable,
-    double? seaLevel,
-    double? amp,
-    double? speed,
-    double? choppy,
-    double? sunThetaDegrees,
-    double? sunStrength,
-    double? foamWidth,
-    double? foamIntensity,
-  }) {
-    if (enable != null) oceanEnable = enable;
-    if (seaLevel != null) this.seaLevel = seaLevel;
-    if (amp != null) oceanAmp = amp;
-    if (speed != null) oceanSpeed = speed;
-    if (choppy != null) oceanChoppy = choppy;
-    if (sunThetaDegrees != null) {
-      sunTheta = sunThetaDegrees * math.pi / 180.0;
+  Future<ui.Image> _loadUiImageFromAsset(String assetPath) async {
+    final data = await rootBundle.load(assetPath);
+    final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+    final frame = await codec.getNextFrame();
+    return frame.image;
+  }
+
+  Future<ui.Image> _makeSolidImage(Color color, {int size = 2}) async {
+    final recorder = ui.PictureRecorder();
+    final c = Canvas(recorder);
+    c.drawRect(Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+        Paint()..color = color);
+    final pic = recorder.endRecording();
+    return pic.toImage(size, size);
+  }
+
+  Future<void> _buildAtlas() async {
+    try {
+      final perBiomePaths = <Biome, List<String>>{
+        Biome.snow:     snowPaths,
+        Biome.grass:    grassPaths,
+        Biome.rock:     rockPaths,
+        Biome.forest:   forestPaths,
+        Biome.flower:   flowerPaths,
+        Biome.shallow:  shallowPaths,
+        Biome.beach:    beachPaths,
+        Biome.volcanic: volcanicPaths,
+      };
+
+      final perBiomeImages = <Biome, List<ui.Image>>{
+        for (final b in Biome.values) b: <ui.Image>[],
+      };
+
+      for (final b in Biome.values) {
+        for (final p in perBiomePaths[b]!) {
+          try {
+            final img = await _loadUiImageFromAsset(p);
+            perBiomeImages[b]!.add(img);
+          } catch (_) {
+            debugPrint('[FbmTerrainLayer] skip bad asset: $p');
+          }
+        }
+      }
+
+      // offset/count
+      int acc = 0;
+      for (final b in Biome.values) {
+        final cnt = perBiomeImages[b]!.length;
+        _varOffset[b] = acc;
+        _varCount[b]  = cnt;
+        acc += cnt;
+      }
+      final total = acc;
+
+      if (total <= 0) {
+        _atlasCols = 1;
+        _atlasRows = 1;
+        return; // 保留占位图
+      }
+
+      // tile 尺寸取第一张
+      ui.Image? first;
+      for (final b in Biome.values) {
+        if (perBiomeImages[b]!.isNotEmpty) { first = perBiomeImages[b]!.first; break; }
+      }
+      final tileW = (first?.width  ?? 512);
+      final tileH = (first?.height ?? 512);
+
+      _atlasCols = math.max(1, math.sqrt(total).ceil());
+      _atlasRows = ((total + _atlasCols - 1) ~/ _atlasCols);
+
+      final atlasW = _atlasCols * tileW;
+      final atlasH = _atlasRows * tileH;
+
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, atlasW.toDouble(), atlasH.toDouble()),
+        Paint()..color = const Color(0xFF000000),
+      );
+
+      int i = 0;
+      for (final b in Biome.values) {
+        for (final img in perBiomeImages[b]!) {
+          final col = i % _atlasCols;
+          final row = i ~/ _atlasCols;
+          final dst = Rect.fromLTWH(
+            (col * tileW).toDouble(),
+            (row * tileH).toDouble(),
+            tileW.toDouble(),
+            tileH.toDouble(),
+          );
+          final src = Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
+          final paint = Paint()..filterQuality = FilterQuality.none;
+          canvas.drawImageRect(img, src, dst, paint);
+          i++;
+        }
+      }
+
+      final pic = recorder.endRecording();
+      final newAtlas = await pic.toImage(atlasW, atlasH);
+
+      // 不在这里 dispose 旧图！交给 render 的帧末处理
+      _nextAtlas = newAtlas;
+
+    } finally {
+      // no-op
     }
-    if (sunStrength != null) this.sunStrength = sunStrength;
-    if (foamWidth != null) this.foamWidth = foamWidth;
-    if (foamIntensity != null) this.foamIntensity = foamIntensity;
   }
 }

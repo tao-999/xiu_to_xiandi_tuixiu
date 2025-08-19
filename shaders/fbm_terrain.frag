@@ -1,11 +1,14 @@
 #include <flutter/runtime_effect.glsl>
 
-// ---------- uniforms (与 Dart setFloat 顺序一致) ----------
+// ====== 开关：先锁死海洋，确认无条纹再改回 0 ======
+#define FORCE_OCEAN 1
+
+// ===== 基础 uniforms（与 Dart setFloat 顺序一致） =====
 uniform vec2  uResolution;    // 0,1
 uniform vec2  uWorldTopLeft;  // 2,3
-uniform float uScale;         // 4 (px/world)
+uniform float uScale;         // 4
 uniform float uFreq;          // 5
-uniform float uTime;          // 6  // 目前未使用，但保留接口
+uniform float uTime;          // 6
 uniform float uOctaves;       // 7
 uniform float uPersistence;   // 8
 uniform float uSeed;          // 9
@@ -14,39 +17,89 @@ uniform float uLodEnable;     // 11
 uniform float uLodNyquist;    // 12
 uniform vec2  uWorldBase;     // 13,14
 
-// 海洋参数 15~23（接口保留，不参与渲染逻辑）
-uniform float uOceanEnable;   // 15
-uniform float uSeaLevel;      // 16
-uniform float uOceanAmp;      // 17
-uniform float uOceanSpeed;    // 18
-uniform float uOceanChoppy;   // 19
-uniform float uSunTheta;      // 20
-uniform float uSunStrength;   // 21
-uniform float uFoamWidth;     // 22
-uniform float uFoamIntensity; // 23
+// ===== 每个地形平铺周期 =====
+uniform float uPeriodSnow;     // 15
+uniform float uPeriodGrass;    // 16
+uniform float uPeriodRock;     // 17
+uniform float uPeriodForest;   // 18
+uniform float uPeriodFlower;   // 19
+uniform float uPeriodShallow;  // 20  <-- 海
+uniform float uPeriodBeach;    // 21
+uniform float uPeriodVolcanic; // 22
 
-uniform sampler2D uPerm1;     // 0
-uniform sampler2D uPerm2;     // 1
-uniform sampler2D uPerm3;     // 2
+// ===== 占位（保持索引） =====
+uniform float uTexModeSnow;     // 23
+uniform float uTexModeGrass;    // 24
+uniform float uTexModeRock;     // 25
+uniform float uTexModeForest;   // 26
+uniform float uTexModeFlower;   // 27
+uniform float uTexModeShallow;  // 28
+uniform float uTexModeBeach;    // 29
+uniform float uTexModeVolcanic; // 30
+
+// Atlas 网格（列、行）
+uniform vec2  uAtlasGrid;       // 31,32
+
+// A/B 混合控制（占位）
+uniform float uABBlend;         // 33
+uniform float uMixMode;         // 34
+
+// ===== 变体偏移/数量 =====
+uniform float uVarOffsetSnow;     // 35
+uniform float uVarOffsetGrass;    // 36
+uniform float uVarOffsetRock;     // 37
+uniform float uVarOffsetForest;   // 38
+uniform float uVarOffsetFlower;   // 39
+uniform float uVarOffsetShallow;  // 40
+uniform float uVarOffsetBeach;    // 41
+uniform float uVarOffsetVolcanic; // 42
+
+uniform float uVarCountSnow;      // 43
+uniform float uVarCountGrass;     // 44
+uniform float uVarCountRock;      // 45
+uniform float uVarCountForest;    // 46
+uniform float uVarCountFlower;    // 47
+uniform float uVarCountShallow;   // 48
+uniform float uVarCountBeach;     // 49
+uniform float uVarCountVolcanic;  // 50
+
+// ===== 区间（占位） =====
+uniform float uRangeMinSnow;      // 51
+uniform float uRangeMinGrass;     // 52
+uniform float uRangeMinRock;      // 53
+uniform float uRangeMinForest;    // 54
+uniform float uRangeMinFlower;    // 55
+uniform float uRangeMinShallow;   // 56
+uniform float uRangeMinBeach;     // 57
+uniform float uRangeMinVolcanic;  // 58
+uniform float uRangeMaxSnow;      // 59
+uniform float uRangeMaxGrass;     // 60
+uniform float uRangeMaxRock;      // 61
+uniform float uRangeMaxForest;    // 62
+uniform float uRangeMaxFlower;    // 63
+uniform float uRangeMaxShallow;   // 64
+uniform float uRangeMaxBeach;     // 65
+uniform float uRangeMaxVolcanic;  // 66
+
+// ===== samplers =====
+uniform sampler2D uPerm1;   // 0
+uniform sampler2D uPerm2;   // 1
+uniform sampler2D uPerm3;   // 2
+uniform sampler2D uAtlasA;  // 3
 
 out vec4 fragColor;
 
-// ---------- 常量 & 调色 ----------
-const float SAFE_SHIFT = 1048576.0;   // 2^20，用于 decorrelate
+// ===== 常量 =====
+const float SAFE_SHIFT = 1048576.0;
 const float INV_256    = 1.0/256.0;
 const int   MAX_OCT    = 8;
 
-// 与 Dart 端 _terrainDefs 顺序一致（0..7）
-const vec3 C0=vec3(0.937,0.937,0.937); // snow
-const vec3 C1=vec3(0.608,0.796,0.459); // grass
-const vec3 C2=vec3(0.427,0.416,0.373); // rock
-const vec3 C3=vec3(0.231,0.373,0.294); // forest
-const vec3 C4=vec3(0.800,0.757,0.608); // flower_field
-const vec3 C5=vec3(0.309,0.639,0.780); // shallow_ocean
-const vec3 C6=vec3(0.918,0.843,0.714); // beach
-const vec3 C7=vec3(0.494,0.231,0.231); // volcanic
+// ==== int helpers ====
+int imax(int a, int b) { return (a > b) ? a : b; }
+int imin(int a, int b) { return (a < b) ? a : b; }
+int iclamp(int x, int a, int b) { return imin(imax(x, a), b); }
 
-// ---------- Perlin fBm（与 CPU 三通道 decorrelate 一致） ----------
+// ===== fBm / Perlin =====
 float fade5(float t){ return t*t*t*(t*(t*6.0-15.0)+10.0); }
 float permAt1(float i){ float x=(floor(mod(i,256.0))+0.5)*INV_256; return texture(uPerm1, vec2(x,0.5)).r*255.0; }
 float permAt2(float i){ float x=(floor(mod(i,256.0))+0.5)*INV_256; return texture(uPerm2, vec2(x,0.5)).r*255.0; }
@@ -62,31 +115,27 @@ float gradDot(float h,float x,float y){
 float perlinX(vec2 p,int which){
   vec2 pf=floor(p), f=p-pf;
   float X=mod(pf.x,256.0), Y=mod(pf.y,256.0);
-  float pY =(which==1?permAt1(Y):which==2?permAt2(Y):permAt3(Y));
-  float pY1=(which==1?permAt1(Y+1.0):which==2?permAt2(Y+1.0):permAt3(Y+1.0));
-  float aa =(which==1?permAt1(X+pY):which==2?permAt2(X+pY):permAt3(X+pY));
-  float ab =(which==1?permAt1(X+pY1):which==2?permAt2(X+pY1):permAt3(X+pY1));
-  float ba =(which==1?permAt1(X+1.0+pY):which==2?permAt2(X+1.0+pY):permAt3(X+1.0+pY));
-  float bb =(which==1?permAt1(X+1.0+pY1):which==2?permAt2(X+1.0+pY1):permAt3(X+1.0+pY1));
+  float pY  = (which==1?permAt1(Y):which==2?permAt2(Y):permAt3(Y));
+  float pY1 = (which==1?permAt1(Y+1.0):which==2?permAt2(Y+1.0):permAt3(Y+1.0));
+  float aa  = (which==1?permAt1(X+pY)      :which==2?permAt2(X+pY)      :permAt3(X+pY));
+  float ab  = (which==1?permAt1(X+pY1)     :which==2?permAt2(X+pY1)     :permAt3(X+pY1));
+  float ba  = (which==1?permAt1(X+1.0+pY)  :which==2?permAt2(X+1.0+pY)  :permAt3(X+1.0+pY));
+  float bb  = (which==1?permAt1(X+1.0+pY1) :which==2?permAt2(X+1.0+pY1) :permAt3(X+1.0+pY1));
   float u=fade5(f.x), v=fade5(f.y);
-  float x1=mix(gradDot(aa,f.x,f.y),     gradDot(ba,f.x-1.0,f.y),     u);
-  float x2=mix(gradDot(ab,f.x,f.y-1.0), gradDot(bb,f.x-1.0,f.y-1.0), u);
+  float x1=mix(gradDot(aa,f.x,    f.y),     gradDot(ba,f.x-1.0,f.y),     u);
+  float x2=mix(gradDot(ab,f.x,    f.y-1.0), gradDot(bb,f.x-1.0,f.y-1.0), u);
   return mix(x1,x2,v);
 }
 
 float fbm_core(vec2 p,int oct,float freq,float pers,float pxPerWorld,float lodEnable,float lodNyquist,int ch){
   float total=0.0, amp=1.0, sumAmp=0.0, f=freq;
-  // worldBase 取模以实现“重基无缝”
   float period = 256.0 / f;
   vec2 pEff = p + mod(uWorldBase, vec2(period));
-
   for(int i=0;i<MAX_OCT;++i){
     float base=step(float(i),float(oct-1));
-    // 视距自适应：超 Nyquist 的 octave 直接跳过（减少采样）
     float span=f/pxPerWorld;
     float vis=mix(1.0, step(span,lodNyquist), lodEnable);
     float m=base*vis;
-
     float n=perlinX(pEff*f, ch);
     total+=n*amp*m; sumAmp+=amp*m;
     amp*=pers; f*=2.0;
@@ -97,68 +146,138 @@ float fbm1(vec2 p,int o,float fr,float pe,float s,float le,float ln){return fbm_
 float fbm2(vec2 p,int o,float fr,float pe,float s,float le,float ln){return fbm_core(p,o,fr,pe,s,le,ln,2);}
 float fbm3(vec2 p,int o,float fr,float pe,float s,float le,float ln){return fbm_core(p,o,fr,pe,s,le,ln,3);}
 
-// ---------- 行带亮度 & 调色 ----------
-float rowBrightness(float y){
-  float segment=200.0, group=100.0, range=0.10;
-  float block=floor(y/segment);
-  float local=mod(block,group);
-  float mir=(local<=group*0.5)?local:(group-local);
-  float stepv=range/(group*0.5);
-  return mir*stepv;
+// ===== period / 变体 =====
+float biomePeriod(int idx){
+  if (idx==0) return uPeriodSnow;
+  if (idx==1) return uPeriodGrass;
+  if (idx==2) return uPeriodRock;
+  if (idx==3) return uPeriodForest;
+  if (idx==4) return uPeriodFlower;
+  if (idx==5) return uPeriodShallow;  // 海
+  if (idx==6) return uPeriodBeach;
+  return uPeriodVolcanic;
 }
-vec3 pickPalette(int idx){
-  float fi=float(idx);
-  float w0=1.0-step(0.5,abs(fi-0.0));
-  float w1=1.0-step(0.5,abs(fi-1.0));
-  float w2=1.0-step(0.5,abs(fi-2.0));
-  float w3=1.0-step(0.5,abs(fi-3.0));
-  float w4=1.0-step(0.5,abs(fi-4.0));
-  float w5=1.0-step(0.5,abs(fi-5.0));
-  float w6=1.0-step(0.5,abs(fi-6.0));
-  float w7=1.0-step(0.5,abs(fi-7.0));
-  return C0*w0+C1*w1+C2*w2+C3*w3+C4*w4+C5*w5+C6*w6+C7*w7;
+float varOffset(int idx){
+  if (idx==0) return uVarOffsetSnow;
+  if (idx==1) return uVarOffsetGrass;
+  if (idx==2) return uVarOffsetRock;
+  if (idx==3) return uVarOffsetForest;
+  if (idx==4) return uVarOffsetFlower;
+  if (idx==5) return uVarOffsetShallow;
+  if (idx==6) return uVarOffsetBeach;
+  return uVarOffsetVolcanic;
+}
+float varCountF(int idx){
+  if (idx==0) return uVarCountSnow;
+  if (idx==1) return uVarCountGrass;
+  if (idx==2) return uVarCountRock;
+  if (idx==3) return uVarCountForest;
+  if (idx==4) return uVarCountFlower;
+  if (idx==5) return uVarCountShallow;
+  if (idx==6) return uVarCountBeach;
+  return uVarCountVolcanic;
 }
 
-// ---------- main（纯色渲染，性能优先） ----------
+// ====== 关键：在 fract 前计算导数 + 像素级护边 ======
+
+// 计算平铺 uv 及导数
+void tiledUVGrad(vec2 world, float period,
+out vec2 uv, out vec2 ddx, out vec2 ddy) {
+  float p = max(period, 1.0e-6);
+  vec2 unwrapped = (world + uWorldBase) / p; // 线性坐标
+  uv  = fract(unwrapped);
+  ddx = dFdx(unwrapped);
+  ddy = dFdy(unwrapped);
+}
+
+// 由 atlas 实际像素，算出“裁掉 N 像素边”的 inset（避免瓦片边缘被采样）
+vec2 insetFromPixels(vec2 grid, float px){
+  ivec2 asz = textureSize(uAtlasA, 0);       // atlas 像素
+  vec2  tilePx = vec2(asz) / max(grid, vec2(1.0));
+  vec2  inset  = vec2(px) / tilePx;          // 转 0..1
+  return clamp(inset, vec2(0.0), vec2(0.45));
+}
+
+// 用显式梯度采 atlas（彻底消条纹）
+vec3 sampleAtlasAGrad(vec2 baseUV, vec2 ddx, vec2 ddy, int tileIndex) {
+  vec2 grid = max(uAtlasGrid, vec2(1.0));
+  float cols = grid.x;
+  float fi   = float(tileIndex);
+  float col  = mod(fi, cols);
+  float row  = floor(fi / cols);
+
+  // 像素护边：裁掉每个瓦片四周 2px + 导数保护
+  vec2 insetPix  = insetFromPixels(grid, 2.0);
+  float deriv    = max(length(ddx), length(ddy));
+  vec2 inset     = insetPix + vec2(deriv * 2.0);
+
+  vec2 local     = baseUV * (1.0 - 2.0*inset) + inset;
+  vec2 dlocaldx  = ddx    * (1.0 - 2.0*inset);
+  vec2 dlocaldy  = ddy    * (1.0 - 2.0*inset);
+
+  vec2 uvAtlas   = (local + vec2(col, row)) / grid;
+  vec2 duvAdx    = dlocaldx / grid;
+  vec2 duvAdy    = dlocaldy / grid;
+
+  return textureGrad(uAtlasA, uvAtlas, duvAdx, duvAdy).rgb;
+}
+
+// ===== 统一采样入口 =====
+vec3 sampleBiome(int idx, vec2 world, float mixedValue){
+  int count = int(floor(max(varCountF(idx), 0.0)));
+  if (count <= 0) {
+    // 回退：没有贴图时给个纯蓝
+    return vec3(0.0, 0.5, 0.75);
+  }
+
+  // 简化：海洋不再用区间映射，直接依据 period 平铺（避免“区间误判”）
+  float period = biomePeriod(idx);
+  vec2 uv; vec2 ddx; vec2 ddy;
+  tiledUVGrad(world, max(period, 1.0e-6), uv, ddx, ddy);
+
+  // 变体选择：按世界整块 hash，避免同块内跳变
+  vec2 tileId = floor((world + uWorldBase) / max(period, 1.0e-6));
+  float h = fract(sin(dot(tileId, vec2(12.9898,78.233))) * 43758.5453);
+  int sub = int(floor(h * float(count)));                // 0..count-1
+
+  int baseIndex = int(floor(max(varOffset(idx), 0.0)));
+  int first = baseIndex;
+  int last  = baseIndex + imax(count - 1, 0);
+  int tileIndex = iclamp(baseIndex + sub, first, last);
+
+  return sampleAtlasAGrad(uv, ddx, ddy, tileIndex);
+}
+
+// ===== main =====
 void main(){
   vec2 frag=FlutterFragCoord().xy;
-  float pxPerWorld=max(uScale,1e-6);
+  float pxPerWorld=max(uScale,1.0e-6);
   vec2  world=uWorldTopLeft + frag/pxPerWorld;
 
-  // Debug 0：网格噪声预览
-  if(uDebug>0.5 && uDebug<1.5){ vec2 n=fract(world*0.01); fragColor=vec4(n,0.0,1.0); return; }
-
-  // Octave/LOD 参数
   int   oct=int(clamp(floor(uOctaves+0.5),1.0,float(MAX_OCT)));
   float per=clamp(uPersistence,0.2,0.9);
-  float f   =max(uFreq,1e-12);
+  float f   =max(uFreq,1.0e-12);
   float le  =(uLodEnable>0.5)?1.0:0.0;
-  float ln  =max(uLodNyquist,1e-6);
+  float ln  =max(uLodNyquist,1.0e-6);
 
-  // 与 Dart 完全一致的混合高度
+  // 仅为索引保留的 fBm，结果不直接用于上色
   float h1=(fbm1(world,                  oct,f,per,pxPerWorld,le,ln)+1.0)*0.5;
   float h2=(fbm2(world+vec2(SAFE_SHIFT), oct,f,per,pxPerWorld,le,ln)+1.0)*0.5;
   float h3=(fbm3(world-vec2(SAFE_SHIFT), oct,f,per,pxPerWorld,le,ln)+1.0)*0.5;
   float mixed=clamp(h1*0.4 + h2*0.3 + h3*0.3, 0.0, 1.0);
 
-  // idx 判定：与 Dart 一致（0..7；浅海=5）
+  // —— 群系选择 —— //
   int idx;
-  if (mixed < 0.40 || mixed > 0.60) {
-    idx = 5; // shallow_ocean
-  } else {
-    float norm = (mixed - 0.40) / 0.20; // 0..1
-    idx = int(clamp(floor(norm * 8.0), 0.0, 7.0));
+  #if FORCE_OCEAN
+  idx = 5; // 🔒 强制海洋，排除区间问题
+  #else
+  if (mixed < 0.40 || mixed > 0.60) { idx = 5; }     // 海
+  else {
+    float norm = (mixed - 0.40) / 0.20;
+    idx = int(clamp(floor(norm * 8.0), 0.0, 7.0));   // 其它八段
   }
+  #endif
 
-  // Debug 1：海 mask（白=idx==5）
-  if (uDebug > 2.5 && uDebug < 3.5) { fragColor = vec4(vec3(idx==5?1.0:0.0), 1.0); return; }
-  // Debug 2：idx 灰度预览（0..7）
-  if (uDebug > 3.5 && uDebug < 4.5) { fragColor = vec4(vec3(float(idx)/7.0), 1.0); return; }
-
-  // —— 纯色最终输出（含行带亮度），不做任何海浪/砂石/法线/高光等重特效 —— //
-  float bright=rowBrightness(world.y);
-  vec3 base = pickPalette(idx);
-  vec3 col  = clamp(base + vec3(bright), 0.0, 1.0);
-
-  fragColor = vec4(col, 1.0);
+  vec3 base = sampleBiome(idx, world, mixed);
+  fragColor = vec4(base, 1.0);
 }

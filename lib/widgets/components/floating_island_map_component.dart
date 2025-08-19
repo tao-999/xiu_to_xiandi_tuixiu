@@ -173,12 +173,12 @@ class FloatingIslandMapComponent extends FlameGame
     // 4) 仅用于“采样/逻辑”的地形生成器
     _noiseMapGenerator = NoiseTileMapGenerator(
       tileSize: 64.0,
-      smallTileSize: 8,
+      smallTileSize: 16,
       chunkPixelSize: 512,
       seed: seed,
-      frequency: 0.00005,
-      octaves: 7,
-      persistence: 0.7,
+      frequency: 0.0001,
+      octaves: 9,
+      persistence: 0.6,
       getWorldBase: () => worldBase,
     );
 
@@ -193,40 +193,29 @@ class FloatingIslandMapComponent extends FlameGame
     final ng = _noiseMapGenerator!;
     final clampedOct = ng.octaves < 1 ? 1 : (ng.octaves > 8 ? 8 : ng.octaves);
     _fbmLayer = FbmTerrainLayer(
-      // —— 视图&相机 —— //
-      getViewSize:      () => size,           // 屏幕像素
-      getViewScale:     () => 1.0,      // 你的缩放（例如 1.0 或相机缩放）
-      getLogicalOffset: () => logicalOffset,  // 世界相机中心（局部）
-      getWorldBase:     () => worldBase,      // 让大地图滚动绝对无缝
+      getViewSize: () => size,
+      getViewScale: () => 1.0,
+      getLogicalOffset: () => logicalOffset,
+      getWorldBase: () => worldBase,
 
-      // —— fBm 参数（用你现有数值）——
-      frequency:   ng.frequency,
-      octaves:     clampedOct,
+      frequency: ng.frequency,
+      octaves: clampedOct,
       persistence: ng.persistence,
-      seed:        ng.seed,
-
-      // 动画打开，uTime 才会走
+      seed: ng.seed,
       animate: true,
 
-      // LOD（保留你原逻辑）
-      useLodAdaptive: true,
-      lodNyquist:     0.5,
-
-      // —— 海面参数（关键，不会强制全屏海）——
-      oceanEnable: true,
-      seaLevel: 0.43,
-      oceanAmp: 2.2,
-      oceanSpeed: 1.55,
-      oceanChoppy: 0.6,
-      sunStrength: 0.55,
-      foamWidth: 0.2,
-      foamIntensity: 1.20,
-
-      // 方便核对是否喂到 15~23 号 uniform
-      debugLogUniforms: false,
-
+      // 只传纹理列表：N 张 => 区间均分 N 份，frag 选其中一张（无混合）
+      grassPaths:  ['assets/textures/grass01.webp','assets/textures/grass02.webp','assets/textures/grass03.webp'],
+      rockPaths:   ['assets/textures/rock01.webp','assets/textures/rock02.webp'],
+      forestPaths: ['assets/textures/forest01.webp','assets/textures/forest02.webp','assets/textures/forest03.webp'],
+      beachPaths: ['assets/textures/beach01.webp'],
+      flowerPaths: ['assets/textures/flower01.webp','assets/textures/flower02.webp','assets/textures/flower03.webp'],
+      snowPaths: ['assets/textures/snow01.webp'],
+      volcanicPaths: ['assets/textures/volcanic01.webp'],
+      shallowPaths: ['assets/textures/shallow01.webp'],
       priority: -10000,
     );
+
     add(_fbmLayer!);
 
     // 7) 拖拽/点击交互（逻辑不变）
