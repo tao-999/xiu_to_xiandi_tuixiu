@@ -5,7 +5,7 @@
 import 'package:flame/components.dart';
 
 // 固定比例
-const double kPxPerMeter = 24.0;
+const double kPxPerMeter = 12.0;
 
 // 1 光年（米）
 const double _M_PER_LY = 9.4607304725808e15;
