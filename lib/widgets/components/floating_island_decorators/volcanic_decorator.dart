@@ -37,7 +37,6 @@ class VolcanicDecorator extends Component {
         staticSpritesMap: {
           'volcanic': [
             StaticSpriteEntry('floating_island/volcanic_1.png', 1),
-            StaticSpriteEntry('floating_island/volcanic_2.png', 3),
             StaticSpriteEntry('floating_island/volcanic_3.png', 1, priority: 0),
             StaticSpriteEntry('floating_island/volcanic_4.png', 1, priority: 0),
           ],
@@ -46,6 +45,30 @@ class VolcanicDecorator extends Component {
         seed: seed,
         minSize: 32.0,
         maxSize: 64.0,
+        minCount: 1,
+        maxCount: 2,
+      ),
+    );
+
+    add(
+      FloatingIslandStaticSpawnerComponent(
+        grid: grid,
+        getLogicalOffset: getLogicalOffset,
+        getViewSize: getViewSize,
+        getTerrainType: (pos) =>
+            noiseMapGenerator.getTerrainTypeAtPosition(pos),
+        allowedTerrains: {'volcanic'},
+        staticSpritesMap: {
+          'volcanic': [
+            StaticSpriteEntry('floating_island/volcanic_2.png', 3),
+          ],
+        },
+        staticTileSize: 126.0,
+        seed: seed,
+        minSize: 50.0,
+        maxSize: 64.0,
+        minCount: 2,
+        maxCount: 6,
       ),
     );
 
@@ -61,9 +84,9 @@ class VolcanicDecorator extends Component {
         allowedTerrains: {'volcanic'},
         dynamicSpritesMap: {
           'volcanic': [
-            DynamicSpriteEntry('floating_island/volcanic_d_1.png', 1),
-            DynamicSpriteEntry('floating_island/volcanic_d_2.png', 1),
-            DynamicSpriteEntry('floating_island/volcanic_d_3.png', 1),
+            DynamicSpriteEntry('floating_island/volcanic_d_1.png', 1, priority: 9999),
+            DynamicSpriteEntry('floating_island/volcanic_d_2.png', 1, priority: 9999),
+            DynamicSpriteEntry('floating_island/volcanic_d_3.png', 1, priority: 9999),
           ],
         },
         dynamicTileSize: 128.0,
@@ -88,7 +111,7 @@ class VolcanicDecorator extends Component {
         allowedTerrains: {'volcanic'},
         dynamicSpritesMap: {
           'volcanic': [
-            DynamicSpriteEntry('jinkuang.png', 1, type: 'jinkuang'),
+            DynamicSpriteEntry('jinkuang.png', 1, type: 'jinkuang', priority: 9999),
           ],
         },
         dynamicTileSize: 545.0,

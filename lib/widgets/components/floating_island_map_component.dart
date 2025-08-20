@@ -177,7 +177,7 @@ class FloatingIslandMapComponent extends FlameGame
       chunkPixelSize: 512,
       seed: seed,
       frequency: 0.0001,
-      octaves: 9,
+      octaves: 8,
       persistence: 0.6,
       getWorldBase: () => worldBase,
     );
@@ -191,7 +191,6 @@ class FloatingIslandMapComponent extends FlameGame
 
     // 6) GPU 背景：与 CPU 参数一致（octaves 夹到 8）
     final ng = _noiseMapGenerator!;
-    final clampedOct = ng.octaves < 1 ? 1 : (ng.octaves > 8 ? 8 : ng.octaves);
     _fbmLayer = FbmTerrainLayer(
       getViewSize: () => size,
       getViewScale: () => 1.0,
@@ -199,19 +198,19 @@ class FloatingIslandMapComponent extends FlameGame
       getWorldBase: () => worldBase,
 
       frequency: ng.frequency,
-      octaves: clampedOct,
+      octaves: ng.octaves,
       persistence: ng.persistence,
       seed: ng.seed,
       animate: true,
 
       // 只传纹理列表：N 张 => 区间均分 N 份，frag 选其中一张（无混合）
       grassPaths:  ['assets/textures/grass01.webp','assets/textures/grass02.webp','assets/textures/grass03.webp'],
-      rockPaths:   ['assets/textures/rock01.webp','assets/textures/rock02.webp'],
+      rockPaths:   ['assets/textures/rock01.webp','assets/textures/rock02.webp','assets/textures/rock03.webp'],
       forestPaths: ['assets/textures/forest01.webp','assets/textures/forest02.webp','assets/textures/forest03.webp'],
       beachPaths: ['assets/textures/beach01.webp'],
       flowerPaths: ['assets/textures/flower01.webp','assets/textures/flower02.webp','assets/textures/flower03.webp'],
-      snowPaths: ['assets/textures/snow01.webp'],
-      volcanicPaths: ['assets/textures/volcanic01.webp'],
+      snowPaths: ['assets/textures/snow01.webp','assets/textures/snow02.webp','assets/textures/snow03.webp'],
+      volcanicPaths: ['assets/textures/volcanic01.webp','assets/textures/volcanic02.webp'],
       shallowPaths: ['assets/textures/shallow01.webp'],
       priority: -10000,
     );
