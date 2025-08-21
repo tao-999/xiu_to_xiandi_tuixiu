@@ -57,9 +57,9 @@ uniform float uTexModeVolcanic; // 30
 // Atlas 网格（列、行）
 uniform vec2  uAtlasGrid;       // 31,32
 
-// A/B 混合控制（占位）
-uniform float uABBlend;         // 33
-uniform float uMixMode;         // 34
+// A/B 混合控制（占位）→ 这里借来传 Atlas 像素宽高（替代 textureSize）
+uniform float uABBlend;         // 33 -> atlasWidth(px)
+uniform float uMixMode;         // 34 -> atlasHeight(px)
 
 // ===== 变体偏移/数量 =====
 uniform float uVarOffsetSnow;     // 35
@@ -110,6 +110,7 @@ out vec4 fragColor;
 const float SAFE_SHIFT = 1048576.0;
 const float INV_256    = 1.0/256.0;
 const int   MAX_OCT    = 8;
+const float ATLAS_PAD_PX = 2.0;
 
 // ==== int helpers ====
 int imax(int a, int b) { return (a > b) ? a : b; }
@@ -195,22 +196,25 @@ float varCountF(int idx){
   return uVarCountVolcanic;
 }
 
-// ===== UV/导数：平铺 & 护边 =====
+// ===== UV/导数：平铺 & 护边（SkSL 不支持导数 → 置零） =====
 void tiledUVGrad(vec2 world, float period, out vec2 uv, out vec2 ddx, out vec2 ddy) {
   float p = max(period, 1.0e-6);
   vec2 unwrapped = (world + uWorldBase) / p; // tile-space
   uv  = fract(unwrapped);
-  ddx = dFdx(unwrapped);
-  ddy = dFdy(unwrapped);
+  ddx = vec2(0.0); // dFdx(unwrapped);
+  ddy = vec2(0.0); // dFdy(unwrapped);
 }
 
+// 用占位 33/34 传 atlas 像素宽高（替代 textureSize）
 vec2 insetFromPixels(vec2 grid, float px){
-  ivec2 asz = textureSize(uAtlasA, 0);
-  vec2  tilePx = vec2(asz) / max(grid, vec2(1.0));
+  vec2 atlasPx = vec2(uABBlend, uMixMode);  // 33=width, 34=height
+  atlasPx = max(atlasPx, vec2(256.0));      // 兜底，避免 0
+  vec2  tilePx = atlasPx / max(grid, vec2(1.0));
   vec2  inset  = vec2(px) / tilePx;
   return clamp(inset, vec2(0.0), vec2(0.45));
 }
 
+// 名字保留 sampleAtlasAGrad，但内部用普通 texture（SkSL 无 textureGrad）
 vec3 sampleAtlasAGrad(vec2 baseUV, vec2 ddx, vec2 ddy, int tileIndex) {
   vec2 grid = max(uAtlasGrid, vec2(1.0));
   float cols = grid.x;
@@ -218,96 +222,84 @@ vec3 sampleAtlasAGrad(vec2 baseUV, vec2 ddx, vec2 ddy, int tileIndex) {
   float col  = mod(fi, cols);
   float row  = floor(fi / cols);
 
-  // 护边：每瓦片四周裁 2px + 导数补偿
-  vec2 insetPix  = insetFromPixels(grid, 2.0);
-  float deriv    = max(length(ddx), length(ddy));
-  vec2 inset     = insetPix + vec2(deriv * 2.0);
+  // 单元格像素（含边框）
+  vec2 atlasPx = max(vec2(uABBlend, uMixMode), vec2(1.0));
+  vec2 cellPx  = atlasPx / grid;
+  vec2 padNrm  = vec2(ATLAS_PAD_PX) / cellPx;     // 归一化边框
 
-  vec2 local     = baseUV * (1.0 - 2.0*inset) + inset;
-  vec2 dlocaldx  = ddx    * (1.0 - 2.0*inset);
-  vec2 dlocaldy  = ddy    * (1.0 - 2.0*inset);
+  // 将 [0,1] 的 tile-UV 映射到“单元格内内容区”
+  // 注意：这里不是“再裁一次边”，而是**恰好剔除掉挤出的 2px 边框**，内容仍然完整 0..1 周期
+  vec2 local = mix(padNrm, 1.0 - padNrm, baseUV);
 
-  vec2 uvAtlas   = (local + vec2(col, row)) / grid;
-  vec2 duvAdx    = dlocaldx / grid;
-  vec2 duvAdy    = dlocaldy / grid;
-
-  return textureGrad(uAtlasA, uvAtlas, duvAdx, duvAdy).rgb;
+  vec2 uvAtlas = (local + vec2(col, row)) / grid;
+  return texture(uAtlasA, uvAtlas).rgb;
 }
 
-// ======== 海洋专用：双层滚动 + 流向扭曲（就地动画） ========
+// ======== 海洋专用：双层滚动 + 流向扭曲（就地动画；导数置零） ========
 struct LayerUV { vec2 uv; vec2 ddx; vec2 ddy; };
 
-// 在 tile-space 中计算两层滚动 + 扭曲；扭曲依赖 tile-space + 时间（不是纯色）
 LayerUV oceanLayerUV(vec2 world, float period, vec2 scroll, float amp, vec2 freq, vec2 speed) {
   float p = max(period, 1.0e-6);
 
-  // 1) 进入 tile 空间并加入滚动（滚动 = 每秒滚动多少个 tile）
   vec2 s = (world + uWorldBase) / p + scroll * uTime; // tile-space 坐标
   vec2 uv = fract(s);
-  vec2 dsdx = dFdx(s);
-  vec2 dsdy = dFdy(s);
 
-  // 2) 生成“流向”扭曲（随时间变化），用两组相位叠加
   float phx = TAU * (freq.x * s.x + 0.7 * s.y) + speed.x * uTime;
   float phy = TAU * (0.8 * s.x + freq.y * s.y) + speed.y * uTime;
   vec2  warp = amp * vec2(sin(phx), cos(phy));
 
-  // 3) 提供扭曲后的导数（链式法则）
-  vec2 dphx_ds = TAU * vec2(freq.x, 0.7);
-  vec2 dphy_ds = TAU * vec2(0.8,    freq.y);
-
-  // J = ∂warp/∂s
-  vec2 dw_ds_x = amp * vec2( cos(phx)*dphx_ds.x, -sin(phy)*dphy_ds.x );
-  vec2 dw_ds_y = amp * vec2( cos(phx)*dphx_ds.y, -sin(phy)*dphy_ds.y );
-
-  vec2 dlocaldx = dsdx + vec2( dw_ds_x.x*dsdx.x + dw_ds_y.x*dsdx.y,
-  dw_ds_x.y*dsdx.x + dw_ds_y.y*dsdx.y );
-  vec2 dlocaldy = dsdy + vec2( dw_ds_x.x*dsdy.x + dw_ds_y.x*dsdy.y,
-  dw_ds_x.y*dsdy.x + dw_ds_y.y*dsdy.y );
-
   LayerUV outv;
   outv.uv  = fract(uv + warp);
-  outv.ddx = dlocaldx;
-  outv.ddy = dlocaldy;
+  outv.ddx = vec2(0.0); // 原本 dFdx 链式法则，这里统一置零
+  outv.ddy = vec2(0.0);
   return outv;
 }
 
-// ===== 统一采样入口（对海洋做动画，其他静态） =====
+// ===== 二次均分：同一地形的概率区间 → 均分到该地形的 N 张纹理 =====
 vec3 sampleBiome(int idx, vec2 world, float mixedValue){
   int count = int(floor(max(varCountF(idx), 0.0)));
   if (count <= 0) return vec3(0.0, 0.5, 0.75);
 
   float period = biomePeriod(idx);
+  float p = max(period, 1.0e-6);
 
-  // 变体选择（稳定不抖）
-  vec2 tileId = floor((world + uWorldBase) / max(period, 1.0e-6));
-  float h = fract(sin(dot(tileId, vec2(12.9898,78.233))) * 43758.5453);
-  int sub = int(floor(h * float(count))); // 0..count-1
+  // 1) 把 "mixedValue" 映射到【当前地形的本地 0..1 概率轴】localT
+  float localT;
+  if (idx == 5) {
+    // 海洋是两段并集：[0,0.40) 和 (0.60,1.0]，各占 40%。
+    // 折叠到同一个 [0,1) 区间保证均匀：
+    if (mixedValue < 0.40) localT = mixedValue / 0.40;               // 0..1
+    else                   localT = (mixedValue - 0.60) / 0.40;       // 0..1
+  } else {
+    // 非海洋：直接把中间带 [0.40, 0.60] 压成本地 [0,1)
+    localT = (mixedValue - 0.40) / 0.20;                              // 可能越界
+  }
+  localT = clamp(localT, 0.0, 1.0 - 1e-6);
+
+  // 2) 二次均分：[0,1) 均分为 count 段，落在哪段就用第几张纹理
+  float k  = localT * float(count);
+  int   sub = int(floor(k));                       // 0..count-1
 
   int baseIndex = int(floor(max(varOffset(idx), 0.0)));
   int first = baseIndex;
   int last  = baseIndex + imax(count - 1, 0);
-  int tileIndexA = iclamp(baseIndex + sub, first, last);
-  int tileIndexB = (count >= 2) ? iclamp(baseIndex + ((sub + 1) % count), first, last) : tileIndexA;
+  int tileIndex = iclamp(baseIndex + sub, first, last);
 
+  // 3) 采样——非海洋静态平铺，海洋维持双层滚动扭曲（两层同一张索引，保证概率不乱）
   if (idx == 5) {
-    // —— Layer A —— //
-    LayerUV A = oceanLayerUV(world, period, OCEAN_SCROLL_A, OCEAN_WARP_AMP_A, OCEAN_WARP_FREQ_A, OCEAN_WARP_SPEED_A);
-    vec3 colA = sampleAtlasAGrad(A.uv, A.ddx, A.ddy, tileIndexA);
-
-    // —— Layer B —— //
-    LayerUV B = oceanLayerUV(world, period, OCEAN_SCROLL_B, OCEAN_WARP_AMP_B, OCEAN_WARP_FREQ_B, OCEAN_WARP_SPEED_B);
-    vec3 colB = sampleAtlasAGrad(B.uv, B.ddx, B.ddy, tileIndexB);
-
-    // —— 动态混合（轻微呼吸感），不改贴图能量 —— //
-    float w = 0.5 + clamp(OCEAN_BLEND_WOBBLE, 0.0, 0.5) * sin(uTime * 0.7 + dot(tileId, vec2(0.1, -0.07)));
-    return mix(colA, colB, w);
+    LayerUV A = oceanLayerUV(world, p, OCEAN_SCROLL_A, OCEAN_WARP_AMP_A, OCEAN_WARP_FREQ_A, OCEAN_WARP_SPEED_A);
+    LayerUV B = oceanLayerUV(world, p, OCEAN_SCROLL_B, OCEAN_WARP_AMP_B, OCEAN_WARP_FREQ_B, OCEAN_WARP_SPEED_B);
+    vec3 colA = sampleAtlasAGrad(A.uv, A.ddx, A.ddy, tileIndex);
+    vec3 colB = sampleAtlasAGrad(B.uv, B.ddx, B.ddy, tileIndex);
+    vec2 tileId = floor((world + uWorldBase) / p); // 只用于呼吸相位
+    float wob = 0.5 + clamp(OCEAN_BLEND_WOBBLE, 0.0, 0.5)
+    * sin(uTime * 0.7 + dot(tileId, vec2(0.1, -0.07)));
+    return mix(colA, colB, wob);
+  } else {
+    vec2 uv, ddx, ddy;
+    tiledUVGrad(world, p, uv, ddx, ddy);
+    return sampleAtlasAGrad(uv, ddx, ddy, tileIndex);
   }
-
-  // 非海洋：静态
-  vec2 uv, ddx, ddy;
-  tiledUVGrad(world, max(period, 1.0e-6), uv, ddx, ddy);
-  return sampleAtlasAGrad(uv, ddx, ddy, tileIndexA);
 }
 
 // ===== main（你的群系选择保持不变） =====

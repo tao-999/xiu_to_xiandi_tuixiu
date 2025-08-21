@@ -194,8 +194,8 @@ class FbmTerrainLayer extends PositionComponent {
 
       s.setFloat(31, _atlasCols.toDouble());
       s.setFloat(32, _atlasRows.toDouble());
-      s.setFloat(33, 0.0);
-      s.setFloat(34, 0.0);
+      s.setFloat(33, a.width.toDouble());
+      s.setFloat(34, a.height.toDouble());
 
       s.setFloat(35, _varOffset[Biome.snow]!.toDouble());
       s.setFloat(36, _varOffset[Biome.grass]!.toDouble());
@@ -292,96 +292,103 @@ class FbmTerrainLayer extends PositionComponent {
   }
 
   Future<void> _buildAtlas() async {
+    const int pad = 2; // 每边挤出像素
     try {
       final perBiomePaths = <Biome, List<String>>{
-        Biome.snow:     snowPaths,
-        Biome.grass:    grassPaths,
-        Biome.rock:     rockPaths,
-        Biome.forest:   forestPaths,
-        Biome.flower:   flowerPaths,
-        Biome.shallow:  shallowPaths,
-        Biome.beach:    beachPaths,
-        Biome.volcanic: volcanicPaths,
+        Biome.snow: snowPaths, Biome.grass: grassPaths, Biome.rock: rockPaths,
+        Biome.forest: forestPaths, Biome.flower: flowerPaths, Biome.shallow: shallowPaths,
+        Biome.beach: beachPaths, Biome.volcanic: volcanicPaths,
       };
-
       final perBiomeImages = <Biome, List<ui.Image>>{
         for (final b in Biome.values) b: <ui.Image>[],
       };
 
+      // 载入
       for (final b in Biome.values) {
         for (final p in perBiomePaths[b]!) {
-          try {
-            final img = await _loadUiImageFromAsset(p);
-            perBiomeImages[b]!.add(img);
-          } catch (_) {
-            debugPrint('[FbmTerrainLayer] skip bad asset: $p');
-          }
+          try { perBiomeImages[b]!.add(await _loadUiImageFromAsset(p)); }
+          catch (_) { debugPrint('[FbmTerrainLayer] skip bad asset: $p'); }
         }
       }
 
-      // offset/count
-      int acc = 0;
-      for (final b in Biome.values) {
-        final cnt = perBiomeImages[b]!.length;
-        _varOffset[b] = acc;
-        _varCount[b]  = cnt;
-        acc += cnt;
+      // 选主流尺寸（只示范：你也可以强制只用同尺寸资源）
+      final Map<String,(int w,int h,int cnt)> sizeCount = {};
+      for (final b in Biome.values) for (final img in perBiomeImages[b]!) {
+        final k='${img.width}x${img.height}';
+        final v=sizeCount[k]; sizeCount[k]=(img.width,img.height,(v==null?0:v.$3)+1);
       }
+      if (sizeCount.isEmpty) { _atlasCols=1; _atlasRows=1; return; }
+      final dom = sizeCount.values.reduce((a,b)=>a.$3>=b.$3?a:b);
+      final tileW=dom.$1, tileH=dom.$2;
+
+      // 过滤非主流尺寸
+      for (final b in Biome.values) {
+        perBiomeImages[b] = perBiomeImages[b]!.where((im)=>im.width==tileW && im.height==tileH).toList();
+      }
+
+      // 重新计算 offset/count
+      int acc=0;
+      for (final b in Biome.values) { _varOffset[b]=acc; _varCount[b]=perBiomeImages[b]!.length; acc+=_varCount[b]!; }
       final total = acc;
-
-      if (total <= 0) {
-        _atlasCols = 1;
-        _atlasRows = 1;
-        return; // 保留占位图
-      }
-
-      // tile 尺寸取第一张
-      ui.Image? first;
-      for (final b in Biome.values) {
-        if (perBiomeImages[b]!.isNotEmpty) { first = perBiomeImages[b]!.first; break; }
-      }
-      final tileW = (first?.width  ?? 512);
-      final tileH = (first?.height ?? 512);
+      if (total<=0){ _atlasCols=1; _atlasRows=1; return; }
 
       _atlasCols = math.max(1, math.sqrt(total).ceil());
       _atlasRows = ((total + _atlasCols - 1) ~/ _atlasCols);
 
-      final atlasW = _atlasCols * tileW;
-      final atlasH = _atlasRows * tileH;
+      // ★ 单元格尺寸= tile + 2*pad（左右上下）
+      final cellW = tileW + pad*2;
+      final cellH = tileH + pad*2;
+      final atlasW = _atlasCols * cellW;
+      final atlasH = _atlasRows * cellH;
 
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, atlasW.toDouble(), atlasH.toDouble()),
-        Paint()..color = const Color(0xFF000000),
-      );
+      final rec = ui.PictureRecorder();
+      final canvas = Canvas(rec);
+      canvas.drawRect(Rect.fromLTWH(0,0,atlasW.toDouble(),atlasH.toDouble()),
+          Paint()..color=const Color(0xFF000000));
 
-      int i = 0;
+      int i=0;
+      final p = Paint()..filterQuality=FilterQuality.none;
+
       for (final b in Biome.values) {
         for (final img in perBiomeImages[b]!) {
-          final col = i % _atlasCols;
-          final row = i ~/ _atlasCols;
-          final dst = Rect.fromLTWH(
-            (col * tileW).toDouble(),
-            (row * tileH).toDouble(),
-            tileW.toDouble(),
-            tileH.toDouble(),
-          );
-          final src = Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble());
-          final paint = Paint()..filterQuality = FilterQuality.none;
-          canvas.drawImageRect(img, src, dst, paint);
+          final col=i % _atlasCols, row=i ~/ _atlasCols;
+          final originX = col*cellW, originY = row*cellH;
+
+          // 中心
+          final dstInner = Rect.fromLTWH((originX+pad).toDouble(), (originY+pad).toDouble(),
+              tileW.toDouble(), tileH.toDouble());
+          canvas.drawImageRect(img, Rect.fromLTWH(0,0,tileW.toDouble(),tileH.toDouble()), dstInner, p);
+
+          // 上下边条（复制 1px 拉伸到 pad）
+          canvas.drawImageRect(img, Rect.fromLTWH(0,0,tileW.toDouble(),1),
+              Rect.fromLTWH((originX+pad).toDouble(), originY.toDouble(), tileW.toDouble(), pad.toDouble()), p);
+          canvas.drawImageRect(img, Rect.fromLTWH(0,(tileH-1).toDouble(),tileW.toDouble(),1),
+              Rect.fromLTWH((originX+pad).toDouble(), (originY+pad+tileH).toDouble(), tileW.toDouble(), pad.toDouble()), p);
+
+          // 左右边条
+          canvas.drawImageRect(img, Rect.fromLTWH(0,0,1,tileH.toDouble()),
+              Rect.fromLTWH(originX.toDouble(), (originY+pad).toDouble(), pad.toDouble(), tileH.toDouble()), p);
+          canvas.drawImageRect(img, Rect.fromLTWH((tileW-1).toDouble(),0,1,tileH.toDouble()),
+              Rect.fromLTWH((originX+pad+tileW).toDouble(), (originY+pad).toDouble(), pad.toDouble(), tileH.toDouble()), p);
+
+          // 四角
+          canvas.drawImageRect(img, Rect.fromLTWH(0,0,1,1),
+              Rect.fromLTWH(originX.toDouble(), originY.toDouble(), pad.toDouble(), pad.toDouble()), p);
+          canvas.drawImageRect(img, Rect.fromLTWH((tileW-1).toDouble(),0,1,1),
+              Rect.fromLTWH((originX+pad+tileW).toDouble(), originY.toDouble(), pad.toDouble(), pad.toDouble()), p);
+          canvas.drawImageRect(img, Rect.fromLTWH(0,(tileH-1).toDouble(),1,1),
+              Rect.fromLTWH(originX.toDouble(), (originY+pad+tileH).toDouble(), pad.toDouble(), pad.toDouble()), p);
+          canvas.drawImageRect(img, Rect.fromLTWH((tileW-1).toDouble(),(tileH-1).toDouble(),1,1),
+              Rect.fromLTWH((originX+pad+tileW).toDouble(), (originY+pad+tileH).toDouble(), pad.toDouble(), pad.toDouble()), p);
+
           i++;
         }
       }
 
-      final pic = recorder.endRecording();
+      final pic = rec.endRecording();
       final newAtlas = await pic.toImage(atlasW, atlasH);
-
-      // 不在这里 dispose 旧图！交给 render 的帧末处理
-      _nextAtlas = newAtlas;
-
-    } finally {
-      // no-op
-    }
+      _nextAtlas = newAtlas; // 帧首交换
+    } finally {}
   }
+
 }
