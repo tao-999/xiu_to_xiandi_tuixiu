@@ -3,6 +3,8 @@
 一款修仙题材的游戏项目：从凡人一路修炼到仙帝，再到最终的“退休”人生。
 
 ![9月7日 (1)](https://github.com/user-attachments/assets/15c87f9a-762a-404c-be1f-eb58c8281b72)
+![wechat_2025-09-07_113204_623](https://github.com/user-attachments/assets/bd1c862b-7397-4798-85b6-374913041909)
+
 
 ## ✨ 项目简介
 
