@@ -2,7 +2,8 @@
 
 一款修仙题材的游戏项目：从凡人一路修炼到仙帝，再到最终的“退休”人生。
 
-![Uploading 9月7日.gif…]()
+![9月7日](https://github.com/user-attachments/assets/7039d867-f299-4d29-a933-8d8282bcf844)
+
 
 ## ✨ 项目简介
 本项目定位为 **修仙模拟 / RPG**，核心目标：
